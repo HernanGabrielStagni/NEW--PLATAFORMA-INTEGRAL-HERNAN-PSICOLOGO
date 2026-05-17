@@ -32,6 +32,9 @@
     <!-- ═══════════════════════════════════════ -->
     <!-- VARIABLES CSS + ESTILOS BASE           -->
     <!-- ═══════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════ -->
+    <!-- VARIABLES CSS + ESTILOS BASE           -->
+    <!-- ═══════════════════════════════════════ -->
     <style>
       /* ── PALETA DE COLORES ── */
       :root {
@@ -1656,73 +1659,136 @@
         border-spacing: 0;
       }
       .tbl thead {
-        filter: drop-shadow(0 5px 18px rgba(30,61,43,.45));
+        filter: drop-shadow(0 5px 18px rgba(30, 61, 43, 0.45));
       }
       /* Shimmer dorado deslizante: capa superior del background se mueve desde -100% → 0 en hover */
       .tbl thead th {
         position: relative;
         background:
-          linear-gradient(90deg, rgba(200,146,42,.22) 0%, rgba(200,146,42,.08) 55%, transparent 100%) no-repeat -100% 0 / 100% 100%,
+          linear-gradient(
+              90deg,
+              rgba(200, 146, 42, 0.22) 0%,
+              rgba(200, 146, 42, 0.08) 55%,
+              transparent 100%
+            )
+            no-repeat -100% 0 / 100% 100%,
           linear-gradient(172deg, #253f2f 0%, #1c3326 50%, #152b1f 100%);
-        color: rgba(255,255,255,.58);
+        color: rgba(255, 255, 255, 0.58);
         font-family: var(--mono);
         font-weight: 500;
         font-size: 9.5px;
         text-transform: uppercase;
-        letter-spacing: .13em;
+        letter-spacing: 0.13em;
         padding: 15px 16px;
         text-align: left;
-        border-top: 2.5px solid rgba(200,146,42,.18);
-        border-bottom: 2px solid rgba(200,146,42,.30);
-        border-right: 1px solid rgba(255,255,255,.04);
+        border-top: 2.5px solid rgba(200, 146, 42, 0.18);
+        border-bottom: 2px solid rgba(200, 146, 42, 0.3);
+        border-right: 1px solid rgba(255, 255, 255, 0.04);
         vertical-align: middle;
         user-select: none;
         cursor: pointer;
-        transition: background-position .40s cubic-bezier(.4,0,.2,1), color .22s ease;
+        transition:
+          background-position 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+          color 0.22s ease;
       }
       .tbl thead th:hover {
-        background-position: 0 0, 0 0;
-        color: rgba(255,255,255,.97);
+        background-position:
+          0 0,
+          0 0;
+        color: rgba(255, 255, 255, 0.97);
       }
       /* Línea dorada que se expande desde el centro hacia los bordes */
       .tbl thead th::after {
-        content: '';
+        content: "";
         position: absolute;
-        bottom: 0; left: 50%; right: 50%;
+        bottom: 0;
+        left: 50%;
+        right: 50%;
         height: 2.5px;
-        background: linear-gradient(90deg, transparent, var(--do), #E8B84B, var(--do), transparent);
-        transition: left .36s ease, right .36s ease;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--do),
+          #e8b84b,
+          var(--do),
+          transparent
+        );
+        transition:
+          left 0.36s ease,
+          right 0.36s ease;
         border-radius: 2px 2px 0 0;
         pointer-events: none;
       }
-      .tbl thead th:hover::after { left: 4px; right: 4px; }
+      .tbl thead th:hover::after {
+        left: 4px;
+        right: 4px;
+      }
       /* Acento de color único por columna (borde superior) */
-      .tbl thead th:nth-child(1) { border-top-color: rgba(200,146,42,.58); }
-      .tbl thead th:nth-child(2) { border-top-color: rgba(122,184,224,.45); }
-      .tbl thead th:nth-child(3) { border-top-color: rgba(138,210,160,.42); }
-      .tbl thead th:nth-child(4) { border-top-color: rgba(240,196,80,.48); }
-      .tbl thead th:nth-child(5) { border-top-color: rgba(200,150,220,.42); }
-      .tbl thead th:nth-child(6) { border-top-color: rgba(240,150,90,.42); }
-      .tbl thead th:nth-child(7) { border-top-color: rgba(255,255,255,.07); cursor: default; }
+      .tbl thead th:nth-child(1) {
+        border-top-color: rgba(200, 146, 42, 0.58);
+      }
+      .tbl thead th:nth-child(2) {
+        border-top-color: rgba(122, 184, 224, 0.45);
+      }
+      .tbl thead th:nth-child(3) {
+        border-top-color: rgba(138, 210, 160, 0.42);
+      }
+      .tbl thead th:nth-child(4) {
+        border-top-color: rgba(240, 196, 80, 0.48);
+      }
+      .tbl thead th:nth-child(5) {
+        border-top-color: rgba(200, 150, 220, 0.42);
+      }
+      .tbl thead th:nth-child(6) {
+        border-top-color: rgba(240, 150, 90, 0.42);
+      }
+      .tbl thead th:nth-child(7) {
+        border-top-color: rgba(255, 255, 255, 0.07);
+        cursor: default;
+      }
       /* Columna activa ordenada — fondo dorado completo */
       .tbl thead th.th-sorted {
-        background: linear-gradient(172deg, #C8922A 0%, #b07820 55%, #9a6a1a 100%);
+        background: linear-gradient(
+          172deg,
+          #c8922a 0%,
+          #b07820 55%,
+          #9a6a1a 100%
+        );
         color: #1a2e22;
         font-weight: 700;
-        letter-spacing: .15em;
+        letter-spacing: 0.15em;
       }
-      .tbl thead th.th-sorted:hover { color: #1a2e22; }
+      .tbl thead th.th-sorted:hover {
+        color: #1a2e22;
+      }
       .tbl thead th.th-sorted::after {
-        left: 0; right: 0;
-        background: rgba(20,42,29,.48);
+        left: 0;
+        right: 0;
+        background: rgba(20, 42, 29, 0.48);
         height: 3px;
       }
-      .tbl thead th:first-child { border-radius: 14px 0 0 14px; }
-      .tbl thead th:last-child  { border-radius: 0 14px 14px 0; border-right: none; }
-      .tbl tbody tr { border-bottom: 1px solid #ddd5c4; transition: background 0.15s; }
-      .tbl tbody tr:hover { background: #f0ebe0; }
-      .tbl tbody td { padding: 10px 12px; font-size: 13px; vertical-align: middle; }
-      .tbl-wrap { overflow-x: auto; }
+      .tbl thead th:first-child {
+        border-radius: 14px 0 0 14px;
+      }
+      .tbl thead th:last-child {
+        border-radius: 0 14px 14px 0;
+        border-right: none;
+      }
+      .tbl tbody tr {
+        border-bottom: 1px solid #ddd5c4;
+        transition: background 0.15s;
+      }
+      .tbl tbody tr:hover {
+        background: #f0ebe0;
+      }
+      .tbl tbody td {
+        padding: 10px 12px;
+        font-size: 13px;
+        vertical-align: middle;
+      }
+      .tbl-wrap {
+        overflow-x: auto;
+      }
 
       /* ── FORM GRID DENTRO DE MODAL ── */
       .form-grid {
@@ -14002,7 +14068,8 @@
         useEffect(() => {
           if (!popoverCol) return;
           function handle(e) {
-            if (popoverRef.current && !popoverRef.current.contains(e.target)) setPopoverCol(null);
+            if (popoverRef.current && !popoverRef.current.contains(e.target))
+              setPopoverCol(null);
           }
           document.addEventListener("mousedown", handle);
           return () => document.removeEventListener("mousedown", handle);
@@ -14059,8 +14126,12 @@
         }
 
         function toggleSort(col) {
-          if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-          else { setSortCol(col); setSortDir("asc"); }
+          if (sortCol === col)
+            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+          else {
+            setSortCol(col);
+            setSortDir("asc");
+          }
         }
 
         function colStats(col, data) {
@@ -14068,18 +14139,38 @@
           data.forEach((p) => {
             let key;
             if (col === "tipo") {
-              key = p.tipo === "psicologia" ? "Psicología" : p.tipo === "AT" ? "AT" : p.tipo === "ambos" ? "Ambos" : (p.tipo || "Sin tipo");
+              key =
+                p.tipo === "psicologia"
+                  ? "Psicología"
+                  : p.tipo === "AT"
+                    ? "AT"
+                    : p.tipo === "ambos"
+                      ? "Ambos"
+                      : p.tipo || "Sin tipo";
             } else if (col === "cobertura") {
-              key = p.cobertura === "particular" ? "Particular" : p.cobertura === "obra_social" ? "Obra Social" : p.cobertura === "mixto" ? "Mixto" : "Sin cobertura";
+              key =
+                p.cobertura === "particular"
+                  ? "Particular"
+                  : p.cobertura === "obra_social"
+                    ? "Obra Social"
+                    : p.cobertura === "mixto"
+                      ? "Mixto"
+                      : "Sin cobertura";
             } else if (col === "frecuencia") {
-              key = p.frecuencia ? p.frecuencia.charAt(0).toUpperCase() + p.frecuencia.slice(1) : "Sin frecuencia";
+              key = p.frecuencia
+                ? p.frecuencia.charAt(0).toUpperCase() + p.frecuencia.slice(1)
+                : "Sin frecuencia";
             }
             if (key) counts[key] = (counts[key] || 0) + 1;
           });
           const total = data.length || 1;
           return Object.entries(counts)
             .sort((a, b) => b[1] - a[1])
-            .map(([label, count]) => ({ label, count, pct: Math.round((count / total) * 100) }));
+            .map(([label, count]) => ({
+              label,
+              count,
+              pct: Math.round((count / total) * 100),
+            }));
         }
 
         /* FILTRADO */
@@ -14110,17 +14201,42 @@
 
         /* ORDENAMIENTO */
         if (sortCol) {
-          const freqOrd = { semanal: 0, quincenal: 1, mensual: 2, intensiva: 3 };
+          const freqOrd = {
+            semanal: 0,
+            quincenal: 1,
+            mensual: 2,
+            intensiva: 3,
+          };
           filtered = [...filtered].sort((a, b) => {
             let va, vb;
             switch (sortCol) {
-              case "nombre": va = `${a.apellido} ${a.nombre}`.toLowerCase(); vb = `${b.apellido} ${b.nombre}`.toLowerCase(); break;
-              case "dni": va = parseInt(a.dni || "0", 10); vb = parseInt(b.dni || "0", 10); break;
-              case "cobertura": va = (a.cobertura || "").toLowerCase(); vb = (b.cobertura || "").toLowerCase(); break;
-              case "frecuencia": va = freqOrd[a.frecuencia] ?? 99; vb = freqOrd[b.frecuencia] ?? 99; break;
-              case "tipo": va = (a.tipo || "").toLowerCase(); vb = (b.tipo || "").toLowerCase(); break;
-              case "estado": va = a.activo ? 0 : 1; vb = b.activo ? 0 : 1; break;
-              default: va = ""; vb = "";
+              case "nombre":
+                va = `${a.apellido} ${a.nombre}`.toLowerCase();
+                vb = `${b.apellido} ${b.nombre}`.toLowerCase();
+                break;
+              case "dni":
+                va = parseInt(a.dni || "0", 10);
+                vb = parseInt(b.dni || "0", 10);
+                break;
+              case "cobertura":
+                va = (a.cobertura || "").toLowerCase();
+                vb = (b.cobertura || "").toLowerCase();
+                break;
+              case "frecuencia":
+                va = freqOrd[a.frecuencia] ?? 99;
+                vb = freqOrd[b.frecuencia] ?? 99;
+                break;
+              case "tipo":
+                va = (a.tipo || "").toLowerCase();
+                vb = (b.tipo || "").toLowerCase();
+                break;
+              case "estado":
+                va = a.activo ? 0 : 1;
+                vb = b.activo ? 0 : 1;
+                break;
+              default:
+                va = "";
+                vb = "";
             }
             if (va < vb) return sortDir === "asc" ? -1 : 1;
             if (va > vb) return sortDir === "asc" ? 1 : -1;
@@ -14226,60 +14342,105 @@
                   <thead>
                     <tr>
                       {[
-                        { col: "nombre",    label: "Paciente",  stats: false },
-                        { col: "dni",       label: "DNI",       stats: false },
-                        { col: "cobertura", label: "Cobertura", stats: true  },
-                        { col: "frecuencia",label: "Frecuencia",stats: true  },
-                        { col: "tipo",      label: "Tipo",      stats: true  },
-                        { col: "estado",    label: "Estado",    stats: false },
+                        { col: "nombre", label: "Paciente", stats: false },
+                        { col: "dni", label: "DNI", stats: false },
+                        { col: "cobertura", label: "Cobertura", stats: true },
+                        { col: "frecuencia", label: "Frecuencia", stats: true },
+                        { col: "tipo", label: "Tipo", stats: true },
+                        { col: "estado", label: "Estado", stats: false },
                       ].map(({ col, label, stats }) => {
-                        const isActive  = sortCol === col;
-                        const isDarkText = isActive; /* fondo dorado → texto oscuro */
+                        const isActive = sortCol === col;
+                        const isDarkText =
+                          isActive; /* fondo dorado → texto oscuro */
                         return (
                           <th
                             key={col}
                             className={isActive ? "th-sorted" : ""}
-                            style={{ position: "relative", whiteSpace: "nowrap" }}
+                            style={{
+                              position: "relative",
+                              whiteSpace: "nowrap",
+                            }}
                             onClick={() => toggleSort(col)}
                           >
                             {/* Contenido elevado sobre ::after */}
-                            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: "5px" }}>
-                              <span style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }} title={`Ordenar por ${label}`}>
+                            <div
+                              style={{
+                                position: "relative",
+                                zIndex: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  cursor: "pointer",
+                                }}
+                                title={`Ordenar por ${label}`}
+                              >
                                 {label}
                                 {/* Indicador de orden */}
-                                <span style={{
-                                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                  width: "16px", height: "16px", borderRadius: "4px",
-                                  background: isActive
-                                    ? "rgba(20,42,29,.28)"
-                                    : "rgba(255,255,255,.07)",
-                                  fontSize: "8px",
-                                  color: isActive ? "#1a2e22" : "rgba(255,255,255,.38)",
-                                  fontWeight: 700,
-                                  transition: "background .2s, color .2s",
-                                  flexShrink: 0,
-                                }}>
-                                  {isActive ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "16px",
+                                    height: "16px",
+                                    borderRadius: "4px",
+                                    background: isActive
+                                      ? "rgba(20,42,29,.28)"
+                                      : "rgba(255,255,255,.07)",
+                                    fontSize: "8px",
+                                    color: isActive
+                                      ? "#1a2e22"
+                                      : "rgba(255,255,255,.38)",
+                                    fontWeight: 700,
+                                    transition: "background .2s, color .2s",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isActive
+                                    ? sortDir === "asc"
+                                      ? "▲"
+                                      : "▼"
+                                    : "↕"}
                                 </span>
                               </span>
                               {/* Botón estadísticas (solo en cols con stats) */}
                               {stats && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setPopoverCol(popoverCol === col ? null : col); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPopoverCol(
+                                      popoverCol === col ? null : col,
+                                    );
+                                  }}
                                   title={`Estadísticas por ${label}`}
                                   style={{
-                                    background: popoverCol === col
-                                      ? (isDarkText ? "rgba(20,42,29,.25)" : "rgba(200,146,42,.22)")
-                                      : "transparent",
+                                    background:
+                                      popoverCol === col
+                                        ? isDarkText
+                                          ? "rgba(20,42,29,.25)"
+                                          : "rgba(200,146,42,.22)"
+                                        : "transparent",
                                     border: "none",
                                     cursor: "pointer",
                                     fontSize: "10px",
                                     padding: "2px 4px",
                                     lineHeight: 1,
                                     borderRadius: "5px",
-                                    color: popoverCol === col
-                                      ? (isDarkText ? "#1a2e22" : "var(--do)")
-                                      : (isDarkText ? "rgba(20,42,29,.45)" : "rgba(255,255,255,.38)"),
+                                    color:
+                                      popoverCol === col
+                                        ? isDarkText
+                                          ? "#1a2e22"
+                                          : "var(--do)"
+                                        : isDarkText
+                                          ? "rgba(20,42,29,.45)"
+                                          : "rgba(255,255,255,.38)",
                                     transition: "background .15s, color .15s",
                                     flexShrink: 0,
                                   }}
@@ -14292,31 +14453,124 @@
                             {popoverCol === col && (
                               <div
                                 ref={popoverRef}
-                                style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "var(--vd)", border: "2px solid var(--vm)", borderRadius: "14px", padding: "16px 18px", minWidth: "210px", boxShadow: "0 10px 32px rgba(0,0,0,.5)", fontFamily: "var(--sans)" }}
+                                style={{
+                                  position: "absolute",
+                                  top: "calc(100% + 6px)",
+                                  left: 0,
+                                  zIndex: 500,
+                                  background: "var(--vd)",
+                                  border: "2px solid var(--vm)",
+                                  borderRadius: "14px",
+                                  padding: "16px 18px",
+                                  minWidth: "210px",
+                                  boxShadow: "0 10px 32px rgba(0,0,0,.5)",
+                                  fontFamily: "var(--sans)",
+                                }}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                                  <div style={{ fontFamily: "var(--mono)", fontSize: "9px", color: "rgba(255,255,255,.35)", letterSpacing: ".1em", textTransform: "uppercase" }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "12px",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontFamily: "var(--mono)",
+                                      fontSize: "9px",
+                                      color: "rgba(255,255,255,.35)",
+                                      letterSpacing: ".1em",
+                                      textTransform: "uppercase",
+                                    }}
+                                  >
                                     {label}
                                   </div>
-                                  <div style={{ flex: 1, height: "1px", background: "rgba(200,146,42,.2)" }} />
-                                  <div style={{ fontFamily: "var(--mono)", fontSize: "9px", color: "var(--do)", fontWeight: 700 }}>
+                                  <div
+                                    style={{
+                                      flex: 1,
+                                      height: "1px",
+                                      background: "rgba(200,146,42,.2)",
+                                    }}
+                                  />
+                                  <div
+                                    style={{
+                                      fontFamily: "var(--mono)",
+                                      fontSize: "9px",
+                                      color: "var(--do)",
+                                      fontWeight: 700,
+                                    }}
+                                  >
                                     {filtered.length}
                                   </div>
                                 </div>
-                                {colStats(col, filtered).map(({ label: lbl, count, pct }) => (
-                                  <div key={lbl} style={{ marginBottom: "10px" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" }}>
-                                      <span style={{ fontSize: "12px", color: "rgba(255,255,255,.82)", fontWeight: 600 }}>{lbl}</span>
-                                      <span style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--do)", fontWeight: 700 }}>
-                                        {count}<span style={{ color: "rgba(255,255,255,.28)", fontWeight: 400, fontSize: "9px" }}> /{pct}%</span>
-                                      </span>
+                                {colStats(col, filtered).map(
+                                  ({ label: lbl, count, pct }) => (
+                                    <div
+                                      key={lbl}
+                                      style={{ marginBottom: "10px" }}
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          alignItems: "baseline",
+                                          marginBottom: "4px",
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            fontSize: "12px",
+                                            color: "rgba(255,255,255,.82)",
+                                            fontWeight: 600,
+                                          }}
+                                        >
+                                          {lbl}
+                                        </span>
+                                        <span
+                                          style={{
+                                            fontFamily: "var(--mono)",
+                                            fontSize: "10px",
+                                            color: "var(--do)",
+                                            fontWeight: 700,
+                                          }}
+                                        >
+                                          {count}
+                                          <span
+                                            style={{
+                                              color: "rgba(255,255,255,.28)",
+                                              fontWeight: 400,
+                                              fontSize: "9px",
+                                            }}
+                                          >
+                                            {" "}
+                                            /{pct}%
+                                          </span>
+                                        </span>
+                                      </div>
+                                      <div
+                                        style={{
+                                          background: "rgba(255,255,255,.08)",
+                                          borderRadius: "4px",
+                                          height: "5px",
+                                          overflow: "hidden",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            width: `${pct}%`,
+                                            background:
+                                              "linear-gradient(90deg, var(--do), #E8B84B)",
+                                            borderRadius: "4px",
+                                            height: "100%",
+                                            transition: "width .4s ease",
+                                          }}
+                                        />
+                                      </div>
                                     </div>
-                                    <div style={{ background: "rgba(255,255,255,.08)", borderRadius: "4px", height: "5px", overflow: "hidden" }}>
-                                      <div style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--do), #E8B84B)", borderRadius: "4px", height: "100%", transition: "width .4s ease" }} />
-                                    </div>
-                                  </div>
-                                ))}
+                                  ),
+                                )}
                               </div>
                             )}
                           </th>
