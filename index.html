@@ -2848,7 +2848,7 @@ window.addEventListener('DOMContentLoaded', authInit);
         },
         { id: "gastos", label: "Gastos", emoji: "📊", group: "PRINCIPAL" },
         { id: "vida_hogar", label: "Vida y Hogar", emoji: "🌳", group: "VIDA" },
-        { id: "eventos", label: "Notas y Pendientes", emoji: "📝", group: "EXTRAS" },
+        { id: "eventos", label: "Notas y Pendientes", emoji: "📝", group: "PRINCIPAL" },
         { id: "config", label: "Configuración", emoji: "⚙️", group: "SISTEMA" },
       ];
 
@@ -3703,17 +3703,21 @@ window.addEventListener('DOMContentLoaded', authInit);
           <React.Fragment key={group}>
             <div className="sidebar-section-label">{group}</div>
             {NAV_SECTIONS.filter((s) => s.group === group).map((section) => (
-              <div
-                key={section.id}
-                className={`sidebar-item ${activeSection === section.id ? "active" : ""}`}
-                onClick={() => onNavigate(section.id)}
-              >
-                <span className="sidebar-item-icon">{section.emoji}</span>
-                <span>{section.label}</span>
-                {badgeCounts[section.id] > 0 && (
-                  <span className="sidebar-badge">{badgeCounts[section.id]}</span>
+              <React.Fragment key={section.id}>
+                {section.id === "eventos" && (
+                  <div style={{margin:"6px 14px 4px",borderTop:"1px solid rgba(255,255,255,0.12)"}}></div>
                 )}
-              </div>
+                <div
+                  className={`sidebar-item ${activeSection === section.id ? "active" : ""}`}
+                  onClick={() => onNavigate(section.id)}
+                >
+                  <span className="sidebar-item-icon">{section.emoji}</span>
+                  <span>{section.label}</span>
+                  {badgeCounts[section.id] > 0 && (
+                    <span className="sidebar-badge">{badgeCounts[section.id]}</span>
+                  )}
+                </div>
+              </React.Fragment>
             ))}
           </React.Fragment>
         );
