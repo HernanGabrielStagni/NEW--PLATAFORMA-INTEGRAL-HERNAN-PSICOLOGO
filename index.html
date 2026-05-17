@@ -16234,6 +16234,7 @@ window.addEventListener('DOMContentLoaded', authInit);
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "center", marginBottom: "10px" }}>
                 <input className="input-base" placeholder="Descripción..."
+                  autoComplete="off"
                   value={form.descripcion}
                   onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
                   onKeyDown={(e) => e.key === "Enter" && agregar()} />
@@ -16242,7 +16243,7 @@ window.addEventListener('DOMContentLoaded', authInit);
                   value={form.fecha}
                   onChange={(e) => setForm((p) => ({ ...p, fecha: e.target.value }))} />
                 <input className="input-base" type="time"
-                  style={{ fontFamily: "var(--mono)", width: "100px" }}
+                  style={{ fontFamily: "var(--mono)", width: "120px" }}
                   value={form.hora}
                   onChange={(e) => setForm((p) => ({ ...p, hora: e.target.value }))} />
               </div>
