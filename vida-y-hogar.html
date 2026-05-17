@@ -1,0 +1,3065 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vida y Hogar — Hernán Stagni</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Josefin+Slab:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      :root {
+        --vd: #1e3d2b; --vm: #2d5a3d; --vc: #4a7c5f; --vs: #d4e6da; --vu: #eef5f0;
+        --do: #c8922a; --dc: #f5e6c8;
+        --cr: #f5f0e8; --cro: #ede6d8; --crb: #d8d0c0;
+        --tx: #1a2e22; --tx2: #4a6357; --tx3: #7a9485; --bl: #ffffff;
+        --wb: #fff8e8; --wc: #7a5200;
+        --r: 20px; --rsm: 12px;
+        --serif: "Merriweather", serif;
+        --serif2: "Josefin Slab", serif;
+        --data: "DM Sans", sans-serif;
+        --sans: "Inter", sans-serif;
+        --mono: "DM Mono", monospace;
+        --serif-num: "DM Sans", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { background: #ede8dc; font-family: var(--sans); color: var(--tx); font-size: 14px; line-height: 1.6; margin: 0; padding: 0; }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--crb); border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--vc); }
+      .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+      .toast { background: var(--vd); color: var(--cr); border: 1px solid var(--vm); border-radius: 12px; padding: 14px 20px 10px; min-width: 280px; max-width: 380px; box-shadow: 0 8px 30px rgba(30,61,43,0.4); animation: slideInRight 0.3s ease; overflow: hidden; position: relative; }
+      .toast-text { font-size: 13.5px; font-weight: 500; margin-bottom: 8px; }
+      .toast-progress { height: 3px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 -20px -10px; }
+      .toast-progress-bar { height: 100%; background: linear-gradient(90deg, var(--do), #e8b84b); border-radius: 4px; animation: shrink 3s linear forwards; }
+      @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+      .topbar-vh { background: var(--vd); padding: 12px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 2px solid rgba(200,146,42,0.4); position: sticky; top: 0; z-index: 100; }
+      .topbar-vh-back { color: rgba(255,255,255,0.7); font-size: 13px; text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .15s; }
+      .topbar-vh-back:hover { color: var(--do); }
+      .topbar-vh-title { color: white; font-family: var(--serif2); font-size: 18px; font-weight: 700; }
+      .topbar-vh-signout { margin-left: auto; padding: 6px 14px; background: rgba(255,255,255,0.08); border-radius: 8px; cursor: pointer; font-size: 0.8rem; color: rgba(255,255,255,0.6); transition: background .15s; border: none; font-family: var(--sans); }
+      .topbar-vh-signout:hover { background: rgba(255,255,255,0.18); }
+      .vh-main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+    </style>
+  </head>
+  <body>
+
+<script>
+const SUPABASE_URL = "https://uwfkdhqhgbstswxmiqzv.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3ZmtkaHFoZ2JzdHN3eG1pcXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NjI0MTEsImV4cCI6MjA5NDAzODQxMX0.2-DrSFFyhGxAjcX6vOi-lhsZ4iXRBzCIcjaHzNRuOgo";
+const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+<style>
+#login-screen{display:none;position:fixed;inset:0;background:var(--vd);z-index:9999;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;}
+#login-screen.visible{display:flex;}
+.login-card{background:var(--vu);border-radius:16px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.3);display:flex;flex-direction:column;gap:18px;}
+.login-card h1{font-family:'Josefin Slab',serif;color:var(--vd);font-size:1.5rem;font-weight:700;text-align:center;margin:0 0 4px;}
+.login-card p{color:var(--vc);font-size:0.85rem;text-align:center;margin:0;}
+.login-field{display:flex;flex-direction:column;gap:6px;}
+.login-field label{font-size:0.8rem;font-weight:600;color:var(--vm);text-transform:uppercase;letter-spacing:0.04em;}
+.login-field input{padding:10px 14px;border:1.5px solid var(--vs);border-radius:8px;font-size:0.95rem;font-family:'DM Sans',sans-serif;background:white;color:var(--vd);outline:none;transition:border-color 0.2s;}
+.login-field input:focus{border-color:var(--vm);}
+.login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;}
+.login-btn:hover{background:var(--vd);}
+.login-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.login-error{color:#c0392b;font-size:0.85rem;text-align:center;background:#fdecea;border-radius:6px;padding:8px 12px;display:none;}
+.login-error.visible{display:block;}
+.login-toggle{font-size:0.83rem;color:var(--vc);text-align:center;}
+.login-toggle a{color:var(--vm);cursor:pointer;font-weight:600;text-decoration:underline;}
+</style>
+<script>
+let _authMode = 'login';
+async function authInit() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (session) {
+    document.getElementById('login-screen').classList.remove('visible');
+    document.getElementById('root').style.display = '';
+  } else {
+    document.getElementById('login-screen').classList.add('visible');
+    document.getElementById('root').style.display = 'none';
+  }
+}
+async function authSubmit() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn = document.getElementById('auth-btn');
+  const errEl = document.getElementById('auth-error');
+  errEl.classList.remove('visible');
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+  let result;
+  if (_authMode === 'login') {
+    result = await _sb.auth.signInWithPassword({ email, password });
+  } else {
+    result = await _sb.auth.signUp({ email, password });
+  }
+  if (result.error) {
+    errEl.textContent = tradAuth(result.error.message);
+    errEl.classList.add('visible');
+    btn.disabled = false;
+    btn.textContent = _authMode === 'login' ? 'Ingresar' : 'Crear cuenta';
+    return;
+  }
+  if (_authMode === 'register' && !result.data.session) {
+    errEl.style.color = '#2d5a3d'; errEl.style.background = '#d4e6da';
+    errEl.textContent = 'Cuenta creada. Revisá tu email para confirmar.';
+    errEl.classList.add('visible');
+    btn.disabled = false; btn.textContent = 'Crear cuenta'; return;
+  }
+  document.getElementById('login-screen').classList.remove('visible');
+  document.getElementById('root').style.display = '';
+}
+function authToggleMode() {
+  _authMode = _authMode === 'login' ? 'register' : 'login';
+  const isLogin = _authMode === 'login';
+  document.getElementById('auth-title').textContent = isLogin ? 'Vida y Hogar' : 'Crear cuenta';
+  document.getElementById('auth-subtitle').textContent = isLogin ? 'Ingresá con tu cuenta' : 'Completá los datos';
+  document.getElementById('auth-btn').textContent = isLogin ? 'Ingresar' : 'Crear cuenta';
+  document.getElementById('auth-toggle-text').innerHTML = isLogin
+    ? '¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a>'
+    : '¿Ya tenés cuenta? <a onclick="authToggleMode()">Iniciá sesión</a>';
+  document.getElementById('auth-error').classList.remove('visible');
+}
+function tradAuth(msg) {
+  if (msg.includes('Invalid login')) return 'Email o contraseña incorrectos.';
+  if (msg.includes('Email not confirmed')) return 'Confirmá tu email antes de ingresar.';
+  if (msg.includes('User already registered')) return 'Este email ya tiene una cuenta.';
+  if (msg.includes('Password should be')) return 'La contraseña debe tener al menos 6 caracteres.';
+  return msg;
+}
+async function authSignOut() {
+  await _sb.auth.signOut();
+  document.getElementById('login-screen').classList.add('visible');
+  document.getElementById('root').style.display = 'none';
+}
+window.addEventListener('DOMContentLoaded', authInit);
+</script>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div>
+      <h1 id="auth-title">Vida y Hogar</h1>
+      <p id="auth-subtitle">Ingresá con tu cuenta</p>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input id="auth-email" type="email" placeholder="tu@email.com" />
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input id="auth-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') authSubmit()" />
+    </div>
+    <div id="auth-error" class="login-error"></div>
+    <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
+    <p class="login-toggle" id="auth-toggle-text">¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a></p>
+  </div>
+</div>
+
+    <div id="root" style="display:none"></div>
+
+    <script>
+      function getData(key) {
+        try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+        catch (e) { console.error(e); return []; }
+      }
+      function setData(key, data) {
+        try { localStorage.setItem(key, JSON.stringify(data)); }
+        catch (e) { console.error(e); }
+      }
+      function genId() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2);
+      }
+    </script>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef, useCallback } = React;
+
+      let toastIdCounter = 0;
+      let globalSetToasts = null;
+
+      function showToast(message) {
+        if (globalSetToasts) {
+          const id = ++toastIdCounter;
+          globalSetToasts((prev) => [...prev, { id, message }]);
+          setTimeout(() => {
+            globalSetToasts((prev) => prev.filter((t) => t.id !== id));
+          }, 3200);
+        }
+      }
+
+      function ToastContainer() {
+        const [toasts, setToasts] = useState([]);
+        globalSetToasts = setToasts;
+        return (
+          <div className="toast-container">
+            {toasts.map((t) => (
+              <div className="toast" key={t.id}>
+                <div className="toast-text">{t.message}</div>
+                <div className="toast-progress"><div className="toast-progress-bar"></div></div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      function dateStr(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      /* ═══════════════ MÓDULO VIDA Y HOGAR ═══════════════ */
+      /* ═══════════════════════════════════════ */
+      /* MÓDULO: VIDA Y HOGAR                  */
+      /* ═══════════════════════════════════════ */
+
+      /* Árbol de categorías y sub-módulos */
+      const ARBOL_VIDA = [
+        {
+          id: "hogar_logistica",
+          label: "Hogar y Logística",
+          emoji: "🏠",
+          hijos: [
+            {
+              id: "compras",
+              label: "Lista de compras e inventario",
+              emoji: "🛒",
+              estado: "activo",
+              proximamente: true,
+            },
+            {
+              id: "mantenimiento",
+              label: "Mantenimiento de vivienda",
+              emoji: "🔧",
+              estado: "pendiente",
+            },
+            {
+              id: "servicios",
+              label: "Servicios y vencimientos",
+              emoji: "📄",
+              estado: "enlazado",
+              enlaceA: "gastos",
+            },
+            {
+              id: "mascotas",
+              label: "Mascotas (Lola y Missy)",
+              emoji: "🐕",
+              estado: "pendiente",
+            },
+          ],
+        },
+        {
+          id: "salud_cuerpo",
+          label: "Salud y Cuerpo",
+          emoji: "❤️",
+          hijos: [
+            {
+              id: "medicacion",
+              label: "Medicación y suplementos",
+              emoji: "💊",
+              estado: "pendiente",
+            },
+            {
+              id: "turnos_med",
+              label: "Turnos médicos y controles",
+              emoji: "🩺",
+              estado: "pendiente",
+            },
+            {
+              id: "ejercicio",
+              label: "Ejercicio y mediciones",
+              emoji: "🏋️",
+              estado: "pendiente",
+            },
+            {
+              id: "sueno",
+              label: "Sueño",
+              emoji: "😴",
+              estado: "activo",
+              proximamente: true,
+              modulo: "sueno",
+            },
+          ],
+        },
+        {
+          id: "vinculos_social",
+          label: "Vínculos y Social",
+          emoji: "👥",
+          hijos: [
+            {
+              id: "contactos",
+              label: "Contactos clave y última vez",
+              emoji: "📇",
+              estado: "pendiente",
+            },
+            {
+              id: "fechas_imp",
+              label: "Fechas importantes",
+              emoji: "🎂",
+              estado: "activo",
+              proximamente: true,
+            },
+            {
+              id: "compromisos",
+              label: "Compromisos sociales pendientes",
+              emoji: "🤝",
+              estado: "pendiente",
+            },
+          ],
+        },
+        {
+          id: "aprendizaje",
+          label: "Aprendizaje y Proyectos",
+          emoji: "📚",
+          hijos: [
+            {
+              id: "cursos",
+              label: "Cursos en curso",
+              emoji: "🎓",
+              estado: "pendiente",
+            },
+            {
+              id: "proyectos",
+              label: "Proyectos activos",
+              emoji: "🚀",
+              estado: "pendiente",
+            },
+            {
+              id: "capturas",
+              label: "Capturas e ideas",
+              emoji: "💡",
+              estado: "pendiente",
+            },
+          ],
+        },
+        {
+          id: "habitos",
+          label: "Hábitos y Chequeo Interno",
+          emoji: "🧘",
+          hijos: [
+            {
+              id: "terapia",
+              label: "Terapia personal",
+              emoji: "🪑",
+              estado: "pendiente",
+            },
+            {
+              id: "canto",
+              label: "Clases de canto (lunes)",
+              emoji: "🎤",
+              estado: "pendiente",
+            },
+            {
+              id: "journaling",
+              label: "Estado de ánimo / journaling",
+              emoji: "📓",
+              estado: "pendiente",
+            },
+            {
+              id: "tiempo_apps",
+              label: "Tiempo en apps",
+              emoji: "📱",
+              estado: "pendiente",
+            },
+          ],
+        },
+      ];
+
+      /* Descripciones para módulos pendientes permanentes */
+      const DESC_PENDIENTES = {
+        mantenimiento:
+          "Tareas de la casa con ciclo de recurrencia y estado hecho/pendiente.",
+        mascotas:
+          "Control de Lola y Missy: vacunas, antiparasitarios, veterinario, alimento.",
+        medicacion:
+          "Registro de medicación y suplementos con recordatorio de stock y ciclo.",
+        turnos_med:
+          "Agenda de controles médicos con alertas de vencimientos anuales.",
+        ejercicio:
+          "Registro de entrenamientos, mediciones corporales y rehabilitación.",
+        contactos:
+          "Libreta con última vez que viste a cada persona clave — contrapesa patrones de aislamiento.",
+        compromisos:
+          "Cosas sociales pendientes: devolver llamada, invitar, responder.",
+        cursos:
+          "Avance de cursos en los que estás inscripto con % de progreso.",
+        proyectos: "Proyectos personales activos con estado y próxima acción.",
+        capturas: "Ideas, frases, imágenes capturadas para procesar después.",
+        terapia: "Registro semanal de sesiones y temas a traer.",
+        canto: "Clases de canto del lunes con repertorio y ejercicios.",
+        journaling: "Chequeo diario de estado de ánimo con nota breve.",
+        tiempo_apps:
+          "Autorregistro de tiempo en TikTok/Netflix para visibilizar uso.",
+      };
+
+      /* Componente genérico: panel inline para ítems no implementados */
+      function PanelPorConstruirse({ id, proximamente }) {
+        const esProximamente = !!proximamente;
+        return (
+          <div
+            style={{
+              margin: "8px 0 4px 36px",
+              padding: "12px 16px",
+              borderRadius: "12px",
+              background: esProximamente
+                ? "rgba(200,146,42,.10)"
+                : "rgba(160,153,140,.10)",
+              border: esProximamente
+                ? "1.5px dashed rgba(200,146,42,.45)"
+                : "1.5px dashed rgba(160,153,140,.4)",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+            }}
+          >
+            <span style={{ fontSize: "16px", marginTop: "1px" }}>
+              {esProximamente ? "⏳" : "🔧"}
+            </span>
+            <div>
+              <div
+                style={{
+                  fontFamily: "var(--mono)",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  letterSpacing: ".06em",
+                  textTransform: "uppercase",
+                  color: esProximamente ? "var(--do)" : "#A0998C",
+                  marginBottom: "3px",
+                }}
+              >
+                {esProximamente
+                  ? "Próximamente — en construcción"
+                  : "Por construirse"}
+              </div>
+              <div
+                style={{
+                  fontSize: "13px",
+                  color: "var(--tx2)",
+                  lineHeight: 1.5,
+                }}
+              >
+                {esProximamente
+                  ? "Este módulo se implementa en la próxima fase del desarrollo."
+                  : DESC_PENDIENTES[id] ||
+                    "Funcionalidad planificada para una fase futura."}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ═══════════════════════════════════════════════════ */
+      /* SUB-MÓDULO: SUEÑO                                 */
+      /* ═══════════════════════════════════════════════════ */
+
+      /* Convierte "HH:MM" a horas decimales normalizadas.
+         Horas 00:00–06:00 se tratan como "tarde" (hora+24).
+         Ej: "02:15" → 26.25 | "23:30" → 23.5 */
+      function normalizarHoraSueno(horaStr) {
+        if (!horaStr) return null;
+        const [h, m] = horaStr.split(":").map(Number);
+        const dec = h + m / 60;
+        return dec < 6 ? dec + 24 : dec;
+      }
+
+      /* Duración en minutos entre acostarse y despertar */
+      function calcularDuracionMin(
+        fechaDormir,
+        horaAcostarse,
+        fechaDespertar,
+        horaDespertar,
+      ) {
+        if (!fechaDormir || !horaAcostarse || !fechaDespertar || !horaDespertar)
+          return null;
+        const inicio = new Date(`${fechaDormir}T${horaAcostarse}:00`);
+        const fin = new Date(`${fechaDespertar}T${horaDespertar}:00`);
+        const diff = fin - inicio;
+        return diff > 0 ? Math.round(diff / 60000) : null;
+      }
+
+      /* Horas decimales normalizadas → "HH:MM"
+         Ej: 26.25 → "02:15" | 23.5 → "23:30" */
+      function horaDecAStr(dec) {
+        if (dec === null || dec === undefined) return "--:--";
+        const h = Math.floor(dec % 24);
+        const m = Math.round((dec % 1) * 60);
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+
+      /* Minutos → "Xh YYm" */
+      function minAHoras(min) {
+        if (!min) return "--";
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        return m > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : `${h}h`;
+      }
+
+      /* Racha actual: días consecutivos cumpliendo meta (hacia atrás desde el más reciente) */
+      function calcularRachaSueno(registros, metaHora) {
+        if (!registros.length || !metaHora) return 0;
+        const metaN = normalizarHoraSueno(metaHora);
+        const sorted = [...registros].sort((a, b) =>
+          b.fechaDespertar.localeCompare(a.fechaDespertar),
+        );
+        let racha = 0;
+        for (let i = 0; i < sorted.length; i++) {
+          if (i > 0) {
+            const prev = sorted[i - 1];
+            const pd = new Date(prev.fechaDespertar + "T12:00:00");
+            pd.setDate(pd.getDate() - 1);
+            const exp = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+            if (sorted[i].fechaDespertar !== exp) break;
+          }
+          const horaReg = normalizarHoraSueno(sorted[i].horaAcostarse);
+          if (horaReg !== null && horaReg <= metaN) racha++;
+          else break;
+        }
+        return racha;
+      }
+
+      /* % de días cumpliendo meta en los últimos N días */
+      function cumplimientoSueno(registros, metaHora, dias) {
+        if (!registros.length || !metaHora) return 0;
+        const metaN = normalizarHoraSueno(metaHora);
+        const corte = new Date();
+        corte.setDate(corte.getDate() - dias);
+        const rec = registros.filter(
+          (r) => new Date(r.fechaDespertar + "T12:00:00") >= corte,
+        );
+        if (!rec.length) return 0;
+        const ok = rec.filter(
+          (r) => normalizarHoraSueno(r.horaAcostarse) <= metaN,
+        ).length;
+        return Math.round((ok / rec.length) * 100);
+      }
+
+      /* Promedio hora acostarse (últimos N días) → string "HH:MM" */
+      function promedioHoraSueno(registros, dias) {
+        const corte = new Date();
+        corte.setDate(corte.getDate() - dias);
+        const rec = registros.filter(
+          (r) => new Date(r.fechaDespertar + "T12:00:00") >= corte,
+        );
+        if (!rec.length) return null;
+        const suma = rec.reduce(
+          (a, r) => a + (normalizarHoraSueno(r.horaAcostarse) || 0),
+          0,
+        );
+        return horaDecAStr(suma / rec.length);
+      }
+
+      /* Mediana de hora de acostarse (últimos N días) → string "HH:MM"
+         La mediana ignora valores extremos y refleja mejor el patrón real */
+      function medianaHoraSueno(registros, dias) {
+        const corte = new Date();
+        corte.setDate(corte.getDate() - dias);
+        const rec = registros.filter(
+          (r) => new Date(r.fechaDespertar + "T12:00:00") >= corte,
+        );
+        if (!rec.length) return null;
+        const valores = rec
+          .map((r) => normalizarHoraSueno(r.horaAcostarse))
+          .filter((v) => v !== null)
+          .sort((a, b) => a - b);
+        if (!valores.length) return null;
+        const mid = Math.floor(valores.length / 2);
+        const med =
+          valores.length % 2 === 0
+            ? (valores[mid - 1] + valores[mid]) / 2
+            : valores[mid];
+        return horaDecAStr(med);
+      }
+
+      /* Mensaje motivacional — tono sobrio, directo */
+      function mensajeSueno(registros, config) {
+        if (!registros.length)
+          return "Empezá registrando anoche. No hace falta que sea perfecto, solo que sea real.";
+        const metaHora = config?.metaHoraAcostarse || "01:00";
+        const metaN = normalizarHoraSueno(metaHora);
+        const sorted = [...registros].sort((a, b) =>
+          b.fechaDespertar.localeCompare(a.fechaDespertar),
+        );
+        const ultimo = sorted[0];
+        const racha = calcularRachaSueno(registros, metaHora);
+        const cumpl7 = cumplimientoSueno(registros, metaHora, 7);
+        const cumplioAnoche =
+          normalizarHoraSueno(ultimo.horaAcostarse) <= metaN;
+        if (racha >= 7)
+          return `${racha} días seguidos cumpliendo la meta. Esto ya no es casualidad, es un hábito formándose.`;
+        if (racha >= 3) return `${racha} días seguidos. Va tomando forma.`;
+        if (cumplioAnoche && racha < 3)
+          return "Bien anoche. Lo importante ahora es repetir.";
+        if (!cumplioAnoche && cumpl7 >= 60)
+          return "Una noche fuera del objetivo no rompe el proceso. Lo que cuenta es el patrón de la semana.";
+        if (!cumplioAnoche && cumpl7 < 40)
+          return "Ajustá la meta si hace falta. Una meta alcanzable es mejor que una ideal que se siente inalcanzable.";
+        return "Seguí registrando. Lo que se mide, se puede cambiar.";
+      }
+
+      /* Sugerencia de próximo objetivo */
+      function sugerirObjetivo(registros, config) {
+        if (!config)
+          return {
+            sugerir: false,
+            mensaje: "Configurá tu meta inicial para activar sugerencias.",
+          };
+        const corte = new Date();
+        corte.setDate(corte.getDate() - 14);
+        const rec = registros.filter(
+          (r) => new Date(r.fechaDespertar + "T12:00:00") >= corte,
+        );
+        if (rec.length < 7)
+          return {
+            sugerir: false,
+            mensaje:
+              "Seguí registrando para que pueda sugerirte un próximo paso.",
+          };
+        const metaHora = config.metaHoraAcostarse;
+        const metaN = normalizarHoraSueno(metaHora);
+        const cumpl = cumplimientoSueno(registros, metaHora, 14);
+        const promN =
+          rec.reduce(
+            (a, r) => a + (normalizarHoraSueno(r.horaAcostarse) || 0),
+            0,
+          ) / rec.length;
+        if (cumpl >= 70) {
+          return {
+            sugerir: true,
+            nuevaMeta: horaDecAStr(metaN - 0.5),
+            razon: `Cumpliste la meta el ${cumpl}% de los últimos 14 días. Probemos adelantar 30 minutos.`,
+          };
+        }
+        if (cumpl >= 40)
+          return {
+            sugerir: false,
+            mensaje: "Seguí consolidando la meta actual antes de avanzar.",
+          };
+        return {
+          sugerir: true,
+          nuevaMeta: horaDecAStr(promN - 0.25),
+          razon:
+            "Ajustemos la meta a algo más cercano a tu ritmo actual. Pequeños pasos son más sostenibles.",
+        };
+      }
+
+      /* ── Gráfico semanal (barras) ── */
+      function SuenoChartSemanal({ registros, metaHora }) {
+        const canvasRef = useRef(null);
+        const chartRef = useRef(null);
+        useEffect(() => {
+          if (!canvasRef.current) return;
+          if (chartRef.current) {
+            chartRef.current.destroy();
+            chartRef.current = null;
+          }
+          const metaN = normalizarHoraSueno(metaHora) || 25;
+          const dias = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            dias.push(dateStr(d));
+          }
+          const labels = dias.map((d) => {
+            const w = new Date(d + "T12:00:00").getDay();
+            return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][w];
+          });
+          const values = dias.map((d) => {
+            const r = registros.find((x) => x.fechaDespertar === d);
+            return r ? normalizarHoraSueno(r.horaAcostarse) : null;
+          });
+          const colors = values.map((v) =>
+            v === null
+              ? "rgba(160,153,140,.25)"
+              : v <= metaN
+                ? "#4A7C5F"
+                : v <= metaN + 1
+                  ? "#C8922A"
+                  : "#C85A2A",
+          );
+          chartRef.current = new Chart(canvasRef.current, {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Acostarse",
+                  data: values,
+                  backgroundColor: colors,
+                  borderRadius: 6,
+                  borderSkipped: false,
+                },
+                {
+                  type: "line",
+                  label: "Meta",
+                  data: Array(7).fill(metaN),
+                  borderColor: "#C8922A",
+                  borderWidth: 2,
+                  borderDash: [6, 4],
+                  pointRadius: 0,
+                  fill: false,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  min: 20,
+                  max: 32,
+                  ticks: {
+                    callback: (v) => horaDecAStr(v),
+                    color: "#7A9485",
+                    font: { family: "'DM Mono', monospace", size: 11 },
+                  },
+                  grid: { color: "rgba(45,90,61,.12)" },
+                },
+                x: {
+                  ticks: {
+                    color: "#4A6357",
+                    font: { family: "'Nunito', sans-serif", size: 12 },
+                  },
+                  grid: { display: false },
+                },
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => {
+                      if (ctx.datasetIndex === 1) return `Meta: ${metaHora}`;
+                      if (ctx.raw === null) return "Sin registro";
+                      const r = registros.find(
+                        (x) => x.fechaDespertar === dias[ctx.dataIndex],
+                      );
+                      return [
+                        `Acostarse: ${horaDecAStr(ctx.raw)}`,
+                        r ? `Dormido: ${minAHoras(r.duracionMin)}` : "",
+                      ];
+                    },
+                  },
+                },
+              },
+            },
+          });
+          return () => {
+            if (chartRef.current) {
+              chartRef.current.destroy();
+              chartRef.current = null;
+            }
+          };
+        }, [registros, metaHora]);
+        return (
+          <div style={{ height: "200px", position: "relative" }}>
+            <canvas ref={canvasRef} />
+          </div>
+        );
+      }
+
+      /* ── Gráfico mensual (línea) ── */
+      function SuenoChartMensual({ registros, metaHora }) {
+        const canvasRef = useRef(null);
+        const chartRef = useRef(null);
+        useEffect(() => {
+          if (!canvasRef.current) return;
+          if (chartRef.current) {
+            chartRef.current.destroy();
+            chartRef.current = null;
+          }
+          const metaN = normalizarHoraSueno(metaHora) || 25;
+          const dias = [];
+          for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            dias.push(dateStr(d));
+          }
+          const labels = dias.map((d) => {
+            const dt = new Date(d + "T12:00:00");
+            return `${dt.getDate()}/${dt.getMonth() + 1}`;
+          });
+          const values = dias.map((d) => {
+            const r = registros.find((x) => x.fechaDespertar === d);
+            return r ? normalizarHoraSueno(r.horaAcostarse) : null;
+          });
+          chartRef.current = new Chart(canvasRef.current, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Acostarse",
+                  data: values,
+                  borderColor: "#2D5A3D",
+                  backgroundColor: "rgba(45,90,61,.08)",
+                  borderWidth: 2,
+                  pointRadius: 3,
+                  pointBackgroundColor: "#C8922A",
+                  tension: 0.3,
+                  spanGaps: true,
+                },
+                {
+                  label: "Meta",
+                  data: Array(30).fill(metaN),
+                  borderColor: "#C8922A",
+                  borderWidth: 2,
+                  borderDash: [6, 4],
+                  pointRadius: 0,
+                  fill: false,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  min: 20,
+                  max: 32,
+                  ticks: {
+                    callback: (v) => horaDecAStr(v),
+                    color: "#7A9485",
+                    font: { family: "'DM Mono', monospace", size: 10 },
+                  },
+                  grid: { color: "rgba(45,90,61,.12)" },
+                },
+                x: {
+                  ticks: {
+                    maxTicksLimit: 10,
+                    color: "#4A6357",
+                    font: { family: "'Nunito', sans-serif", size: 10 },
+                  },
+                  grid: { display: false },
+                },
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      ctx.datasetIndex === 1
+                        ? `Meta: ${metaHora}`
+                        : ctx.raw !== null
+                          ? `Acostarse: ${horaDecAStr(ctx.raw)}`
+                          : "Sin registro",
+                  },
+                },
+              },
+            },
+          });
+          return () => {
+            if (chartRef.current) {
+              chartRef.current.destroy();
+              chartRef.current = null;
+            }
+          };
+        }, [registros, metaHora]);
+        return (
+          <div style={{ height: "220px", position: "relative" }}>
+            <canvas ref={canvasRef} />
+          </div>
+        );
+      }
+
+      /* ── Estilos reutilizables para modales de sueño ── */
+      const suenoModalInput = {
+        width: "100%",
+        padding: "9px 14px",
+        borderRadius: "50px",
+        border: "1.5px solid rgba(200,146,42,.3)",
+        background: "rgba(255,255,255,.06)",
+        color: "rgba(255,255,255,.9)",
+        fontFamily: "var(--mono)",
+        fontSize: "14px",
+      };
+      const suenoModalLabel = {
+        fontFamily: "var(--serif2)",
+        fontSize: "10px",
+        color: "rgba(255,255,255,.45)",
+        textTransform: "uppercase",
+        letterSpacing: ".06em",
+        marginBottom: "5px",
+        display: "block",
+      };
+
+      /* ── Modal único de registro de sueño ── */
+      function ModalRegistroSueno({ onClose, onGuardar }) {
+        const hoy = dateStr(new Date());
+        const ayer = dateStr(new Date(Date.now() - 86400000));
+        const [f, setF] = useState({
+          fechaDormir: ayer,
+          horaAcostarse: "",
+          fechaDespertar: hoy,
+          horaDespertar: "",
+          calidad: 3,
+          notas: "",
+        });
+        const [mostrarCalidad, setMostrarCalidad] = useState(false);
+        const [mostrarNotas, setMostrarNotas] = useState(false);
+        const [warn, setWarn] = useState(null);
+
+        /* Inputs de hora en texto puro 24h — sin AM/PM */
+        function fmtHora(v) {
+          const d = v.replace(/\D/g, "").slice(0, 4);
+          return d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d;
+        }
+        function completarHora(v) {
+          const d = v.replace(/\D/g, "");
+          if (!d) return "";
+          if (d.length === 1) return "0" + d + ":00";
+          if (d.length === 2) return d + ":00";
+          if (d.length === 3) return "0" + d[0] + ":" + d.slice(1);
+          return d.slice(0, 2) + ":" + d.slice(2, 4);
+        }
+        function validarHora(v) {
+          if (!/^\d{2}:\d{2}$/.test(v)) return false;
+          const [h, m] = v.split(":").map(Number);
+          return h <= 23 && m <= 59;
+        }
+
+        function construirReg() {
+          const dur = calcularDuracionMin(
+            f.fechaDormir,
+            f.horaAcostarse,
+            f.fechaDespertar,
+            f.horaDespertar,
+          );
+          return {
+            id: genId(),
+            ...f,
+            duracionMin: dur,
+            fechaRegistro: new Date().toISOString(),
+          };
+        }
+
+        function guardar() {
+          if (!f.horaAcostarse || !f.horaDespertar) {
+            showToast("Ingresá la hora de acostarte y despertarte.", "warn");
+            return;
+          }
+          if (!validarHora(f.horaAcostarse) || !validarHora(f.horaDespertar)) {
+            showToast(
+              "Hora inválida. Usá el formato HH:MM (00:00 – 23:59).",
+              "warn",
+            );
+            return;
+          }
+          const reg = construirReg();
+          if (reg.duracionMin > 900) {
+            setWarn(reg);
+            return;
+          }
+          onGuardar(reg);
+          onClose();
+        }
+
+        if (warn) {
+          const h = Math.floor(warn.duracionMin / 60),
+            m = warn.duracionMin % 60;
+          return (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(30,61,43,.55)",
+                zIndex: 300,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "16px",
+              }}
+            >
+              <div
+                style={{
+                  background: "var(--vd)",
+                  border: "2px solid var(--vm)",
+                  borderRadius: "var(--r)",
+                  width: "100%",
+                  maxWidth: "420px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "4px",
+                    background: "linear-gradient(90deg,var(--do),#E8B84B)",
+                  }}
+                />
+                <div style={{ padding: "24px" }}>
+                  <div
+                    style={{
+                      fontFamily: "var(--serif)",
+                      fontSize: "17px",
+                      color: "var(--do)",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    ⚠️ Verificá la duración
+                  </div>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,.82)",
+                      fontSize: "13px",
+                      lineHeight: 1.7,
+                      marginBottom: "20px",
+                    }}
+                  >
+                    La duración calculada es de{" "}
+                    <strong style={{ color: "var(--do)" }}>
+                      {h} horas {m} minutos
+                    </strong>
+                    . Verificá que las fechas y horas ingresadas sean correctas.
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setWarn(null)}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: "50px",
+                        border: "1px solid rgba(255,255,255,.2)",
+                        background: "transparent",
+                        color: "rgba(255,255,255,.7)",
+                        cursor: "pointer",
+                        fontFamily: "var(--sans)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Revisar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onGuardar(warn);
+                        onClose();
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: "50px",
+                        background: "var(--do)",
+                        color: "var(--vd)",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        fontFamily: "var(--sans)",
+                      }}
+                    >
+                      Guardar igual
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(30,61,43,.55)",
+              zIndex: 300,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+            }}
+          >
+            <div
+              style={{
+                background: "var(--vd)",
+                border: "2px solid var(--vm)",
+                borderRadius: "var(--r)",
+                width: "100%",
+                maxWidth: "480px",
+                overflow: "hidden",
+                maxHeight: "90vh",
+                overflowY: "auto",
+              }}
+            >
+              <div
+                style={{
+                  height: "4px",
+                  background: "linear-gradient(90deg,var(--do),#E8B84B)",
+                  position: "sticky",
+                  top: 0,
+                }}
+              />
+              <div style={{ padding: "22px" }}>
+                <div
+                  style={{
+                    fontFamily: "var(--serif)",
+                    fontSize: "18px",
+                    color: "var(--do)",
+                    marginBottom: "18px",
+                  }}
+                >
+                  📝 Nuevo registro
+                </div>
+
+                {/* Fila 1: Fecha acostarse + Hora acostarse (texto puro) */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "12px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div>
+                    <label style={suenoModalLabel}>Fecha me acosté</label>
+                    <input
+                      type="date"
+                      value={f.fechaDormir}
+                      onChange={(e) =>
+                        setF({ ...f, fechaDormir: e.target.value })
+                      }
+                      style={suenoModalInput}
+                    />
+                  </div>
+                  <div>
+                    <label style={suenoModalLabel}>Hora me acosté</label>
+                    <input
+                      type="text"
+                      placeholder="--:--"
+                      value={f.horaAcostarse}
+                      maxLength={5}
+                      onChange={(e) =>
+                        setF({ ...f, horaAcostarse: fmtHora(e.target.value) })
+                      }
+                      onBlur={() => {
+                        if (f.horaAcostarse)
+                          setF((p) => ({
+                            ...p,
+                            horaAcostarse: completarHora(p.horaAcostarse),
+                          }));
+                      }}
+                      style={{
+                        ...suenoModalInput,
+                        letterSpacing: ".1em",
+                        textAlign: "center",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Fila 2: Fecha despertar + Hora despertar (texto puro) */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "12px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div>
+                    <label style={suenoModalLabel}>Fecha me desperté</label>
+                    <input
+                      type="date"
+                      value={f.fechaDespertar}
+                      onChange={(e) =>
+                        setF({ ...f, fechaDespertar: e.target.value })
+                      }
+                      style={suenoModalInput}
+                    />
+                  </div>
+                  <div>
+                    <label style={suenoModalLabel}>Hora me desperté</label>
+                    <input
+                      type="text"
+                      placeholder="--:--"
+                      value={f.horaDespertar}
+                      maxLength={5}
+                      onChange={(e) =>
+                        setF({ ...f, horaDespertar: fmtHora(e.target.value) })
+                      }
+                      onBlur={() => {
+                        if (f.horaDespertar)
+                          setF((p) => ({
+                            ...p,
+                            horaDespertar: completarHora(p.horaDespertar),
+                          }));
+                      }}
+                      style={{
+                        ...suenoModalInput,
+                        letterSpacing: ".1em",
+                        textAlign: "center",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Calidad y Notas — botones dorados colapsables en la misma fila */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    marginBottom: "12px",
+                    justifyContent: "space-evenly",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !mostrarCalidad;
+                      setMostrarCalidad(next);
+                      if (next) setMostrarNotas(false);
+                    }}
+                    style={{
+                      padding: "6px 20px",
+                      borderRadius: "50px",
+                      background: "#FFFFFF",
+                      color: "#000000",
+                      border: "1.5px solid #E8862F",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontFamily: "var(--sans)",
+                      fontSize: "11px",
+                      boxShadow: mostrarCalidad
+                        ? "0 0 0 2px rgba(232,134,47,0.4)"
+                        : "none",
+                    }}
+                  >
+                    {mostrarCalidad ? "⭐ Calidad ▲" : "⭐ Calidad ▼"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !mostrarNotas;
+                      setMostrarNotas(next);
+                      if (next) setMostrarCalidad(false);
+                    }}
+                    style={{
+                      padding: "6px 20px",
+                      borderRadius: "50px",
+                      background: "#FFFFFF",
+                      color: "#000000",
+                      border: "1.5px solid #E8862F",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontFamily: "var(--sans)",
+                      fontSize: "11px",
+                      boxShadow: mostrarNotas
+                        ? "0 0 0 2px rgba(232,134,47,0.4)"
+                        : "none",
+                    }}
+                  >
+                    {mostrarNotas ? "📝 Notas ▲" : "📝 Notas ▼"}
+                  </button>
+                </div>
+
+                {/* Panel Calidad expandido */}
+                {mostrarCalidad && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={suenoModalLabel}>
+                      Calidad — {"⭐".repeat(f.calidad)}
+                    </label>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setF({ ...f, calidad: n })}
+                          style={{
+                            flex: 1,
+                            padding: "8px 4px",
+                            borderRadius: "10px",
+                            border: "1.5px solid",
+                            cursor: "pointer",
+                            fontSize: "18px",
+                            borderColor:
+                              f.calidad >= n
+                                ? "var(--do)"
+                                : "rgba(200,146,42,.2)",
+                            background:
+                              f.calidad >= n
+                                ? "rgba(200,146,42,.2)"
+                                : "transparent",
+                            color:
+                              f.calidad >= n
+                                ? "var(--do)"
+                                : "rgba(255,255,255,.3)",
+                          }}
+                        >
+                          ⭐
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Panel Notas expandido */}
+                {mostrarNotas && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={suenoModalLabel}>Notas</label>
+                    <textarea
+                      value={f.notas}
+                      onChange={(e) => setF({ ...f, notas: e.target.value })}
+                      rows={3}
+                      placeholder="¿Algo notable de esta noche?"
+                      style={{
+                        ...suenoModalInput,
+                        borderRadius: "12px",
+                        padding: "10px 14px",
+                        resize: "vertical",
+                        fontFamily: "var(--sans)",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Espaciado antes de los botones principales */}
+                <div style={{ marginBottom: "4px" }} />
+
+                {/* Botones */}
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "50px",
+                      border: "1px solid rgba(255,255,255,.2)",
+                      background: "transparent",
+                      color: "rgba(255,255,255,.7)",
+                      cursor: "pointer",
+                      fontFamily: "var(--sans)",
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={guardar}
+                    style={{
+                      flex: 2,
+                      padding: "10px",
+                      borderRadius: "50px",
+                      background: "var(--do)",
+                      color: "var(--vd)",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      fontFamily: "var(--sans)",
+                    }}
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ── Tab: Hoy y esta semana ── */
+      function TabSuenoDashboard({ registros, config, onActualizar }) {
+        const [modalAbierto, setModalAbierto] = useState(false);
+        const [confirmar, setConfirmar] = useState(null); // { reg, anterior } pendiente de confirmación
+        const hoy = dateStr(new Date());
+        const metaHora = config?.metaHoraAcostarse || "01:00";
+        const metaN = normalizarHoraSueno(metaHora);
+        const regHoy = registros.find((r) => r.fechaDespertar === hoy);
+        const cumplioAnoche = regHoy
+          ? normalizarHoraSueno(regHoy.horaAcostarse) <= metaN
+          : false;
+        const racha = calcularRachaSueno(registros, metaHora);
+        const cumpl7 = cumplimientoSueno(registros, metaHora, 7);
+        const medianaHora = medianaHoraSueno(registros, 7);
+        const promDur = (() => {
+          const corte = new Date();
+          corte.setDate(corte.getDate() - 7);
+          const rec = registros.filter(
+            (r) =>
+              new Date(r.fechaDespertar + "T12:00:00") >= corte &&
+              r.duracionMin,
+          );
+          return rec.length
+            ? Math.round(
+                rec.reduce((a, r) => a + r.duracionMin, 0) / rec.length,
+              )
+            : null;
+        })();
+
+        function guardarConfirmado(reg) {
+          // Usa la prop registros (React state, siempre sincronizada) como fuente de verdad
+          const nuevos = registros.filter(
+            (r) => r.fechaDespertar !== reg.fechaDespertar,
+          );
+          nuevos.push(reg);
+          setData("hgsp_sueno_registros", nuevos);
+          onActualizar(nuevos);
+          showToast("Registro guardado.");
+        }
+
+        function guardar(reg) {
+          // Usa registros prop en vez de getData para garantizar consistencia con el estado React
+          const anterior = registros.find(
+            (r) => r.fechaDespertar === reg.fechaDespertar,
+          );
+          if (anterior) {
+            setConfirmar({ reg, anterior });
+            return;
+          }
+          guardarConfirmado(reg);
+        }
+
+        const stats = [
+          {
+            label: "Hora típica semana",
+            value: medianaHora || "--:--",
+            tooltip:
+              "Mediana de la hora de acostarse en los últimos 7 días. La mediana ignora valores extremos y refleja mejor tu patrón real.",
+          },
+          {
+            label: "Cumplimiento 7d",
+            value: `${cumpl7}%`,
+            tooltip:
+              "Porcentaje de días en los últimos 7 en que te acostaste antes de tu meta.",
+          },
+          {
+            label: "Racha actual",
+            value: `${racha} día${racha !== 1 ? "s" : ""}`,
+            tooltip:
+              "Días consecutivos cumpliendo la meta de hora de acostarse. Necesitás 2 o más días seguidos para iniciar una racha.",
+          },
+          {
+            label: "Prom. horas dormidas",
+            value: promDur ? minAHoras(promDur) : "--",
+            tooltip:
+              "Promedio de horas dormidas por noche en los últimos 7 días.",
+          },
+        ];
+
+        return (
+          <div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4,1fr)",
+                gap: "12px",
+                marginBottom: "20px",
+              }}
+            >
+              {stats.map((s) => (
+                <div
+                  key={s.label}
+                  title={s.tooltip}
+                  style={{
+                    background: "#FAF7F2",
+                    border: "2px solid #B8B0A0",
+                    borderRadius: "var(--r)",
+                    padding: "14px 16px",
+                    position: "relative",
+                    overflow: "hidden",
+                    cursor: "help",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "3px",
+                      background: "var(--do)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontFamily: "var(--mono)",
+                      fontSize: "10px",
+                      textTransform: "uppercase",
+                      color: "var(--tx3)",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--data)",
+                      fontSize: "22px",
+                      fontWeight: 700,
+                      color: "var(--vd)",
+                    }}
+                  >
+                    {s.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Estado de anoche */}
+            <div
+              style={{
+                background: regHoy
+                  ? cumplioAnoche
+                    ? "rgba(45,90,61,.1)"
+                    : "rgba(200,146,42,.08)"
+                  : "rgba(200,146,42,.10)",
+                border: `2px solid ${regHoy ? (cumplioAnoche ? "var(--vm)" : "rgba(200,146,42,.4)") : "rgba(200,146,42,.45)"}`,
+                borderRadius: "var(--r)",
+                padding: "18px 20px",
+                marginBottom: "14px",
+              }}
+            >
+              {regHoy ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "14px",
+                  }}
+                >
+                  <span style={{ fontSize: "28px", marginTop: "4px" }}>
+                    {cumplioAnoche ? "✅" : "🌙"}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--sans)",
+                        fontSize: "13px",
+                        color: "var(--tx2)",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Anoche: dormiste a las{" "}
+                      <strong>{regHoy.horaAcostarse}</strong> · despertaste a
+                      las <strong>{regHoy.horaDespertar}</strong>
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--data)",
+                        fontSize: "22px",
+                        fontWeight: 700,
+                        color: "var(--vd)",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {regHoy.duracionMin
+                        ? minAHoras(regHoy.duracionMin)
+                        : "--"}{" "}
+                      dormido
+                    </div>
+                    <div style={{ color: "var(--tx3)", fontSize: "12px" }}>
+                      Calidad: {"⭐".repeat(regHoy.calidad || 0)} ·{" "}
+                      {cumplioAnoche
+                        ? "Dentro de la meta"
+                        : "Por encima de la meta"}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "var(--serif2)",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      color: "var(--vd)",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    😴 ¿A qué hora te dormiste anoche?
+                  </div>
+                  <button
+                    onClick={() => setModalAbierto(true)}
+                    style={{
+                      padding: "9px 22px",
+                      borderRadius: "50px",
+                      background: "var(--do)",
+                      color: "var(--vd)",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      fontFamily: "var(--sans)",
+                      fontSize: "13px",
+                    }}
+                  >
+                    💤 Nuevo registro
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {regHoy && (
+              <div style={{ marginBottom: "14px" }}>
+                <button
+                  onClick={() => setModalAbierto(true)}
+                  style={{
+                    padding: "8px 20px",
+                    borderRadius: "50px",
+                    background: "var(--vd)",
+                    color: "var(--bl)",
+                    border: "2px solid var(--vm)",
+                    cursor: "pointer",
+                    fontFamily: "var(--sans)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  💤 Nuevo registro
+                </button>
+              </div>
+            )}
+
+            {/* Mensaje motivacional */}
+            <div
+              style={{
+                background: "rgba(45,90,61,.06)",
+                borderLeft: "3px solid var(--vm)",
+                borderRadius: "0 10px 10px 0",
+                padding: "11px 16px",
+                marginBottom: "20px",
+                fontStyle: "italic",
+                color: "var(--tx2)",
+                fontSize: "13px",
+                lineHeight: 1.5,
+              }}
+            >
+              {mensajeSueno(registros, config)}
+            </div>
+
+            {/* Gráfico semanal */}
+            <div
+              style={{
+                background: "#FAF7F2",
+                border: "2px solid #B8B0A0",
+                borderRadius: "var(--r)",
+                padding: "18px",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--serif2)",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "var(--vd)",
+                  marginBottom: "12px",
+                }}
+              >
+                Esta semana
+              </div>
+              <SuenoChartSemanal registros={registros} metaHora={metaHora} />
+              <div
+                style={{
+                  display: "flex",
+                  gap: "14px",
+                  marginTop: "10px",
+                  fontSize: "11px",
+                  color: "var(--tx3)",
+                  fontFamily: "var(--mono)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span>🟢 Cumplió meta</span>
+                <span>🟡 Hasta 1h tarde</span>
+                <span>🔴 Más de 1h tarde</span>
+                <span
+                  style={{
+                    borderLeft: "2px dashed #C8922A",
+                    paddingLeft: "10px",
+                  }}
+                >
+                  Meta: {metaHora}
+                </span>
+              </div>
+            </div>
+
+            {modalAbierto && (
+              <ModalRegistroSueno
+                onClose={() => setModalAbierto(false)}
+                onGuardar={guardar}
+              />
+            )}
+
+            {/* Modal confirmación de reemplazo por fecha duplicada */}
+            {confirmar && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(30,61,43,.55)",
+                  zIndex: 300,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    background: "var(--vd)",
+                    border: "2px solid var(--vm)",
+                    borderRadius: "var(--r)",
+                    width: "100%",
+                    maxWidth: "400px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "4px",
+                      background: "linear-gradient(90deg,var(--do),#E8B84B)",
+                    }}
+                  />
+                  <div style={{ padding: "24px" }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--serif)",
+                        fontSize: "17px",
+                        color: "var(--do)",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      📅 Registro existente
+                    </div>
+                    <div
+                      style={{
+                        color: "rgba(255,255,255,.82)",
+                        fontSize: "13px",
+                        lineHeight: 1.7,
+                        marginBottom: "20px",
+                      }}
+                    >
+                      Ya hay un registro del{" "}
+                      <strong style={{ color: "var(--do)" }}>
+                        {confirmar.anterior.fechaDespertar}
+                      </strong>
+                      . ¿Querés reemplazarlo?
+                    </div>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button
+                        onClick={() => setConfirmar(null)}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          borderRadius: "50px",
+                          border: "1px solid rgba(255,255,255,.2)",
+                          background: "transparent",
+                          color: "rgba(255,255,255,.7)",
+                          cursor: "pointer",
+                          fontFamily: "var(--sans)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => {
+                          guardarConfirmado(confirmar.reg);
+                          setConfirmar(null);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          borderRadius: "50px",
+                          background: "var(--do)",
+                          color: "var(--vd)",
+                          border: "none",
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          fontFamily: "var(--sans)",
+                        }}
+                      >
+                        Reemplazar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      /* ── Tab: Tendencia del mes ── */
+      function TabSuenoTendencia({ registros, config }) {
+        const metaHora = config?.metaHoraAcostarse || "01:00";
+        const cumpl30 = cumplimientoSueno(registros, metaHora, 30);
+        const prom30 = promedioHoraSueno(registros, 30);
+        const racha = calcularRachaSueno(registros, metaHora);
+
+        /* Tendencia: promedio últimos 7 días vs. 7 días previos */
+        const tendencia = (() => {
+          const c7 = new Date();
+          c7.setDate(c7.getDate() - 7);
+          const c14 = new Date();
+          c14.setDate(c14.getDate() - 14);
+          const r7 = registros.filter(
+            (r) => new Date(r.fechaDespertar + "T12:00:00") >= c7,
+          );
+          const r7p = registros.filter((r) => {
+            const d = new Date(r.fechaDespertar + "T12:00:00");
+            return d >= c14 && d < c7;
+          });
+          if (!r7.length || !r7p.length) return "→";
+          const p7 =
+            r7.reduce(
+              (a, r) => a + (normalizarHoraSueno(r.horaAcostarse) || 0),
+              0,
+            ) / r7.length;
+          const p7p =
+            r7p.reduce(
+              (a, r) => a + (normalizarHoraSueno(r.horaAcostarse) || 0),
+              0,
+            ) / r7p.length;
+          return p7 < p7p - 0.25 ? "↑" : p7 > p7p + 0.25 ? "↓" : "→";
+        })();
+
+        const metricas = [
+          { label: "Promedio del mes", value: prom30 || "--:--" },
+          { label: "Mejor racha del mes", value: `${racha} días` },
+          { label: "Cumplimiento (30d)", value: `${cumpl30}%` },
+          {
+            label: "Tendencia últimos 7d",
+            value:
+              tendencia === "↑"
+                ? "↑ Mejorando"
+                : tendencia === "↓"
+                  ? "↓ Empeorando"
+                  : "→ Estable",
+          },
+        ];
+
+        /* Correlación de palabras en notas */
+        const correlacion = (() => {
+          const conNotas = registros.filter(
+            (r) => r.notas && r.notas.length > 3,
+          );
+          if (conNotas.length < 5) return null;
+          const metaN = normalizarHoraSueno(metaHora);
+          const stop = new Set([
+            "que",
+            "con",
+            "una",
+            "por",
+            "para",
+            "pero",
+            "como",
+            "este",
+            "esta",
+            "son",
+            "los",
+            "las",
+            "del",
+            "mas",
+            "muy",
+            "era",
+            "fue",
+            "hay",
+            "sus",
+            "sin",
+            "todo",
+            "cada",
+            "bien",
+            "tuve",
+            "algo",
+          ]);
+          function top(regs) {
+            const f = {};
+            regs.forEach((r) =>
+              (r.notas || "")
+                .toLowerCase()
+                .split(/\s+/)
+                .forEach((p) => {
+                  const c = p.replace(/[^a-záéíóúñ]/gi, "");
+                  if (c.length >= 4 && !stop.has(c)) f[c] = (f[c] || 0) + 1;
+                }),
+            );
+            return Object.entries(f)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([p]) => p);
+          }
+          const tardes = conNotas.filter(
+            (r) => normalizarHoraSueno(r.horaAcostarse) > metaN,
+          );
+          const temprano = conNotas.filter(
+            (r) => normalizarHoraSueno(r.horaAcostarse) <= metaN,
+          );
+          return { tardes: top(tardes), temprano: top(temprano) };
+        })();
+
+        return (
+          <div>
+            <div
+              style={{
+                background: "#FAF7F2",
+                border: "2px solid #B8B0A0",
+                borderRadius: "var(--r)",
+                padding: "18px",
+                marginBottom: "16px",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--serif2)",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "var(--vd)",
+                  marginBottom: "12px",
+                }}
+              >
+                Últimos 30 días
+              </div>
+              <SuenoChartMensual registros={registros} metaHora={metaHora} />
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "12px",
+                marginBottom: "16px",
+              }}
+            >
+              {metricas.map((s) => (
+                <div
+                  key={s.label}
+                  style={{
+                    background: "#FAF7F2",
+                    border: "2px solid #B8B0A0",
+                    borderRadius: "var(--r)",
+                    padding: "14px 16px",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "3px",
+                      background: "var(--do)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontFamily: "var(--mono)",
+                      fontSize: "10px",
+                      textTransform: "uppercase",
+                      color: "var(--tx3)",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--data)",
+                      fontSize: "20px",
+                      fontWeight: 700,
+                      color: "var(--vd)",
+                    }}
+                  >
+                    {s.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {correlacion ? (
+              <div
+                style={{
+                  background: "#FAF7F2",
+                  border: "2px solid #B8B0A0",
+                  borderRadius: "var(--r)",
+                  padding: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--serif2)",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--vd)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Palabras frecuentes en notas
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "12px",
+                  }}
+                >
+                  {[
+                    {
+                      titulo: "Noches tarde",
+                      palabras: correlacion.tardes,
+                      color: "var(--do)",
+                      bg: "rgba(200,146,42,.12)",
+                    },
+                    {
+                      titulo: "Noches a tiempo",
+                      palabras: correlacion.temprano,
+                      color: "var(--vc)",
+                      bg: "rgba(74,124,95,.12)",
+                    },
+                  ].map((col) => (
+                    <div key={col.titulo}>
+                      <div
+                        style={{
+                          fontFamily: "var(--mono)",
+                          fontSize: "10px",
+                          color: "var(--tx3)",
+                          textTransform: "uppercase",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        {col.titulo}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "6px",
+                        }}
+                      >
+                        {col.palabras.length ? (
+                          col.palabras.map((p) => (
+                            <span
+                              key={p}
+                              style={{
+                                background: col.bg,
+                                color: col.color,
+                                padding: "3px 10px",
+                                borderRadius: "20px",
+                                fontSize: "12px",
+                                fontFamily: "var(--mono)",
+                              }}
+                            >
+                              {p}
+                            </span>
+                          ))
+                        ) : (
+                          <span
+                            style={{ color: "var(--tx3)", fontSize: "12px" }}
+                          >
+                            Insuficientes notas
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "rgba(45,90,61,.06)",
+                  borderRadius: "var(--r)",
+                  padding: "14px 16px",
+                  color: "var(--tx3)",
+                  fontSize: "13px",
+                }}
+              >
+                Agregá notas a tus registros para ver correlaciones entre
+                palabras y horarios.
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      /* ── Tab: Objetivos ── */
+      function TabSuenoObjetivos({ registros, config, onConfigChange }) {
+        const [editando, setEditando] = useState(false);
+        const [metaInput, setMetaInput] = useState(
+          config?.metaHoraAcostarse || "01:00",
+        );
+        const [historial, setHistorial] = useState(() =>
+          getData("hgsp_sueno_objetivos_historial"),
+        );
+        const sugerencia = sugerirObjetivo(registros, config);
+        const cumpl14 = cumplimientoSueno(
+          registros,
+          config?.metaHoraAcostarse || "01:00",
+          14,
+        );
+        const corte14 = new Date();
+        corte14.setDate(corte14.getDate() - 14);
+        const dias14 = registros.filter(
+          (r) => new Date(r.fechaDespertar + "T12:00:00") >= corte14,
+        ).length;
+
+        function archivarMeta(cfgActual, cumplida) {
+          if (!cfgActual?.metaHoraAcostarse) return;
+          const h = [
+            ...historial,
+            {
+              metaHoraAcostarse: cfgActual.metaHoraAcostarse,
+              fechaDesde: cfgActual.fechaMetaCreada || dateStr(new Date()),
+              fechaHasta: dateStr(new Date()),
+              cumplida,
+            },
+          ];
+          setData("hgsp_sueno_objetivos_historial", h);
+          setHistorial(h);
+        }
+
+        function guardarMeta() {
+          archivarMeta(config, cumpl14 >= 70);
+          const nueva = {
+            ...config,
+            metaHoraAcostarse: metaInput,
+            fechaMetaCreada: dateStr(new Date()),
+          };
+          setData("hgsp_sueno_config", nueva);
+          onConfigChange(nueva);
+          setEditando(false);
+          showToast("Meta actualizada.");
+        }
+
+        function aceptarSugerencia() {
+          archivarMeta(config, cumpl14 >= 70);
+          const nueva = {
+            ...config,
+            metaHoraAcostarse: sugerencia.nuevaMeta,
+            fechaMetaCreada: dateStr(new Date()),
+          };
+          setData("hgsp_sueno_config", nueva);
+          onConfigChange(nueva);
+          showToast("Nuevo objetivo aceptado.");
+        }
+
+        return (
+          <div>
+            {/* Meta actual */}
+            <div
+              style={{
+                background: "#FAF7F2",
+                border: "2px solid #B8B0A0",
+                borderLeft: "5px solid var(--vm)",
+                borderRadius: "var(--r)",
+                padding: "18px",
+                marginBottom: "14px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--serif2)",
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    color: "var(--vd)",
+                  }}
+                >
+                  Meta actual
+                </div>
+                <button
+                  onClick={() => setEditando(!editando)}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: "50px",
+                    background: "transparent",
+                    border: "1.5px solid var(--crb)",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontFamily: "var(--sans)",
+                  }}
+                >
+                  {editando ? "Cancelar" : "✏️ Editar"}
+                </button>
+              </div>
+              {editando ? (
+                <div
+                  style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                >
+                  <input
+                    type="time"
+                    value={metaInput}
+                    onChange={(e) => setMetaInput(e.target.value)}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: "50px",
+                      border: "2px solid var(--vm)",
+                      background: "#F0EBE0",
+                      fontFamily: "var(--mono)",
+                      fontSize: "16px",
+                    }}
+                  />
+                  <button
+                    onClick={guardarMeta}
+                    style={{
+                      padding: "8px 20px",
+                      borderRadius: "50px",
+                      background: "var(--do)",
+                      color: "var(--vd)",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      fontFamily: "var(--sans)",
+                    }}
+                  >
+                    Guardar
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "var(--mono)",
+                      fontSize: "32px",
+                      fontWeight: 700,
+                      color: "var(--do)",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {config?.metaHoraAcostarse || "--:--"}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "var(--tx2)" }}>
+                    Llevás {dias14} registros en 14 días · cumpliste el{" "}
+                    {cumpl14}%
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sugerencia */}
+            {sugerencia.sugerir ? (
+              <div
+                style={{
+                  background: "rgba(200,146,42,.08)",
+                  border: "2px solid rgba(200,146,42,.4)",
+                  borderRadius: "var(--r)",
+                  padding: "16px",
+                  marginBottom: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--serif2)",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--do)",
+                    marginBottom: "6px",
+                  }}
+                >
+                  🎯 Próximo objetivo sugerido: {sugerencia.nuevaMeta}
+                </div>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--tx2)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {sugerencia.razon}
+                </div>
+                <button
+                  onClick={aceptarSugerencia}
+                  style={{
+                    padding: "8px 20px",
+                    borderRadius: "50px",
+                    background: "var(--do)",
+                    color: "var(--vd)",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontFamily: "var(--sans)",
+                    fontSize: "13px",
+                  }}
+                >
+                  Aceptar nuevo objetivo
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "rgba(45,90,61,.06)",
+                  borderRadius: "var(--r)",
+                  padding: "14px 16px",
+                  marginBottom: "14px",
+                  fontSize: "13px",
+                  color: "var(--tx2)",
+                }}
+              >
+                🎯 {sugerencia.mensaje}
+              </div>
+            )}
+
+            {/* Historial */}
+            {historial.length > 0 && (
+              <div
+                style={{
+                  background: "#FAF7F2",
+                  border: "2px solid #B8B0A0",
+                  borderRadius: "var(--r)",
+                  padding: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--serif)",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--vd)",
+                    marginBottom: "10px",
+                  }}
+                >
+                  Historial de metas
+                </div>
+                {historial.map((h, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "8px 0",
+                      borderBottom:
+                        i < historial.length - 1 ? "1px solid #DDD5C4" : "none",
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          fontFamily: "var(--mono)",
+                          fontWeight: 700,
+                          color: "var(--tx)",
+                        }}
+                      >
+                        {h.metaHoraAcostarse}
+                      </span>
+                      <span
+                        style={{
+                          color: "var(--tx3)",
+                          fontSize: "12px",
+                          marginLeft: "8px",
+                        }}
+                      >
+                        Desde {h.fechaDesde} hasta {h.fechaHasta}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        padding: "2px 10px",
+                        borderRadius: "20px",
+                        background: h.cumplida ? "#1E3D2B" : "#7A5200",
+                        color: h.cumplida ? "#A8DDB8" : "#FDEAAA",
+                      }}
+                    >
+                      {h.cumplida ? "Logrado" : "Abandonado"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      /* ── Tab: Historial ── */
+      function TabSuenoHistorial({ registros, onEliminar }) {
+        const sorted = [...registros].sort((a, b) =>
+          b.fechaDespertar.localeCompare(a.fechaDespertar),
+        );
+        const [pag, setPag] = useState(0);
+        const POR_PAG = 10;
+        const paginas = Math.ceil(sorted.length / POR_PAG);
+        const pagActual = sorted.slice(pag * POR_PAG, (pag + 1) * POR_PAG);
+
+        if (!registros.length)
+          return (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "40px 20px",
+                color: "var(--tx3)",
+                fontSize: "14px",
+              }}
+            >
+              No hay registros aún. Empezá desde "Hoy y esta semana".
+            </div>
+          );
+
+        return (
+          <div>
+            <div className="tbl-wrap">
+              <table className="tbl" style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    {[
+                      "Desperté",
+                      "Acostarse",
+                      "Despertar",
+                      "Duración",
+                      "Calidad",
+                      "Notas",
+                      "",
+                    ].map((h, i) => (
+                      <th key={i}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagActual.map((r) => (
+                    <tr key={r.id}>
+                      <td
+                        style={{ fontFamily: "var(--mono)", fontSize: "12px" }}
+                      >
+                        {r.fechaDespertar}
+                      </td>
+                      <td
+                        style={{ fontFamily: "var(--mono)", fontSize: "12px" }}
+                      >
+                        {r.horaAcostarse}
+                      </td>
+                      <td
+                        style={{ fontFamily: "var(--mono)", fontSize: "12px" }}
+                      >
+                        {r.horaDespertar}
+                      </td>
+                      <td
+                        style={{ fontFamily: "var(--mono)", fontSize: "12px" }}
+                      >
+                        {minAHoras(r.duracionMin)}
+                      </td>
+                      <td>{"⭐".repeat(r.calidad || 0)}</td>
+                      <td
+                        style={{
+                          maxWidth: "140px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontSize: "12px",
+                          color: "var(--tx2)",
+                        }}
+                        title={r.notas}
+                      >
+                        {r.notas || "—"}
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => onEliminar(r.id)}
+                          style={{
+                            padding: "3px 10px",
+                            borderRadius: "20px",
+                            border: "1px solid rgba(180,50,50,.4)",
+                            background: "transparent",
+                            color: "rgba(180,50,50,.8)",
+                            cursor: "pointer",
+                            fontSize: "11px",
+                            fontFamily: "var(--sans)",
+                          }}
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {paginas > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "8px",
+                  marginTop: "14px",
+                }}
+              >
+                {Array.from({ length: paginas }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPag(i)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: "20px",
+                      border: "1.5px solid",
+                      cursor: "pointer",
+                      fontFamily: "var(--mono)",
+                      fontSize: "12px",
+                      borderColor: pag === i ? "var(--do)" : "var(--crb)",
+                      background: pag === i ? "var(--do)" : "transparent",
+                      color: pag === i ? "var(--vd)" : "var(--tx2)",
+                    }}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      /* ── Componente principal: SubModuloSueno ── */
+      function SubModuloSueno({ onBack }) {
+        const [registros, setRegistros] = useState(() => {
+          // Limpieza única de datos de prueba (fase 2 testing)
+          if (!localStorage.getItem("hgsp_sueno_clean_v1")) {
+            localStorage.removeItem("hgsp_sueno_registros");
+            localStorage.setItem("hgsp_sueno_clean_v1", "1");
+          }
+          return getData("hgsp_sueno_registros");
+        });
+        const [config, setConfig] = useState(() => {
+          const raw = localStorage.getItem("hgsp_sueno_config");
+          return raw ? JSON.parse(raw) : null;
+        });
+        const [tabActiva, setTabActiva] = useState("dashboard");
+        const [metaOnboarding, setMetaOnboarding] = useState("01:00");
+
+        function guardarMetaInicial() {
+          const cfg = {
+            metaHoraAcostarse: metaOnboarding,
+            metaHorasDormir: 7,
+            fechaMetaCreada: dateStr(new Date()),
+          };
+          setData("hgsp_sueno_config", cfg);
+          setData("hgsp_sueno_registros", []);
+          setData("hgsp_sueno_objetivos_historial", []);
+          setConfig(cfg);
+          setRegistros([]);
+          showToast("Meta guardada. Empezá registrando tu primer noche.");
+        }
+
+        function eliminarRegistro(id) {
+          const todos = registros.filter((r) => r.id !== id);
+          setData("hgsp_sueno_registros", todos);
+          setRegistros(todos);
+          showToast("Registro eliminado.");
+        }
+
+        const TABS = [
+          { id: "dashboard", label: "🌙 Hoy y esta semana" },
+          { id: "tendencia", label: "📈 Tendencia del mes" },
+          { id: "objetivos", label: "🎯 Objetivos" },
+          { id: "historial", label: "📝 Historial" },
+        ];
+
+        return (
+          <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+            {/* Header fijo: Volver + título — SEPARADO del bloque de tabs */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                marginBottom: "22px",
+                background: "#FAF7F2",
+                border: "2px solid var(--vm)",
+                borderRadius: "var(--r)",
+                padding: "14px 18px",
+                boxShadow: "0 4px 12px rgba(30,61,43,0.15)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBack();
+                }}
+                style={{
+                  padding: "7px 16px",
+                  borderRadius: "50px",
+                  background: "var(--vm)",
+                  color: "#FFFFFF",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "var(--sans)",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}
+              >
+                ← Volver
+              </button>
+              <div className="page-header" style={{ flex: 1, marginBottom: 0 }}>
+                <div className="page-header-icon">😴</div>
+                <div>
+                  <div className="page-header-title">Sueño</div>
+                  <div className="page-header-sub">
+                    Registro y seguimiento del hábito de sueño
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {!config ? (
+              /* ONBOARDING */
+              <div
+                style={{
+                  background: "var(--vd)",
+                  border: "2px solid var(--vm)",
+                  borderRadius: "var(--r)",
+                  padding: "28px",
+                  maxWidth: "440px",
+                  margin: "0 auto",
+                }}
+              >
+                <div
+                  style={{
+                    height: "4px",
+                    background: "linear-gradient(90deg,var(--do),#E8B84B)",
+                    borderRadius: "4px",
+                    marginBottom: "20px",
+                  }}
+                />
+                <div
+                  style={{
+                    fontFamily: "var(--serif)",
+                    fontSize: "20px",
+                    color: "var(--do)",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Definamos tu meta de hora de acostarse
+                </div>
+                <div
+                  style={{
+                    color: "rgba(255,255,255,.7)",
+                    fontSize: "13px",
+                    lineHeight: 1.7,
+                    marginBottom: "20px",
+                  }}
+                >
+                  Elegí una hora realista. Podés ajustarla en cualquier momento.
+                  <br />
+                  <span
+                    style={{ color: "rgba(255,255,255,.4)", fontSize: "12px" }}
+                  >
+                    El objetivo no es cumplirla perfecto desde el día uno — es
+                    tener un patrón visible.
+                  </span>
+                </div>
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={suenoModalLabel}>Meta hora de acostarse</label>
+                  <input
+                    type="time"
+                    value={metaOnboarding}
+                    onChange={(e) => setMetaOnboarding(e.target.value)}
+                    style={{
+                      ...suenoModalInput,
+                      fontSize: "20px",
+                      padding: "12px 18px",
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={guardarMetaInicial}
+                  style={{
+                    width: "100%",
+                    padding: "13px",
+                    borderRadius: "50px",
+                    background: "var(--do)",
+                    color: "var(--vd)",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontFamily: "var(--sans)",
+                    fontSize: "15px",
+                  }}
+                >
+                  Guardar meta y empezar
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Tabs — contenedor independiente, sin ningún handler que llame a onBack */}
+                <div
+                  style={{
+                    background: "var(--cro)",
+                    borderRadius: "50px",
+                    padding: "4px",
+                    display: "flex",
+                    gap: "2px",
+                    marginBottom: "20px",
+                  }}
+                >
+                  {TABS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTabActiva(t.id);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "8px 10px",
+                        borderRadius: "50px",
+                        border: "none",
+                        cursor: "pointer",
+                        fontFamily: "var(--sans)",
+                        fontWeight: tabActiva === t.id ? 700 : 400,
+                        fontSize: "12px",
+                        background:
+                          tabActiva === t.id ? "var(--vd)" : "transparent",
+                        color: tabActiva === t.id ? "var(--bl)" : "var(--tx2)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {tabActiva === "dashboard" && (
+                  <TabSuenoDashboard
+                    registros={registros}
+                    config={config}
+                    onActualizar={setRegistros}
+                  />
+                )}
+                {tabActiva === "tendencia" && (
+                  <TabSuenoTendencia registros={registros} config={config} />
+                )}
+                {tabActiva === "objetivos" && (
+                  <TabSuenoObjetivos
+                    registros={registros}
+                    config={config}
+                    onConfigChange={setConfig}
+                  />
+                )}
+                {tabActiva === "historial" && (
+                  <TabSuenoHistorial
+                    registros={registros}
+                    onEliminar={eliminarRegistro}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        );
+      }
+
+      /* Componente principal del módulo Vida y Hogar */
+      function SeccionVidaHogar({ onNavigate }) {
+        const [catAbierta, setCatAbierta] = useState(null);
+        const [panelAbierto, setPanelAbierto] = useState(null);
+        const [subModulo, setSubModulo] = useState(null);
+
+        if (subModulo === "sueno")
+          return <SubModuloSueno onBack={() => setSubModulo(null)} />;
+
+        function toggleCat(id) {
+          setCatAbierta((prev) => (prev === id ? null : id));
+          setPanelAbierto(null);
+        }
+
+        function clickHijo(hijo) {
+          if (hijo.estado === "enlazado") {
+            onNavigate(hijo.enlaceA);
+            return;
+          }
+          if (hijo.modulo) {
+            setSubModulo(hijo.modulo);
+            return;
+          }
+          // activo (proximamente) y pendiente: toggle panel inline
+          setPanelAbierto((prev) => (prev === hijo.id ? null : hijo.id));
+        }
+
+        function colorEstado(estado) {
+          if (estado === "activo")
+            return "#96690E"; /* dorado oscuro — legible sobre crema */
+          if (estado === "enlazado") return "var(--vm)"; /* verde medio */
+          return "#7A6F65"; /* marrón-gris cálido */
+        }
+
+        function bgEstado(estado) {
+          if (estado === "activo") return "#FFF4DC"; /* crema dorada */
+          if (estado === "enlazado") return "#E8F0EB"; /* crema verde */
+          return "#EAE4DA"; /* crema marrón */
+        }
+
+        function borderEstado(estado) {
+          if (estado === "activo") return "#D4A030"; /* dorado */
+          if (estado === "enlazado") return "#4A7C5F"; /* verde */
+          return "#C0B5A8"; /* marrón claro */
+        }
+
+        function borderLeftEstado(estado) {
+          if (estado === "activo") return "var(--do)";
+          if (estado === "enlazado") return "var(--vc)";
+          return "#B0A496";
+        }
+
+        function catActiva(cat) {
+          return cat.hijos.some((h) => h.estado === "activo");
+        }
+
+        return (
+          <div style={{ maxWidth: "780px", margin: "0 auto" }}>
+            {/* Encabezado de página */}
+            <div className="page-header" style={{ marginBottom: "28px" }}>
+              <div className="page-header-icon">🌳</div>
+              <div>
+                <div className="page-header-title">Vida y Hogar</div>
+                <div className="page-header-sub">
+                  Organización personal —{" "}
+                  {ARBOL_VIDA.reduce((a, c) => a + c.hijos.length, 0)} módulos ·{" "}
+                  {ARBOL_VIDA.reduce(
+                    (a, c) =>
+                      a + c.hijos.filter((h) => h.estado === "activo").length,
+                    0,
+                  )}{" "}
+                  activos
+                </div>
+              </div>
+            </div>
+
+            {/* Árbol de categorías */}
+            {ARBOL_VIDA.map((cat) => {
+              const abierta = catAbierta === cat.id;
+              const activos = cat.hijos.filter(
+                (h) => h.estado === "activo",
+              ).length;
+              const pendientes = cat.hijos.filter(
+                (h) => h.estado === "pendiente",
+              ).length;
+
+              /* Colores por estado del ítem hijo */
+              function bgHijo(estado) {
+                if (estado === "activo")
+                  return "#F5D898"; /* crema dorada — protagonista */
+                if (estado === "enlazado")
+                  return "#C8D8BE"; /* crema verde suave */
+                return "#D8CEBC"; /* beige apagado — no compite */
+              }
+              function borderLeftHijo(estado) {
+                if (estado === "activo")
+                  return "#C8922A"; /* dorado var(--do) */
+                if (estado === "enlazado") return "#4A7C5F"; /* verde */
+                return "#A09888"; /* marrón gris muy neutro */
+              }
+              function textHijo(estado) {
+                if (estado === "activo")
+                  return "#6B4200"; /* dorado oscuro — prominente */
+                if (estado === "enlazado") return "#1E3D2B"; /* verde oscuro */
+                return "#6A6258"; /* gris-marrón apagado */
+              }
+
+              return (
+                <div
+                  key={cat.id}
+                  style={{
+                    marginBottom: "12px",
+                    borderRadius: "18px",
+                    border: "1.5px solid #1A1A18",
+                    boxShadow: "4px 4px 0px rgba(0,0,0,0.75)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Header de categoría */}
+                  <div
+                    onClick={() => toggleCat(cat.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "14px 18px",
+                      background: catActiva(cat) ? "var(--vm)" : "#7A6F65",
+                      cursor: "pointer",
+                      userSelect: "none",
+                      borderRadius: abierta ? "16px 16px 0 0" : "16px",
+                      borderBottom: abierta
+                        ? "1.5px solid rgba(0,0,0,0.4)"
+                        : "none",
+                      transition: "border-radius .2s",
+                    }}
+                  >
+                    <span style={{ fontSize: "20px" }}>{cat.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--serif)",
+                          fontSize: "15px",
+                          fontWeight: 700,
+                          color: "#fff",
+                        }}
+                      >
+                        {cat.label}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--mono)",
+                          fontSize: "10px",
+                          color: "rgba(255,255,255,.65)",
+                          marginTop: "1px",
+                        }}
+                      >
+                        {activos} activos · {pendientes} pendientes
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        color: "rgba(255,255,255,.8)",
+                        fontSize: "13px",
+                        transition: "transform .2s",
+                        display: "inline-block",
+                        transform: abierta ? "rotate(180deg)" : "rotate(0deg)",
+                      }}
+                    >
+                      ▼
+                    </span>
+                  </div>
+
+                  {/* Hijos */}
+                  {abierta && (
+                    <div
+                      style={{
+                        background: "#4E6352",
+                        borderRadius: "0 0 16px 16px",
+                        padding: "10px 12px 12px",
+                      }}
+                    >
+                      {cat.hijos.map((hijo) => (
+                        <div key={hijo.id}>
+                          <div
+                            onClick={() => clickHijo(hijo)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              padding: "10px 14px 10px 12px",
+                              marginBottom:
+                                panelAbierto === hijo.id ? "0" : "6px",
+                              borderRadius:
+                                panelAbierto === hijo.id
+                                  ? "10px 10px 0 0"
+                                  : "10px",
+                              background: bgHijo(hijo.estado),
+                              border: "1.5px solid #1A1A18",
+                              borderLeft: `6px solid ${borderLeftHijo(hijo.estado)}`,
+                              boxShadow:
+                                "2.5px 3px 0px rgba(0,0,0,0.55), inset 1px 1px 3px rgba(255,255,255,0.45)",
+                              cursor: "pointer",
+                              transition: "box-shadow .15s",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "16px",
+                                background: "#FFFFFF",
+                                borderRadius: "50%",
+                                width: "30px",
+                                height: "30px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {hijo.emoji}
+                            </span>
+                            <span
+                              style={{
+                                flex: 1,
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                color: textHijo(hijo.estado),
+                              }}
+                            >
+                              {hijo.label}
+                            </span>
+                            {hijo.estado === "enlazado" && (
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#2D5A3D",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                →
+                              </span>
+                            )}
+                            {hijo.estado === "activo" && (
+                              <span
+                                style={{
+                                  fontFamily: "var(--mono)",
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  background: "var(--do)",
+                                  color: "var(--vd)",
+                                  padding: "3px 9px",
+                                  borderRadius: "10px",
+                                  border: "1.5px solid #1A1A18",
+                                  boxShadow: "1.5px 2px 0px rgba(0,0,0,0.45)",
+                                }}
+                              >
+                                PRÓXIMO
+                              </span>
+                            )}
+                            {hijo.estado === "pendiente" && (
+                              <span
+                                style={{
+                                  fontFamily: "var(--mono)",
+                                  fontSize: "9px",
+                                  fontWeight: 500,
+                                  color: "#8A8278",
+                                  background: "#C8C0B4",
+                                  padding: "2px 8px",
+                                  borderRadius: "10px",
+                                }}
+                              >
+                                pendiente
+                              </span>
+                            )}
+                          </div>
+                          {panelAbierto === hijo.id && (
+                            <PanelPorConstruirse
+                              id={hijo.id}
+                              proximamente={hijo.proximamente}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+      /* ═══════════════════════════════════════════════════ */
+
+      function App() {
+        return (
+          <div style={{minHeight:'100vh', background:'var(--cr)'}}>
+            <ToastContainer />
+            <div className="topbar-vh">
+              <a href="index.html" className="topbar-vh-back">← App principal</a>
+              <span className="topbar-vh-title">🌳 Vida y Hogar</span>
+              <button className="topbar-vh-signout" onClick={()=>authSignOut()}>🚪 Cerrar sesión</button>
+            </div>
+            <div className="vh-main">
+              <SeccionVidaHogar onNavigate={()=>{}} />
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
