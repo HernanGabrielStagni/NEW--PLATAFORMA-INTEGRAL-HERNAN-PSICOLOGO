@@ -16119,8 +16119,8 @@ window.addEventListener('DOMContentLoaded', authInit);
         const [filtro, setFiltro] = React.useState("todos");
         const [reprogId, setReprogId]     = React.useState(null);
         const [reprogFecha, setReprogFecha] = React.useState("");
-        // Mapa local de comentarios editables (id → texto)
-        const [comentariosEdit, setComentariosEdit] = React.useState({});
+        const [lapizAbierto, setLapizAbierto] = React.useState({}); // {id: bool}
+        const [comentariosEdit, setComentariosEdit] = React.useState({}); // {id: texto}
         const [form, setForm] = React.useState({
           descripcion: "", fecha: hoy, hora: "09:00", prioridad: "normal",
         });
@@ -16128,10 +16128,11 @@ window.addEventListener('DOMContentLoaded', authInit);
         function loadItems() {
           const data = getData("hgsp_eventos");
           setItems(data);
-          // Inicializar mapa de comentarios con los valores actuales
-          const map = {};
-          data.filter(i => i.estado === "en_espera").forEach(i => { map[i.id] = i.comentario || ""; });
-          setComentariosEdit(prev => ({ ...map, ...prev }));
+          setComentariosEdit(prev => {
+            const m = { ...prev };
+            data.forEach(i => { if (!(i.id in m)) m[i.id] = i.comentario || ""; });
+            return m;
+          });
         }
         React.useEffect(() => { loadItems(); }, []);
 
@@ -16139,12 +16140,11 @@ window.addEventListener('DOMContentLoaded', authInit);
 
         const semanaRango = (() => {
           const d = new Date(), day = d.getDay();
-          const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-          const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+          const mon = new Date(d); mon.setDate(d.getDate() - (day===0?6:day-1));
+          const sun = new Date(mon); sun.setDate(mon.getDate()+6);
           return [dateStr(mon), dateStr(sun)];
         })();
-        const mesInicio = hoy.slice(0,7) + "-01";
-        const mesFin    = hoy.slice(0,7) + "-31";
+        const mesInicio = hoy.slice(0,7)+"-01", mesFin = hoy.slice(0,7)+"-31";
 
         function agregar() {
           if (!form.descripcion.trim()) { showToast("⚠️ Ingresá una descripción"); return; }
@@ -16156,31 +16156,24 @@ window.addEventListener('DOMContentLoaded', authInit);
           loadItems(); showToast("📌 Nota agregada");
         }
 
-        // Iniciar: pasa a en_espera de inmediato, sin bloquear
-        function iniciar(id) {
+        function setEstado(id, nuevoEstado) {
           const all = getData("hgsp_eventos");
           const idx = all.findIndex(e => e.id === id);
-          if (idx >= 0) { all[idx].estado = "en_espera"; all[idx].comentario = all[idx].comentario || ""; setData("hgsp_eventos", all); }
-          setComentariosEdit(prev => ({ ...prev, [id]: all[idx]?.comentario || "" }));
-          loadItems(); showToast("⏳ En espera — podés agregar un comentario");
+          if (idx >= 0) { all[idx].estado = nuevoEstado; setData("hgsp_eventos", all); }
+          loadItems();
         }
 
-        // Guardar comentario (se llama al salir del campo)
         function guardarComentario(id) {
           const texto = comentariosEdit[id] ?? "";
           const all = getData("hgsp_eventos");
           const idx = all.findIndex(e => e.id === id);
           if (idx >= 0 && all[idx].comentario !== texto) {
-            all[idx].comentario = texto;
-            setData("hgsp_eventos", all);
+            all[idx].comentario = texto; setData("hgsp_eventos", all);
           }
         }
 
-        function resolver(id) {
-          const all = getData("hgsp_eventos");
-          const idx = all.findIndex(e => e.id === id);
-          if (idx >= 0) { all[idx].estado = "resuelto"; setData("hgsp_eventos", all); }
-          loadItems(); showToast("✅ Marcado como resuelto");
+        function toggleLapiz(id) {
+          setLapizAbierto(prev => ({ ...prev, [id]: !prev[id] }));
         }
 
         function reprogramar(id) {
@@ -16188,8 +16181,7 @@ window.addEventListener('DOMContentLoaded', authInit);
           const all = getData("hgsp_eventos");
           const idx = all.findIndex(e => e.id === id);
           if (idx >= 0) { all[idx].fecha = reprogFecha; setData("hgsp_eventos", all); }
-          setReprogId(null); setReprogFecha("");
-          loadItems(); showToast("📅 Reprogramado");
+          setReprogId(null); setReprogFecha(""); loadItems(); showToast("📅 Reprogramado");
         }
 
         function eliminar(id) {
@@ -16197,12 +16189,12 @@ window.addEventListener('DOMContentLoaded', authInit);
           loadItems();
         }
 
-        const PRIO_ORDER = { urgente: 0, normal: 1, cuando_pueda: 2 };
         const PRIO_CFG = {
           urgente:     { label: "Urgente",      color: "#e53e3e", bg: "#FFF5F5", dot: "🔴" },
           normal:      { label: "Normal",       color: "#d69e2e", bg: "#FFFBEB", dot: "🟡" },
           cuando_pueda:{ label: "Cuando pueda", color: "#38a169", bg: "#F0FFF4", dot: "🟢" },
         };
+        const PRIO_ORDER = { urgente: 0, normal: 1, cuando_pueda: 2 };
 
         function smartSort(list) {
           return [...list].sort((a, b) => {
@@ -16214,7 +16206,7 @@ window.addEventListener('DOMContentLoaded', authInit);
             };
             const ra = rank(a), rb = rank(b);
             if (ra !== rb) return ra - rb;
-            return (a.fecha + a.hora).localeCompare(b.fecha + b.hora);
+            return (a.fecha+a.hora).localeCompare(b.fecha+b.hora);
           });
         }
 
@@ -16224,14 +16216,35 @@ window.addEventListener('DOMContentLoaded', authInit);
         const vencidos   = pendientes.filter(e => esVencido(e));
 
         let visible;
-        if (filtro === "semana")            visible = items.filter(e => e.fecha >= semanaRango[0] && e.fecha <= semanaRango[1]);
+        if      (filtro === "semana")       visible = items.filter(e => e.fecha >= semanaRango[0] && e.fecha <= semanaRango[1]);
         else if (filtro === "mes")          visible = items.filter(e => e.fecha >= mesInicio && e.fecha <= mesFin);
         else if (filtro === "vencidos")     visible = vencidos;
-        else if (filtro === "urgente")      visible = items.filter(e => (e.prioridad ?? "normal") === "urgente");
-        else if (filtro === "normal")       visible = items.filter(e => (e.prioridad ?? "normal") === "normal");
-        else if (filtro === "cuando_pueda") visible = items.filter(e => (e.prioridad ?? "normal") === "cuando_pueda");
+        else if (filtro === "urgente")      visible = items.filter(e => (e.prioridad??"normal") === "urgente");
+        else if (filtro === "normal")       visible = items.filter(e => (e.prioridad??"normal") === "normal");
+        else if (filtro === "cuando_pueda") visible = items.filter(e => (e.prioridad??"normal") === "cuando_pueda");
         else                                visible = items;
         visible = smartSort(visible);
+
+        /* ── Checkbox visual ── */
+        function Chk({ checked, label, color, onChange }) {
+          return (
+            <div onClick={onChange}
+              style={{ display:"flex", alignItems:"center", gap:"5px", cursor:"pointer", userSelect:"none" }}>
+              <div style={{
+                width:"17px", height:"17px", borderRadius:"4px", flexShrink:0,
+                border: `2px solid ${checked ? color : "rgba(0,0,0,0.18)"}`,
+                background: checked ? color : "white",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                transition:"all 0.15s",
+              }}>
+                {checked && <span style={{ color:"white", fontSize:"10px", fontWeight:800, lineHeight:1 }}>✓</span>}
+              </div>
+              <span style={{ fontSize:"12px", color: checked ? color : "var(--tx3)", fontWeight: checked ? 600 : 400, textDecoration: label==="Resuelto" && checked ? "line-through" : "none" }}>
+                {label}
+              </span>
+            </div>
+          );
+        }
 
         return (
           <div>
@@ -16251,43 +16264,43 @@ window.addEventListener('DOMContentLoaded', authInit);
             </div>
 
             {/* FORMULARIO */}
-            <div className="card" style={{ marginBottom: "20px" }}>
+            <div className="card" style={{ marginBottom:"20px" }}>
               <div className="card-header">
                 <div className="card-header-icon">➕</div>
                 <div className="card-header-title">Nueva nota o pendiente</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "center", marginBottom: "10px" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:"10px", alignItems:"center", marginBottom:"10px" }}>
                 <input className="input-base" placeholder="Descripción..." autoComplete="off"
                   value={form.descripcion}
-                  onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
-                  onKeyDown={e => e.key === "Enter" && agregar()} />
-                <input className="input-base" type="date" style={{ fontFamily: "var(--mono)", width: "155px" }}
-                  value={form.fecha} onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))} />
-                <input className="input-base" type="time" style={{ fontFamily: "var(--mono)", width: "120px" }}
-                  value={form.hora} onChange={e => setForm(p => ({ ...p, hora: e.target.value }))} />
+                  onChange={e => setForm(p => ({...p, descripcion: e.target.value}))}
+                  onKeyDown={e => e.key==="Enter" && agregar()} />
+                <input className="input-base" type="date" style={{ fontFamily:"var(--mono)", width:"155px" }}
+                  value={form.fecha} onChange={e => setForm(p => ({...p, fecha: e.target.value}))} />
+                <input className="input-base" type="time" style={{ fontFamily:"var(--mono)", width:"120px" }}
+                  value={form.hora} onChange={e => setForm(p => ({...p, hora: e.target.value}))} />
               </div>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <span style={{ fontSize: "13px", color: "var(--tx3)", marginRight: "2px" }}>Prioridad:</span>
-                {Object.entries(PRIO_CFG).map(([k, v]) => (
-                  <button key={k} onClick={() => setForm(p => ({ ...p, prioridad: k }))}
+              <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+                <span style={{ fontSize:"13px", color:"var(--tx3)", marginRight:"2px" }}>Prioridad:</span>
+                {Object.entries(PRIO_CFG).map(([k,v]) => (
+                  <button key={k} onClick={() => setForm(p => ({...p, prioridad:k}))}
                     style={{
-                      display: "flex", alignItems: "center", gap: "5px", padding: "5px 13px",
-                      borderRadius: "20px", border: `2px solid ${form.prioridad===k ? v.color : "transparent"}`,
+                      display:"flex", alignItems:"center", gap:"5px", padding:"5px 13px", borderRadius:"20px",
+                      border: `2px solid ${form.prioridad===k ? v.color : "transparent"}`,
                       background: form.prioridad===k ? v.bg : "rgba(0,0,0,0.04)",
                       color: form.prioridad===k ? v.color : "var(--tx3)",
                       fontWeight: form.prioridad===k ? 700 : 400,
-                      cursor: "pointer", fontSize: "13px", transition: "all 0.15s",
+                      cursor:"pointer", fontSize:"13px", transition:"all 0.15s",
                     }}>
                     {v.dot} {v.label}
                   </button>
                 ))}
-                <div style={{ flex: 1 }} />
+                <div style={{ flex:1 }} />
                 <button className="btn btn-g" onClick={agregar}>Agregar</button>
               </div>
             </div>
 
             {/* FILTROS */}
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "16px" }}>
+            <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"16px" }}>
               <div className="tabs-container">
                 {[["todos","📋 Todos"],["semana","📅 Esta semana"],["mes","🗓️ Este mes"],["vencidos","⏰ Vencidos"]].map(([id,l]) => (
                   <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}>{l}</div>
@@ -16296,117 +16309,140 @@ window.addEventListener('DOMContentLoaded', authInit);
               <div className="tabs-container">
                 {[["urgente","🔴"],["normal","🟡"],["cuando_pueda","🟢"]].map(([id,l]) => (
                   <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}
-                    style={{ padding: "6px 12px", fontSize: "16px" }}>{l}</div>
+                    style={{ padding:"6px 12px", fontSize:"16px" }}>{l}</div>
                 ))}
               </div>
               {vencidos.length > 0 && (
-                <Badge type="danger" style={{ marginLeft: "4px" }}>{vencidos.length} vencido{vencidos.length!==1?"s":""}</Badge>
+                <Badge type="danger" style={{ marginLeft:"4px" }}>{vencidos.length} vencido{vencidos.length!==1?"s":""}</Badge>
               )}
             </div>
 
             {/* LISTA */}
             {visible.length === 0 ? (
-              <div className="card" style={{ textAlign: "center", color: "var(--tx3)", padding: "40px" }}>
+              <div className="card" style={{ textAlign:"center", color:"var(--tx3)", padding:"40px" }}>
                 Sin notas para el filtro seleccionado
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
                 {visible.map(ev => {
-                  const vencido      = esVencido(ev);
                   const resuelto     = ev.estado === "resuelto";
                   const enEsperaItem = ev.estado === "en_espera";
+                  const iniciado     = enEsperaItem || resuelto;
+                  const vencido      = esVencido(ev);
                   const prio         = ev.prioridad ?? "normal";
                   const pc           = PRIO_CFG[prio] || PRIO_CFG.normal;
                   const reprogMode   = reprogId === ev.id;
+                  const lapizOn      = !!lapizAbierto[ev.id];
 
-                  const borderColor = resuelto ? "var(--crb)" : enEsperaItem ? "#3B82F6" : vencido ? "#F97316" : pc.color+"55";
-                  const borderLeft  = resuelto ? "var(--crb)" : enEsperaItem ? "#2563EB" : vencido ? "#e53e3e" : pc.color;
-                  const bgColor     = resuelto ? "rgba(0,0,0,0.02)" : enEsperaItem ? "#EFF6FF" : vencido ? "#FFF5F0" : pc.bg;
-                  const icono       = resuelto ? "✅" : enEsperaItem ? "⏳" : vencido ? "⏰" : pc.dot;
+                  const borderLeft = resuelto ? "#9CA3AF" : enEsperaItem ? "#2563EB" : vencido ? "#e53e3e" : pc.color;
+                  const bgColor    = resuelto ? "rgba(0,0,0,0.015)" : enEsperaItem ? "#EFF6FF" : vencido ? "#FFF5F0" : pc.bg;
+                  const icono      = resuelto ? "✅" : enEsperaItem ? "⏳" : vencido ? "⏰" : pc.dot;
 
                   return (
                     <div key={ev.id} style={{
-                      background: bgColor, border: `1px solid ${borderColor}`,
+                      background: bgColor,
+                      border: `1px solid ${resuelto ? "#E5E7EB" : enEsperaItem ? "#BFDBFE" : vencido ? "#F97316" : pc.color+"44"}`,
                       borderLeft: `5px solid ${borderLeft}`,
-                      borderRadius: "var(--r)", padding: "14px 18px", opacity: resuelto ? 0.6 : 1,
+                      borderRadius:"var(--r)", padding:"12px 16px",
                     }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                        <div style={{ fontSize: "20px", flexShrink: 0, marginTop: "2px" }}>{icono}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          {/* Título */}
+                      {/* FILA PRINCIPAL */}
+                      <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                        <div style={{ fontSize:"18px", flexShrink:0 }}>{icono}</div>
+                        {/* Descripción */}
+                        <div style={{ flex:1, minWidth:0 }}>
                           <div style={{
-                            fontFamily: "var(--serif2)", fontWeight: 700, fontSize: "15px", marginBottom: "4px",
+                            fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px",
                             color: resuelto ? "var(--tx3)" : vencido ? "#C0392B" : enEsperaItem ? "#1E40AF" : "var(--vd)",
                             textDecoration: resuelto ? "line-through" : "none",
                           }}>
                             {ev.descripcion}
                           </div>
-                          {/* Meta */}
-                          <div style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--tx3)", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginBottom: "6px" }}>
+                          <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", display:"flex", gap:"10px", flexWrap:"wrap", alignItems:"center", marginTop:"3px" }}>
                             <span>📅 {ev.fecha}</span>
                             <span>🕐 {ev.hora}</span>
                             {!resuelto && !enEsperaItem && (
-                              <span style={{ background: pc.color+"22", color: pc.color, borderRadius: "10px", padding: "2px 8px", fontWeight: 600, fontSize: "11px" }}>
-                                {pc.dot} {pc.label}
-                              </span>
+                              <span style={{ background:pc.color+"22", color:pc.color, borderRadius:"10px", padding:"1px 7px", fontWeight:600, fontSize:"11px" }}>{pc.dot} {pc.label}</span>
                             )}
-                            {vencido && <span style={{ background: "#e53e3e", color: "#fff", borderRadius: "10px", padding: "2px 8px", fontWeight: 700, fontSize: "11px" }}>⏰ Vencido</span>}
-                            {enEsperaItem && <span style={{ background: "#DBEAFE", color: "#1D4ED8", borderRadius: "10px", padding: "2px 8px", fontWeight: 600, fontSize: "11px" }}>⏳ En espera</span>}
+                            {vencido && <span style={{ background:"#e53e3e", color:"#fff", borderRadius:"10px", padding:"1px 7px", fontWeight:700, fontSize:"11px" }}>⏰ Vencido</span>}
                           </div>
-                          {/* Campo de comentario siempre editable para en_espera */}
-                          {enEsperaItem && (
-                            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                              <span style={{ fontSize: "12px", color: "#1D4ED8", flexShrink: 0 }}>💬</span>
-                              <input
-                                className="input-base"
-                                autoComplete="off"
-                                placeholder="¿Qué hiciste? ¿Qué estás esperando?..."
-                                value={comentariosEdit[ev.id] ?? ev.comentario ?? ""}
-                                onChange={e => setComentariosEdit(prev => ({ ...prev, [ev.id]: e.target.value }))}
-                                onBlur={() => guardarComentario(ev.id)}
-                                style={{ fontSize: "13px", background: "rgba(219,234,254,0.5)", borderColor: "#BFDBFE", color: "#1E3A8A" }}
-                              />
-                            </div>
-                          )}
-                          {/* Reprogramar inline */}
-                          {reprogMode && (
-                            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "10px" }}>
-                              <input className="input-base" type="date" value={reprogFecha} min={hoy}
-                                style={{ fontFamily: "var(--mono)", width: "155px", fontSize: "13px" }}
-                                onChange={e => setReprogFecha(e.target.value)} />
-                              <button className="btn btn-g" style={{ fontSize: "12px", padding: "6px 12px" }}
-                                onClick={() => reprogramar(ev.id)}>Confirmar</button>
-                              <button className="btn" style={{ fontSize: "12px", padding: "6px 12px", background: "transparent", border: "1px solid var(--crb)", color: "var(--tx2)" }}
-                                onClick={() => { setReprogId(null); setReprogFecha(""); }}>Cancelar</button>
-                            </div>
-                          )}
                         </div>
-                        {/* Acciones */}
-                        <div style={{ display: "flex", gap: "6px", flexShrink: 0, alignItems: "center" }}>
-                          {!resuelto && vencido && !reprogMode && (
-                            <button className="btn" style={{ fontSize: "12px", padding: "6px 12px", background: "#FFF5F0", border: "1px solid #F97316", color: "#C05621" }}
-                              onClick={() => { setReprogId(ev.id); setReprogFecha(hoy); }}>
-                              📅 Reprogramar
-                            </button>
-                          )}
-                          {ev.estado === "pendiente" && !reprogMode && (
-                            <button className="btn" style={{ fontSize: "12px", padding: "6px 12px", background: "#EFF6FF", border: "1px solid #3B82F6", color: "#1D4ED8" }}
-                              onClick={() => iniciar(ev.id)}>
-                              ⏳ Iniciar
-                            </button>
-                          )}
-                          {!resuelto && (
-                            <button className="btn btn-p" style={{ fontSize: "12px", padding: "6px 12px" }}
-                              onClick={() => resolver(ev.id)}>
-                              ✓ Resolver
-                            </button>
-                          )}
-                          <button className="btn btn-danger" style={{ fontSize: "12px", padding: "6px 12px" }}
-                            onClick={() => eliminar(ev.id)}>
-                            🗑️
-                          </button>
+                        {/* Checkboxes + lápiz + acciones */}
+                        <div style={{ display:"flex", alignItems:"center", gap:"12px", flexShrink:0 }}>
+                          {/* Checkboxes */}
+                          <div style={{ display:"flex", flexDirection:"column", gap:"5px" }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                              <Chk
+                                checked={iniciado}
+                                label="Iniciado"
+                                color="#2563EB"
+                                onChange={() => setEstado(ev.id, iniciado ? "pendiente" : "en_espera")}
+                              />
+                              {enEsperaItem && (
+                                <span title="Agregar/editar comentario"
+                                  onClick={() => toggleLapiz(ev.id)}
+                                  style={{
+                                    cursor:"pointer", fontSize:"13px", lineHeight:1,
+                                    color: lapizOn ? "#1D4ED8" : "var(--tx3)",
+                                    opacity: lapizOn ? 1 : 0.6,
+                                    transition:"all 0.15s",
+                                  }}>✏️</span>
+                              )}
+                            </div>
+                            <Chk
+                              checked={resuelto}
+                              label="Resuelto"
+                              color="#16a34a"
+                              onChange={() => setEstado(ev.id, resuelto ? "en_espera" : "resuelto")}
+                            />
+                          </div>
+                          {/* Reprogramar + eliminar */}
+                          <div style={{ display:"flex", gap:"5px", alignItems:"center" }}>
+                            {vencido && !reprogMode && !resuelto && (
+                              <button className="btn" style={{ fontSize:"11px", padding:"5px 10px", background:"#FFF5F0", border:"1px solid #F97316", color:"#C05621" }}
+                                onClick={() => { setReprogId(ev.id); setReprogFecha(hoy); }}>
+                                📅
+                              </button>
+                            )}
+                            <button className="btn btn-danger" style={{ fontSize:"12px", padding:"6px 10px" }}
+                              onClick={() => eliminar(ev.id)}>🗑️</button>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Reprogramar inline */}
+                      {reprogMode && (
+                        <div style={{ display:"flex", gap:"8px", alignItems:"center", marginTop:"10px" }}>
+                          <input className="input-base" type="date" value={reprogFecha} min={hoy}
+                            style={{ fontFamily:"var(--mono)", width:"155px", fontSize:"13px" }}
+                            onChange={e => setReprogFecha(e.target.value)} />
+                          <button className="btn btn-g" style={{ fontSize:"12px", padding:"6px 12px" }}
+                            onClick={() => reprogramar(ev.id)}>Confirmar</button>
+                          <button className="btn" style={{ fontSize:"12px", padding:"6px 12px", background:"transparent", border:"1px solid var(--crb)", color:"var(--tx2)" }}
+                            onClick={() => { setReprogId(null); setReprogFecha(""); }}>Cancelar</button>
+                        </div>
+                      )}
+
+                      {/* Comentario: solo visible al hacer clic en el lápiz */}
+                      {enEsperaItem && lapizOn && (
+                        <div style={{ display:"flex", gap:"8px", alignItems:"center", marginTop:"10px" }}>
+                          <span style={{ fontSize:"12px", color:"#1D4ED8", flexShrink:0 }}>💬</span>
+                          <input
+                            className="input-base"
+                            autoComplete="off"
+                            placeholder="¿Qué hiciste? ¿Qué estás esperando?..."
+                            value={comentariosEdit[ev.id] ?? ""}
+                            onChange={e => setComentariosEdit(prev => ({...prev, [ev.id]: e.target.value}))}
+                            onBlur={() => guardarComentario(ev.id)}
+                            style={{ fontSize:"13px", background:"rgba(219,234,254,0.5)", borderColor:"#BFDBFE", color:"#1E3A8A" }}
+                          />
+                        </div>
+                      )}
+                      {/* Muestra el comentario guardado (si existe y lápiz cerrado) */}
+                      {enEsperaItem && !lapizOn && ev.comentario && (
+                        <div style={{ marginTop:"8px", fontSize:"12px", color:"#1D4ED8", fontStyle:"italic", paddingLeft:"30px" }}>
+                          💬 {ev.comentario}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
