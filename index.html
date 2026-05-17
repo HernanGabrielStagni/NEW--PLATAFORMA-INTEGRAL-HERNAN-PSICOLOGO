@@ -28,6 +28,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- ═══════════════════════════════════════ -->
     <!-- VARIABLES CSS + ESTILOS BASE           -->
@@ -2552,7 +2553,129 @@
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root" style="display:none"></div>
+
+<script>
+const SUPABASE_URL = "https://uwfkdhqhgbstswxmiqzv.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3ZmtkaHFoZ2JzdHN3eG1pcXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NjI0MTEsImV4cCI6MjA5NDAzODQxMX0.2-DrSFFyhGxAjcX6vOi-lhsZ4iXRBzCIcjaHzNRuOgo";
+const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<style>
+#login-screen{display:none;position:fixed;inset:0;background:var(--vd);z-index:9999;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;}
+#login-screen.visible{display:flex;}
+.login-card{background:var(--vu);border-radius:16px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.3);display:flex;flex-direction:column;gap:18px;}
+.login-card h1{font-family:'Josefin Slab',serif;color:var(--vd);font-size:1.5rem;font-weight:700;text-align:center;margin:0 0 4px;}
+.login-card p{color:var(--vc);font-size:0.85rem;text-align:center;margin:0;}
+.login-field{display:flex;flex-direction:column;gap:6px;}
+.login-field label{font-size:0.8rem;font-weight:600;color:var(--vm);text-transform:uppercase;letter-spacing:0.04em;}
+.login-field input{padding:10px 14px;border:1.5px solid var(--vs);border-radius:8px;font-size:0.95rem;font-family:'DM Sans',sans-serif;background:white;color:var(--vd);outline:none;transition:border-color 0.2s;}
+.login-field input:focus{border-color:var(--vm);}
+.login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;}
+.login-btn:hover{background:var(--vd);}
+.login-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.login-error{color:#c0392b;font-size:0.85rem;text-align:center;background:#fdecea;border-radius:6px;padding:8px 12px;display:none;}
+.login-error.visible{display:block;}
+.login-toggle{font-size:0.83rem;color:var(--vc);text-align:center;}
+.login-toggle a{color:var(--vm);cursor:pointer;font-weight:600;text-decoration:underline;}
+</style>
+
+<script>
+let _authMode = 'login';
+
+async function authInit() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (session) {
+    document.getElementById('login-screen').classList.remove('visible');
+    document.getElementById('root').style.display = '';
+  } else {
+    document.getElementById('login-screen').classList.add('visible');
+    document.getElementById('root').style.display = 'none';
+  }
+}
+
+async function authSubmit() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn = document.getElementById('auth-btn');
+  const errEl = document.getElementById('auth-error');
+  errEl.classList.remove('visible');
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+  let result;
+  if (_authMode === 'login') {
+    result = await _sb.auth.signInWithPassword({ email, password });
+  } else {
+    result = await _sb.auth.signUp({ email, password });
+  }
+  if (result.error) {
+    errEl.textContent = tradAuth(result.error.message);
+    errEl.classList.add('visible');
+    btn.disabled = false;
+    btn.textContent = _authMode === 'login' ? 'Ingresar' : 'Crear cuenta';
+    return;
+  }
+  if (_authMode === 'register' && !result.data.session) {
+    errEl.style.color = '#2d5a3d';
+    errEl.style.background = '#d4e6da';
+    errEl.textContent = 'Cuenta creada. Revisá tu email para confirmar.';
+    errEl.classList.add('visible');
+    btn.disabled = false;
+    btn.textContent = 'Crear cuenta';
+    return;
+  }
+  document.getElementById('login-screen').classList.remove('visible');
+  document.getElementById('root').style.display = '';
+}
+
+function authToggleMode() {
+  _authMode = _authMode === 'login' ? 'register' : 'login';
+  const isLogin = _authMode === 'login';
+  document.getElementById('auth-title').textContent = isLogin ? 'Plataforma Clínica' : 'Crear cuenta';
+  document.getElementById('auth-subtitle').textContent = isLogin ? 'Ingresá con tu cuenta' : 'Completá los datos';
+  document.getElementById('auth-btn').textContent = isLogin ? 'Ingresar' : 'Crear cuenta';
+  document.getElementById('auth-toggle-text').innerHTML = isLogin
+    ? '¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a>'
+    : '¿Ya tenés cuenta? <a onclick="authToggleMode()">Iniciá sesión</a>';
+  document.getElementById('auth-error').classList.remove('visible');
+}
+
+function tradAuth(msg) {
+  if (msg.includes('Invalid login')) return 'Email o contraseña incorrectos.';
+  if (msg.includes('Email not confirmed')) return 'Confirmá tu email antes de ingresar.';
+  if (msg.includes('User already registered')) return 'Este email ya tiene una cuenta.';
+  if (msg.includes('Password should be')) return 'La contraseña debe tener al menos 6 caracteres.';
+  return msg;
+}
+
+async function authSignOut() {
+  await _sb.auth.signOut();
+  document.getElementById('login-screen').classList.add('visible');
+  document.getElementById('root').style.display = 'none';
+}
+
+window.addEventListener('DOMContentLoaded', authInit);
+</script>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div>
+      <h1 id="auth-title">Plataforma Clínica</h1>
+      <p id="auth-subtitle">Ingresá con tu cuenta</p>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input id="auth-email" type="email" placeholder="tu@email.com" />
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input id="auth-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') authSubmit()" />
+    </div>
+    <div id="auth-error" class="login-error"></div>
+    <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
+    <p class="login-toggle" id="auth-toggle-text">¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a></p>
+  </div>
+</div>
 
     <!-- ═══════════════════════════════════════ -->
     <!-- CAPA DE DATOS (localStorage)           -->
@@ -3361,18 +3484,10 @@
             {/* PIE — ESTADO DEL SISTEMA */}
             <div className="sidebar-footer">
               <div className="sidebar-footer-label">Estado del sistema</div>
-              <div className="sidebar-status-row">
-                <span className="dot on"></span>
-                <span>localStorage</span>
-              </div>
-              <div className="sidebar-status-row">
-                <span className="dot on"></span>
-                <span>React 18</span>
-              </div>
-              <div className="sidebar-status-row">
-                <span className="dot on"></span>
-                <span>Sin errores</span>
-              </div>
+              <div className="sidebar-status-row"><span className="dot on"></span><span>Supabase</span></div>
+              <div className="sidebar-status-row"><span className="dot on"></span><span>React 18</span></div>
+              <div className="sidebar-status-row"><span className="dot on"></span><span>Sin errores</span></div>
+              <div onClick={()=>authSignOut()} style={{marginTop:"12px",padding:"8px 12px",background:"rgba(255,255,255,0.08)",borderRadius:"8px",cursor:"pointer",fontSize:"0.8rem",color:"rgba(255,255,255,0.6)",textAlign:"center"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.15)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}>🚪 Cerrar sesión</div>
             </div>
           </div>
         );
