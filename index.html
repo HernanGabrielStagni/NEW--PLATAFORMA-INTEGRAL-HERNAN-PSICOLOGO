@@ -10931,7 +10931,7 @@ window.addEventListener('DOMContentLoaded', authInit);
                 : {
                     ...EMPTY_PAC,
                     id: genId(),
-                    fechaInicio: new Date().toISOString().slice(0, 10),
+                    fechaInicio: dateStr(new Date()),
                   },
             );
             setTab("personal");
@@ -12168,7 +12168,7 @@ window.addEventListener('DOMContentLoaded', authInit);
         const proximaSesion = sesiones.find(
           (s) =>
             s.estado === "pendiente" &&
-            s.fecha >= new Date().toISOString().slice(0, 10),
+            s.fecha >= dateStr(new Date()),
         );
 
         return (
@@ -12949,7 +12949,7 @@ window.addEventListener('DOMContentLoaded', authInit);
           const idx = all.findIndex((x) => x.id === id);
           if (idx >= 0) {
             all[idx].activo = false;
-            all[idx].fechaAlta = new Date().toISOString().slice(0, 10);
+            all[idx].fechaAlta = dateStr(new Date());
             all[idx].motivoBaja = motivo;
             all[idx].fechaUltimaModificacion = Date.now();
             setData("hgsp_pacientes", all);
@@ -16114,7 +16114,7 @@ window.addEventListener('DOMContentLoaded', authInit);
       /* MÓDULO 6: EVENTOS Y RECORDATORIOS     */
       /* ═══════════════════════════════════════ */
       function SeccionEventos() {
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = dateStr(new Date());
         const [items, setItems] = React.useState([]);
         const [filtro, setFiltro] = React.useState("todos");
         const [reprogId, setReprogId] = React.useState(null);
@@ -16519,7 +16519,7 @@ window.addEventListener('DOMContentLoaded', authInit);
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `backup_clinica_${new Date().toISOString().slice(0, 10)}.json`;
+          a.download = `backup_clinica_${dateStr(new Date())}.json`;
           a.click();
           showToast("💾 Backup exportado correctamente");
         }
@@ -17609,7 +17609,7 @@ window.addEventListener('DOMContentLoaded', authInit);
       /* HELPER: Calcular badges dinámicos      */
       /* ═══════════════════════════════════════ */
       function computeBadges() {
-        const hoyStr = new Date().toISOString().slice(0, 10);
+        const hoyStr = dateStr(new Date());
         const sesiones = getData("hgsp_sesiones");
         const pacientes = getData("hgsp_pacientes");
         const eventos = getData("hgsp_eventos");
@@ -20506,7 +20506,7 @@ window.addEventListener('DOMContentLoaded', authInit);
         /* ── Estado compartido: Config editMode ── */
         const [cfgEditMode, setCfgEditMode] = useState(false);
 
-        const hoyStr = new Date().toISOString().slice(0, 10);
+        const hoyStr = dateStr(new Date());
 
         function prevWeek() {
           setBaseDate((d) => {
