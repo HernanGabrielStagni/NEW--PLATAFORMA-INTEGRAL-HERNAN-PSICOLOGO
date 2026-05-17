@@ -16117,51 +16117,52 @@ window.addEventListener('DOMContentLoaded', authInit);
         const hoy = dateStr(new Date());
         const [items, setItems] = React.useState([]);
         const [filtro, setFiltro] = React.useState("todos");
-        const [reprogId, setReprogId] = React.useState(null);
+        const [reprogId, setReprogId]       = React.useState(null);
         const [reprogFecha, setReprogFecha] = React.useState("");
+        const [iniciarId, setIniciarId]     = React.useState(null);
+        const [iniciarComentario, setIniciarComentario] = React.useState("");
         const [form, setForm] = React.useState({
-          descripcion: "",
-          fecha: hoy,
-          hora: "09:00",
-          prioridad: "normal",
+          descripcion: "", fecha: hoy, hora: "09:00", prioridad: "normal",
         });
 
         React.useEffect(() => { setItems(getData("hgsp_eventos")); }, []);
         function reload() { setItems(getData("hgsp_eventos")); }
 
         const semanaRango = (() => {
-          const d = new Date();
-          const day = d.getDay();
-          const mon = new Date(d);
-          mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-          const sun = new Date(mon);
-          sun.setDate(mon.getDate() + 6);
-          return [mon.toISOString().slice(0,10), sun.toISOString().slice(0,10)];
+          const d = new Date(), day = d.getDay();
+          const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+          const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+          return [dateStr(mon), dateStr(sun)];
         })();
         const mesInicio = hoy.slice(0,7) + "-01";
-        const mesFin = hoy.slice(0,7) + "-31";
+        const mesFin    = hoy.slice(0,7) + "-31";
 
-        function esVencido(e) {
-          return e.estado === "pendiente" && e.fecha < hoy;
-        }
+        function esVencido(e) { return e.estado === "pendiente" && e.fecha < hoy; }
 
         function agregar() {
           if (!form.descripcion.trim()) { showToast("⚠️ Ingresá una descripción"); return; }
           if (!form.fecha) { showToast("⚠️ Ingresá la fecha"); return; }
           const all = getData("hgsp_eventos");
-          all.push({ id: genId(), descripcion: form.descripcion.trim(), fecha: form.fecha, hora: form.hora, prioridad: form.prioridad, estado: "pendiente" });
+          all.push({ id: genId(), descripcion: form.descripcion.trim(), fecha: form.fecha, hora: form.hora, prioridad: form.prioridad, estado: "pendiente", comentario: "" });
           setData("hgsp_eventos", all);
           setForm({ descripcion: "", fecha: hoy, hora: "09:00", prioridad: "normal" });
-          reload();
-          showToast("📌 Nota agregada");
+          reload(); showToast("📌 Nota agregada");
+        }
+
+        function iniciar(id, comentario) {
+          if (!comentario.trim()) { showToast("⚠️ Describí qué hiciste o qué estás esperando"); return; }
+          const all = getData("hgsp_eventos");
+          const idx = all.findIndex((e) => e.id === id);
+          if (idx >= 0) { all[idx].estado = "en_espera"; all[idx].comentario = comentario.trim(); setData("hgsp_eventos", all); }
+          setIniciarId(null); setIniciarComentario("");
+          reload(); showToast("⏳ Marcado como en espera");
         }
 
         function resolver(id) {
           const all = getData("hgsp_eventos");
           const idx = all.findIndex((e) => e.id === id);
           if (idx >= 0) { all[idx].estado = "resuelto"; setData("hgsp_eventos", all); }
-          reload();
-          showToast("✅ Marcado como resuelto");
+          reload(); showToast("✅ Marcado como resuelto");
         }
 
         function reprogramar(id) {
@@ -16170,8 +16171,7 @@ window.addEventListener('DOMContentLoaded', authInit);
           const idx = all.findIndex((e) => e.id === id);
           if (idx >= 0) { all[idx].fecha = reprogFecha; setData("hgsp_eventos", all); }
           setReprogId(null); setReprogFecha("");
-          reload();
-          showToast("📅 Reprogramado");
+          reload(); showToast("📅 Reprogramado");
         }
 
         function eliminar(id) {
@@ -16188,17 +16188,23 @@ window.addEventListener('DOMContentLoaded', authInit);
 
         function smartSort(list) {
           return [...list].sort((a, b) => {
-            const av = esVencido(a) ? -1 : (PRIO_ORDER[a.prioridad ?? "normal"] ?? 1);
-            const bv = esVencido(b) ? -1 : (PRIO_ORDER[b.prioridad ?? "normal"] ?? 1);
-            if (av !== bv) return av - bv;
+            const rank = (e) => {
+              if (e.estado === "resuelto")   return 10;
+              if (e.estado === "en_espera")  return 3;
+              if (esVencido(e))              return -1;
+              return PRIO_ORDER[e.prioridad ?? "normal"] ?? 1;
+            };
+            const ra = rank(a), rb = rank(b);
+            if (ra !== rb) return ra - rb;
             return (a.fecha + a.hora).localeCompare(b.fecha + b.hora);
           });
         }
 
-        const pendientes = items.filter((e) => e.estado === "pendiente");
-        const resueltos  = items.filter((e) => e.estado === "resuelto");
-        const vencidos   = pendientes.filter((e) => esVencido(e));
-        const urgentes   = pendientes.filter((e) => (e.prioridad ?? "normal") === "urgente");
+        const pendientes  = items.filter((e) => e.estado === "pendiente");
+        const enEspera    = items.filter((e) => e.estado === "en_espera");
+        const resueltos   = items.filter((e) => e.estado === "resuelto");
+        const vencidos    = pendientes.filter((e) => esVencido(e));
+        const urgentes    = pendientes.filter((e) => (e.prioridad ?? "normal") === "urgente");
 
         let visible;
         if (filtro === "semana")            visible = items.filter((e) => e.fecha >= semanaRango[0] && e.fecha <= semanaRango[1]);
@@ -16221,39 +16227,34 @@ window.addEventListener('DOMContentLoaded', authInit);
             </div>
 
             <div className="stats-grid">
-              <StatCard label="Pendientes" value={pendientes.length} />
-              <StatCard label="Vencidos"   value={vencidos.length} />
-              <StatCard label="Urgentes"   value={urgentes.length} />
-              <StatCard label="Resueltos"  value={resueltos.length} />
+              <StatCard label="Pendientes"  value={pendientes.length} />
+              <StatCard label="En espera"   value={enEspera.length} />
+              <StatCard label="Vencidos"    value={vencidos.length} />
+              <StatCard label="Resueltos"   value={resueltos.length} />
             </div>
 
+            {/* FORMULARIO */}
             <div className="card" style={{ marginBottom: "20px" }}>
               <div className="card-header">
                 <div className="card-header-icon">➕</div>
                 <div className="card-header-title">Nueva nota o pendiente</div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "center", marginBottom: "10px" }}>
-                <input className="input-base" placeholder="Descripción..."
-                  autoComplete="off"
+                <input className="input-base" placeholder="Descripción..." autoComplete="off"
                   value={form.descripcion}
                   onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
                   onKeyDown={(e) => e.key === "Enter" && agregar()} />
-                <input className="input-base" type="date"
-                  style={{ fontFamily: "var(--mono)", width: "155px" }}
-                  value={form.fecha}
-                  onChange={(e) => setForm((p) => ({ ...p, fecha: e.target.value }))} />
-                <input className="input-base" type="time"
-                  style={{ fontFamily: "var(--mono)", width: "120px" }}
-                  value={form.hora}
-                  onChange={(e) => setForm((p) => ({ ...p, hora: e.target.value }))} />
+                <input className="input-base" type="date" style={{ fontFamily: "var(--mono)", width: "155px" }}
+                  value={form.fecha} onChange={(e) => setForm((p) => ({ ...p, fecha: e.target.value }))} />
+                <input className="input-base" type="time" style={{ fontFamily: "var(--mono)", width: "120px" }}
+                  value={form.hora} onChange={(e) => setForm((p) => ({ ...p, hora: e.target.value }))} />
               </div>
               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <span style={{ fontSize: "13px", color: "var(--tx3)", marginRight: "2px" }}>Prioridad:</span>
                 {Object.entries(PRIO_CFG).map(([k, v]) => (
                   <button key={k} onClick={() => setForm((p) => ({ ...p, prioridad: k }))}
                     style={{
-                      display: "flex", alignItems: "center", gap: "5px",
-                      padding: "5px 13px", borderRadius: "20px",
+                      display: "flex", alignItems: "center", gap: "5px", padding: "5px 13px", borderRadius: "20px",
                       border: `2px solid ${form.prioridad === k ? v.color : "transparent"}`,
                       background: form.prioridad === k ? v.bg : "rgba(0,0,0,0.04)",
                       color: form.prioridad === k ? v.color : "var(--tx3)",
@@ -16268,33 +16269,25 @@ window.addEventListener('DOMContentLoaded', authInit);
               </div>
             </div>
 
+            {/* FILTROS */}
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginBottom: "16px" }}>
               <div className="tabs-container">
-                {[
-                  ["todos",    "📋 Todos"],
-                  ["semana",   "📅 Esta semana"],
-                  ["mes",      "🗓️ Este mes"],
-                  ["vencidos", "⏰ Vencidos"],
-                ].map(([id, l]) => (
-                  <div key={id} className={`tab-item ${filtro === id ? "active" : ""}`} onClick={() => setFiltro(id)}>{l}</div>
+                {[["todos","📋 Todos"],["semana","📅 Esta semana"],["mes","🗓️ Este mes"],["vencidos","⏰ Vencidos"]].map(([id,l]) => (
+                  <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}>{l}</div>
                 ))}
               </div>
               <div className="tabs-container">
-                {[
-                  ["urgente",      "🔴"],
-                  ["normal",       "🟡"],
-                  ["cuando_pueda", "🟢"],
-                ].map(([id, l]) => (
-                  <div key={id} className={`tab-item ${filtro === id ? "active" : ""}`}
-                    onClick={() => setFiltro(id)}
+                {[["urgente","🔴"],["normal","🟡"],["cuando_pueda","🟢"]].map(([id,l]) => (
+                  <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}
                     style={{ padding: "6px 12px", fontSize: "16px" }}>{l}</div>
                 ))}
               </div>
               {vencidos.length > 0 && (
-                <Badge type="danger" style={{ marginLeft: "4px" }}>{vencidos.length} vencido{vencidos.length !== 1 ? "s" : ""}</Badge>
+                <Badge type="danger" style={{ marginLeft: "4px" }}>{vencidos.length} vencido{vencidos.length!==1?"s":""}</Badge>
               )}
             </div>
 
+            {/* LISTA */}
             {visible.length === 0 ? (
               <div className="card" style={{ textAlign: "center", color: "var(--tx3)", padding: "40px" }}>
                 Sin notas para el filtro seleccionado
@@ -16302,45 +16295,76 @@ window.addEventListener('DOMContentLoaded', authInit);
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {visible.map((ev) => {
-                  const vencido = esVencido(ev);
-                  const resuelto = ev.estado === "resuelto";
-                  const prio = ev.prioridad ?? "normal";
-                  const pc = PRIO_CFG[prio] || PRIO_CFG.normal;
-                  const reprogMode = reprogId === ev.id;
+                  const vencido   = esVencido(ev);
+                  const resuelto  = ev.estado === "resuelto";
+                  const enEsperaItem = ev.estado === "en_espera";
+                  const prio      = ev.prioridad ?? "normal";
+                  const pc        = PRIO_CFG[prio] || PRIO_CFG.normal;
+                  const reprogMode  = reprogId === ev.id;
+                  const iniciarMode = iniciarId === ev.id;
+
+                  /* ── colores según estado ── */
+                  const borderColor = resuelto ? "var(--crb)"
+                    : enEsperaItem ? "#3B82F6"
+                    : vencido ? "#F97316"
+                    : pc.color + "55";
+                  const borderLeft = resuelto ? "var(--crb)"
+                    : enEsperaItem ? "#2563EB"
+                    : vencido ? "#e53e3e"
+                    : pc.color;
+                  const bgColor = resuelto ? "rgba(0,0,0,0.02)"
+                    : enEsperaItem ? "#EFF6FF"
+                    : vencido ? "#FFF5F0"
+                    : pc.bg;
+                  const icono = resuelto ? "✅" : enEsperaItem ? "⏳" : vencido ? "⏰" : pc.dot;
+
                   return (
                     <div key={ev.id} style={{
-                      background: vencido ? "#FFF5F0" : resuelto ? "rgba(0,0,0,0.02)" : pc.bg,
-                      border: `1px solid ${vencido ? "#F97316" : resuelto ? "var(--crb)" : pc.color + "55"}`,
-                      borderLeft: `5px solid ${vencido ? "#e53e3e" : resuelto ? "var(--crb)" : pc.color}`,
+                      background: bgColor,
+                      border: `1px solid ${borderColor}`,
+                      borderLeft: `5px solid ${borderLeft}`,
                       borderRadius: "var(--r)", padding: "14px 18px",
                       opacity: resuelto ? 0.6 : 1,
                     }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                        <div style={{ fontSize: "20px", flexShrink: 0 }}>
-                          {resuelto ? "✅" : vencido ? "⏰" : pc.dot}
-                        </div>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                        <div style={{ fontSize: "20px", flexShrink: 0, marginTop: "2px" }}>{icono}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Título */}
                           <div style={{
                             fontFamily: "var(--serif2)", fontWeight: 700, fontSize: "15px",
-                            color: resuelto ? "var(--tx3)" : vencido ? "#C0392B" : "var(--vd)",
+                            color: resuelto ? "var(--tx3)" : vencido ? "#C0392B" : enEsperaItem ? "#1E40AF" : "var(--vd)",
                             textDecoration: resuelto ? "line-through" : "none", marginBottom: "4px",
                           }}>
                             {ev.descripcion}
                           </div>
-                          <div style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--tx3)", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                          {/* Meta */}
+                          <div style={{ fontFamily: "var(--mono)", fontSize: "12px", color: "var(--tx3)", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginBottom: enEsperaItem && ev.comentario ? "8px" : 0 }}>
                             <span>📅 {ev.fecha}</span>
                             <span>🕐 {ev.hora}</span>
-                            {!resuelto && (
-                              <span style={{ background: pc.color + "22", color: pc.color, borderRadius: "10px", padding: "2px 8px", fontWeight: 600, fontSize: "11px" }}>
+                            {!resuelto && !enEsperaItem && (
+                              <span style={{ background: pc.color+"22", color: pc.color, borderRadius: "10px", padding: "2px 8px", fontWeight: 600, fontSize: "11px" }}>
                                 {pc.dot} {pc.label}
                               </span>
                             )}
                             {vencido && (
-                              <span style={{ background: "#e53e3e", color: "#fff", borderRadius: "10px", padding: "2px 8px", fontWeight: 700, fontSize: "11px" }}>
-                                ⏰ Vencido
-                              </span>
+                              <span style={{ background: "#e53e3e", color: "#fff", borderRadius: "10px", padding: "2px 8px", fontWeight: 700, fontSize: "11px" }}>⏰ Vencido</span>
+                            )}
+                            {enEsperaItem && (
+                              <span style={{ background: "#DBEAFE", color: "#1D4ED8", borderRadius: "10px", padding: "2px 8px", fontWeight: 600, fontSize: "11px" }}>⏳ En espera</span>
                             )}
                           </div>
+                          {/* Comentario de espera */}
+                          {enEsperaItem && ev.comentario && (
+                            <div style={{
+                              background: "#DBEAFE", border: "1px solid #BFDBFE",
+                              borderRadius: "8px", padding: "8px 12px",
+                              fontSize: "13px", color: "#1E3A8A", fontStyle: "italic",
+                              marginBottom: "4px",
+                            }}>
+                              💬 {ev.comentario}
+                            </div>
+                          )}
+                          {/* Reprogramar inline */}
                           {reprogMode && (
                             <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "10px" }}>
                               <input className="input-base" type="date" value={reprogFecha} min={hoy}
@@ -16352,12 +16376,34 @@ window.addEventListener('DOMContentLoaded', authInit);
                                 onClick={() => { setReprogId(null); setReprogFecha(""); }}>Cancelar</button>
                             </div>
                           )}
+                          {/* Iniciar inline */}
+                          {iniciarMode && (
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "10px" }}>
+                              <input className="input-base" autoComplete="off"
+                                placeholder="¿Qué hiciste? ¿Qué estás esperando?..."
+                                value={iniciarComentario}
+                                onChange={(e) => setIniciarComentario(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && iniciar(ev.id, iniciarComentario)}
+                                style={{ flex: 1, fontSize: "13px" }} />
+                              <button className="btn btn-g" style={{ fontSize: "12px", padding: "6px 12px" }}
+                                onClick={() => iniciar(ev.id, iniciarComentario)}>✓ Confirmar</button>
+                              <button className="btn" style={{ fontSize: "12px", padding: "6px 12px", background: "transparent", border: "1px solid var(--crb)", color: "var(--tx2)" }}
+                                onClick={() => { setIniciarId(null); setIniciarComentario(""); }}>Cancelar</button>
+                            </div>
+                          )}
                         </div>
-                        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                        {/* Acciones */}
+                        <div style={{ display: "flex", gap: "6px", flexShrink: 0, alignItems: "center" }}>
                           {!resuelto && vencido && !reprogMode && (
                             <button className="btn" style={{ fontSize: "12px", padding: "6px 12px", background: "#FFF5F0", border: "1px solid #F97316", color: "#C05621" }}
-                              onClick={() => { setReprogId(ev.id); setReprogFecha(hoy); }}>
+                              onClick={() => { setReprogId(ev.id); setReprogFecha(hoy); setIniciarId(null); }}>
                               📅 Reprogramar
+                            </button>
+                          )}
+                          {ev.estado === "pendiente" && !iniciarMode && !reprogMode && (
+                            <button className="btn" style={{ fontSize: "12px", padding: "6px 12px", background: "#EFF6FF", border: "1px solid #3B82F6", color: "#1D4ED8" }}
+                              onClick={() => { setIniciarId(ev.id); setIniciarComentario(""); setReprogId(null); }}>
+                              ⏳ Iniciar
                             </button>
                           )}
                           {!resuelto && (
@@ -16380,6 +16426,7 @@ window.addEventListener('DOMContentLoaded', authInit);
           </div>
         );
       }
+
       /* ═══════════════════════════════════════ */
       /* MÓDULO 7: CONFIGURACIÓN               */
       /* ═══════════════════════════════════════ */
