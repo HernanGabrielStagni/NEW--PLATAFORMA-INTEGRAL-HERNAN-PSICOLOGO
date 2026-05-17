@@ -3126,19 +3126,31 @@ window.addEventListener('DOMContentLoaded', authInit);
                   <div className="topbar-brand-copy">
                     <div className="topbar-title">Plataforma Integral</div>
                     <div className="topbar-subtitle">
-                      Hernán Gabriel Stagni · MP 11919 · v1.0
+                      {(() => {
+                        const cfg = getData("hgsp_config");
+                        const nombre = cfg?.prestador || "Hernán Gabriel Stagni";
+                        const mp = cfg?.mp || "11919";
+                        return `${nombre} · MP ${mp} · v1.0`;
+                      })()}
                     </div>
                   </div>
                 </div>
-                {activeSection !== "agenda" &&
-                  activeSection !== "pacientes" && (
-                    <button
-                      className="topbar-cta"
-                      onClick={() => onNavigate("agenda")}
-                    >
+                <div style={{display:"flex",alignItems:"center",gap:"10px",marginLeft:"auto"}}>
+                  {activeSection !== "agenda" && activeSection !== "pacientes" && (
+                    <button className="topbar-cta" onClick={() => onNavigate("agenda")}>
                       + Nuevo turno
                     </button>
                   )}
+                  <button
+                    onClick={() => authSignOut()}
+                    title="Cerrar sesión"
+                    style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"8px",color:"rgba(255,255,255,0.65)",padding:"6px 12px",cursor:"pointer",fontSize:"12px",fontFamily:"var(--sans)",display:"flex",alignItems:"center",gap:"5px",transition:"background .15s"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.18)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+                  >
+                    🚪 Cerrar sesión
+                  </button>
+                </div>
               </div>
             </div>
 
