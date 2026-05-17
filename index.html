@@ -3626,41 +3626,63 @@ window.addEventListener('DOMContentLoaded', authInit);
       /* COMPONENTE: Sidebar                    */
       /* ═══════════════════════════════════════ */
       function Sidebar({ activeSection, onNavigate, badgeCounts }) {
-        const groups = ["PRINCIPAL", "SISTEMA"];
+        const renderGroup = (group) => (
+          <React.Fragment key={group}>
+            <div className="sidebar-section-label">{group}</div>
+            {NAV_SECTIONS.filter((s) => s.group === group).map((section) => (
+              <div
+                key={section.id}
+                className={`sidebar-item ${activeSection === section.id ? "active" : ""}`}
+                onClick={() => onNavigate(section.id)}
+              >
+                <span className="sidebar-item-icon">{section.emoji}</span>
+                <span>{section.label}</span>
+                {badgeCounts[section.id] > 0 && (
+                  <span className="sidebar-badge">{badgeCounts[section.id]}</span>
+                )}
+              </div>
+            ))}
+          </React.Fragment>
+        );
 
         return (
           <div className="sidebar">
-            {groups.map((group) => (
-              <React.Fragment key={group}>
-                <div className="sidebar-section-label">{group}</div>
-                {NAV_SECTIONS.filter((s) => s.group === group).map(
-                  (section) => (
-                    <div
-                      key={section.id}
-                      className={`sidebar-item ${activeSection === section.id ? "active" : ""}`}
-                      onClick={() => onNavigate(section.id)}
-                    >
-                      <span className="sidebar-item-icon">{section.emoji}</span>
-                      <span>{section.label}</span>
-                      {badgeCounts[section.id] > 0 && (
-                        <span className="sidebar-badge">
-                          {badgeCounts[section.id]}
-                        </span>
-                      )}
-                    </div>
-                  ),
-                )}
-              </React.Fragment>
-            ))}
+            {renderGroup("PRINCIPAL")}
 
-            {/* PIE — ESTADO DEL SISTEMA */}
+            {/* ── EXTRAS ── */}
+            <div className="sidebar-section-label">EXTRAS</div>
+            <a
+              href="vida-y-hogar.html"
+              className="sidebar-item"
+              style={{textDecoration:"none",color:"inherit",background:"rgba(200,146,42,0.10)",border:"1px solid rgba(200,146,42,0.22)"}}
+              onMouseEnter={e=>{e.currentTarget.style.background="rgba(200,146,42,0.22)";e.currentTarget.style.borderColor="rgba(200,146,42,0.45)";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="rgba(200,146,42,0.10)";e.currentTarget.style.borderColor="rgba(200,146,42,0.22)";}}
+            >
+              <span className="sidebar-item-icon">🌳</span>
+              <span>Vida y Hogar</span>
+            </a>
+
+            {renderGroup("SISTEMA")}
+
+            {/* ── Separador + Cerrar sesión ── */}
+            <div style={{margin:"6px 14px 2px",borderTop:"1px solid rgba(255,255,255,0.12)"}}></div>
+            <div
+              className="sidebar-item"
+              onClick={() => authSignOut()}
+              style={{color:"rgba(255,255,255,0.45)",fontSize:"0.88rem"}}
+              onMouseEnter={e=>e.currentTarget.style.color="rgba(255,120,120,0.85)"}
+              onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,0.45)"}
+            >
+              <span className="sidebar-item-icon">🚪</span>
+              <span>Cerrar sesión</span>
+            </div>
+
+            {/* PIE */}
             <div className="sidebar-footer">
               <div className="sidebar-footer-label">Estado del sistema</div>
               <div className="sidebar-status-row"><span className="dot on"></span><span>Supabase</span></div>
               <div className="sidebar-status-row"><span className="dot on"></span><span>React 18</span></div>
               <div className="sidebar-status-row"><span className="dot on"></span><span>Sin errores</span></div>
-              <a href="vida-y-hogar.html" style={{display:"block",marginTop:"8px",padding:"8px 12px",background:"rgba(200,146,42,0.12)",borderRadius:"8px",fontSize:"0.8rem",color:"rgba(255,255,255,0.75)",textAlign:"center",textDecoration:"none",border:"1px solid rgba(200,146,42,0.25)"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(200,146,42,0.22)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(200,146,42,0.12)"}>🌳 Vida y Hogar</a>
-              <div onClick={()=>authSignOut()} style={{marginTop:"6px",padding:"8px 12px",background:"rgba(255,255,255,0.08)",borderRadius:"8px",cursor:"pointer",fontSize:"0.8rem",color:"rgba(255,255,255,0.6)",textAlign:"center"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.15)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}>🚪 Cerrar sesión</div>
             </div>
           </div>
         );
