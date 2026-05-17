@@ -3650,13 +3650,13 @@ window.addEventListener('DOMContentLoaded', authInit);
             {renderGroup("PRINCIPAL")}
 
             {/* ── EXTRAS ── */}
-            <div className="sidebar-section-label">EXTRAS</div>
+            <div className="sidebar-section-label" style={{textDecoration:"underline",textUnderlineOffset:"3px"}}>EXTRAS</div>
             <a
               href="vida-y-hogar.html"
               className="sidebar-item"
-              style={{textDecoration:"none",color:"inherit",background:"rgba(200,146,42,0.10)",border:"1px solid rgba(200,146,42,0.22)"}}
-              onMouseEnter={e=>{e.currentTarget.style.background="rgba(200,146,42,0.22)";e.currentTarget.style.borderColor="rgba(200,146,42,0.45)";}}
-              onMouseLeave={e=>{e.currentTarget.style.background="rgba(200,146,42,0.10)";e.currentTarget.style.borderColor="rgba(200,146,42,0.22)";}}
+              style={{textDecoration:"none",color:"rgba(255,255,255,0.92)",fontWeight:700,background:"rgba(200,146,42,0.28)",border:"1px solid rgba(200,146,42,0.5)"}}
+              onMouseEnter={e=>{e.currentTarget.style.background="var(--do)";e.currentTarget.style.color="var(--vd)";e.currentTarget.style.borderColor="var(--do)";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="rgba(200,146,42,0.28)";e.currentTarget.style.color="rgba(255,255,255,0.92)";e.currentTarget.style.borderColor="rgba(200,146,42,0.5)";}}
             >
               <span className="sidebar-item-icon">🌳</span>
               <span>Vida y Hogar</span>
