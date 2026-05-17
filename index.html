@@ -14846,7 +14846,6 @@ window.addEventListener('DOMContentLoaded', authInit);
           </div>
         );
       }
-      }
 
       /* ═══════════════════════════════════════ */
       /* MÓDULO 5: GASTOS MENSUALES             */
@@ -16892,12 +16891,6 @@ window.addEventListener('DOMContentLoaded', authInit);
           (e) => e.estado === "pendiente",
         ).length;
         const gastosPendientes = gastos.filter((g) => !g.pagado).length;
-
-        const suenoRegistros = getData("hgsp_sueno_registros");
-        const registroAnoche = suenoRegistros.some(
-          (r) => r.fechaDespertar === hoyStr,
-        );
-        const suenoPendiente = registroAnoche ? 0 : 1;
 
         return {
           agenda: turnosPendientes || 0,
