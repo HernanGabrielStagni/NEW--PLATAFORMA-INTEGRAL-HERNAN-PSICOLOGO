@@ -16843,13 +16843,13 @@ document.addEventListener('visibilitychange', async () => {
           setAdminEmailsLoading(false);
         }
 
-        async function addAdminEmail() {
-          const email = nuevoAdmin.trim().toLowerCase();
+        async function addAdminEmail(emailParam) {
+          const email = (emailParam || nuevoAdmin).trim().toLowerCase();
           if (!email || !email.includes('@')) { showToast("⚠️ Ingresá un email válido"); return; }
-          if (adminEmails.some(a => a.email === email)) { showToast("⚠️ Ese email ya existe"); return; }
+          if (adminEmails.some(a => a.email === email)) { showToast("⚠️ Ese email ya tiene acceso admin"); return; }
           const { error } = await _sb.from('admin_emails').insert({ email });
           if (error) { showToast("❌ Error: " + (error.message || "sin permiso")); return; }
-          showToast("✅ Email admin agregado");
+          showToast("✅ Acceso admin otorgado a " + email);
           setNuevoAdmin("");
           fetchAdminEmails();
         }
@@ -17805,65 +17805,55 @@ document.addEventListener('visibilitychange', async () => {
                       <button className="btn btn-sec" onClick={handleSyncAll}>☁️ Subir todo a la nube</button>
                       <button className="btn btn-danger" onClick={() => setModalClear(true)}>🗑️ Limpiar todo</button>
                     </div>
-                    {/* Usuarios registrados — acordeón */}
-                    <div style={{borderTop:"1px solid rgba(0,0,0,.1)", paddingTop:"14px", marginBottom:"12px"}}>
+                    {/* Usuarios — lista unificada con rol */}
+                    <div style={{borderTop:"1px solid rgba(0,0,0,.1)", paddingTop:"14px"}}>
                       <button
                         onClick={() => setShowRegistered(v => !v)}
                         style={{display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", background:"none", border:"none", cursor:"pointer", padding:"0", marginBottom: showRegistered ? "10px" : "0"}}
                       >
                         <span style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", textTransform:"uppercase"}}>
-                          Usuarios registrados ({registeredUsers.filter(u => !adminEmails.some(a => a.email === u.email)).length})
+                          Usuarios ({registeredUsers.length})
                         </span>
                         <span style={{fontSize:"12px", color:"var(--tx3)", transition:"transform .2s", display:"inline-block", transform: showRegistered ? "rotate(180deg)" : "rotate(0deg)"}}>▼</span>
                       </button>
-                      {showRegistered && (
-                        <div style={{background:"rgba(0,0,0,.04)", borderRadius:"10px", padding:"10px 14px"}}>
-                          {registeredUsers.filter(u => !adminEmails.some(a => a.email === u.email)).length === 0
-                            ? <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Sin usuarios registrados aún</div>
-                            : registeredUsers.filter(u => !adminEmails.some(a => a.email === u.email)).map(u => (
-                                <div key={u.email} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
-                                  <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)"}}>
-                                    {u.email}
-                                  </span>
-                                  <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>
-                                    {u.ultimo_login ? u.ultimo_login.slice(0,10) : "—"}
-                                  </span>
-                                </div>
-                              ))
-                          }
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Emails admins — acordeón */}
-                    <div style={{borderTop:"1px solid rgba(0,0,0,.1)", paddingTop:"14px"}}>
-                      <button
-                        onClick={() => setShowAdminEmails(v => !v)}
-                        style={{display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", background:"none", border:"none", cursor:"pointer", padding:"0", marginBottom: showAdminEmails ? "10px" : "0"}}
-                      >
-                        <span style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", textTransform:"uppercase"}}>
-                          Emails con acceso de administrador ({adminEmails.length})
-                        </span>
-                        <span style={{fontSize:"12px", color:"var(--tx3)", transition:"transform .2s", display:"inline-block", transform: showAdminEmails ? "rotate(180deg)" : "rotate(0deg)"}}>▼</span>
-                      </button>
-                      {showAdminEmails && (<>
+                      {showRegistered && (<>
                         <div style={{background:"rgba(0,0,0,.04)", borderRadius:"10px", padding:"10px 14px", marginBottom:"10px"}}>
-                          {adminEmailsLoading
-                            ? <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Cargando...</div>
-                            : adminEmails.length === 0
-                              ? <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Sin emails registrados</div>
-                              : adminEmails.map(a => (
-                                  <div key={a.email} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px 0", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
-                                    <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)"}}>
-                                      {a.email}
+                          {registeredUsers.length === 0
+                            ? <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Sin usuarios registrados aún</div>
+                            : registeredUsers.map(u => {
+                                const esAdmin = adminEmails.some(a => a.email === u.email);
+                                return (
+                                  <div key={u.email} style={{display:"flex", alignItems:"center", gap:"8px", padding:"6px 0", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
+                                    <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)", flex:1, wordBreak:"break-all"}}>
+                                      {u.email}
                                     </span>
-                                    {adminEmails.length > 1 && (
-                                      <span className="act-link" style={{color:"#C0392B", fontSize:"12px"}} onClick={() => removeAdminEmail(a.email)}>✕</span>
-                                    )}
+                                    <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)", whiteSpace:"nowrap"}}>
+                                      {u.ultimo_login ? u.ultimo_login.slice(0,10) : "—"}
+                                    </span>
+                                    {esAdmin
+                                      ? <span style={{
+                                          fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700,
+                                          background:"#2E7D32", color:"#fff", borderRadius:"6px",
+                                          padding:"2px 7px", whiteSpace:"nowrap"
+                                        }}>ADMIN</span>
+                                      : <span style={{
+                                          fontFamily:"var(--mono)", fontSize:"10px",
+                                          background:"rgba(0,0,0,.08)", color:"var(--tx3)", borderRadius:"6px",
+                                          padding:"2px 7px", whiteSpace:"nowrap"
+                                        }}>usuario</span>
+                                    }
+                                    {esAdmin
+                                      ? adminEmails.length > 1 && (
+                                          <span className="act-link" title="Quitar admin" style={{color:"#C0392B", fontSize:"12px", cursor:"pointer"}} onClick={() => removeAdminEmail(u.email)}>✕</span>
+                                        )
+                                      : <span className="act-link" title="Dar acceso admin" style={{color:"#2E7D32", fontSize:"12px", cursor:"pointer"}} onClick={() => { setNuevoAdmin(u.email); addAdminEmail(u.email); }}>+</span>
+                                    }
                                   </div>
-                                ))
+                                );
+                              })
                           }
                         </div>
+                        <div style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", marginBottom:"6px"}}>Dar acceso admin a un email no registrado:</div>
                         <div style={{display:"flex", gap:"8px"}}>
                           <input
                             className="input-base"
@@ -17874,8 +17864,8 @@ document.addEventListener('visibilitychange', async () => {
                             onKeyDown={e => e.key === "Enter" && addAdminEmail()}
                             style={{flex:1, fontSize:"13px"}}
                           />
-                          <button className="btn btn-p" style={{fontSize:"12px", padding:"6px 14px"}} onClick={addAdminEmail}>
-                            + Agregar
+                          <button className="btn btn-p" style={{fontSize:"12px", padding:"6px 14px"}} onClick={() => addAdminEmail()}>
+                            + Admin
                           </button>
                         </div>
                       </>)}
