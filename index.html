@@ -2668,6 +2668,7 @@ async function authInit() {
   const { data: { session } } = await _sb.auth.getSession();
   if (session) {
     await loadFromSupabase();
+    await checkIsAdmin();
     if (session.user) await _sb.from('registered_users').upsert({ email: session.user.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
     document.getElementById('login-screen').classList.remove('visible');
     document.getElementById('root').style.display = '';
