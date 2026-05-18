@@ -2691,6 +2691,56 @@ async function authSubmit() {
   document.getElementById('root').style.display = '';
 }
 
+async function authResetPassword() {
+  const email = document.getElementById('auth-email').value.trim();
+  const errEl = document.getElementById('auth-error');
+  const btn = document.getElementById('auth-btn');
+  errEl.classList.remove('visible');
+  if (!email) {
+    errEl.textContent = 'Ingresá tu email primero';
+    errEl.classList.add('visible');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const { error } = await _sb.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://hernangabrielstagni.github.io/NEW--PLATAFORMA-INTEGRAL-HERNAN-PSICOLOGO/'
+  });
+  btn.disabled = false;
+  btn.textContent = 'Enviar link';
+  if (error) {
+    errEl.textContent = 'Error al enviar. Verificá el email.';
+    errEl.classList.add('visible');
+  } else {
+    errEl.style.color = '#2d5a3d';
+    errEl.style.background = '#d4e6da';
+    errEl.textContent = '✅ Te enviamos un link de recuperación. Revisá tu email.';
+    errEl.classList.add('visible');
+  }
+}
+
+function authShowReset() {
+  _authMode = 'reset';
+  document.getElementById('auth-title').textContent = 'Recuperar contraseña';
+  document.getElementById('auth-subtitle').textContent = 'Te enviamos un link a tu email';
+  document.getElementById('auth-password').style.display = 'none';
+  document.getElementById('auth-btn').textContent = 'Enviar link';
+  document.getElementById('auth-btn').onclick = authResetPassword;
+  document.getElementById('auth-toggle-text').innerHTML = '<a onclick="authShowLogin()" style="cursor:pointer">← Volver al login</a>';
+  document.getElementById('auth-error').classList.remove('visible');
+}
+
+function authShowLogin() {
+  _authMode = 'login';
+  document.getElementById('auth-title').textContent = 'Plataforma Clínica';
+  document.getElementById('auth-subtitle').textContent = 'Ingresá con tu cuenta';
+  document.getElementById('auth-password').style.display = '';
+  document.getElementById('auth-btn').textContent = 'Ingresar';
+  document.getElementById('auth-btn').onclick = authSubmit;
+  document.getElementById('auth-toggle-text').innerHTML = '¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a>';
+  document.getElementById('auth-error').classList.remove('visible');
+}
+
 function authToggleMode() {
   _authMode = _authMode === 'login' ? 'register' : 'login';
   const isLogin = _authMode === 'login';
@@ -2756,6 +2806,7 @@ document.addEventListener('visibilitychange', async () => {
     <div id="auth-error" class="login-error"></div>
     <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
     <p class="login-toggle" id="auth-toggle-text">¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a></p>
+    <p class="login-toggle" style="margin-top:4px"><a onclick="authShowReset()" style="color:rgba(255,255,255,0.5);font-size:11px">¿Olvidaste tu contraseña?</a></p>
   </div>
 </div>
 
@@ -16570,6 +16621,7 @@ document.addEventListener('visibilitychange', async () => {
           os: false,
           feriados: false,
           backup: false,
+          admin: false,
         });
 
         /* ── Feriados locales ── */
@@ -16775,6 +16827,13 @@ document.addEventListener('visibilitychange', async () => {
             oBg: "#5A5248",
             oBd: "rgba(133,117,104,.4)",
           },
+          admin: {
+            cBg: "#7A6A8A",
+            cTx: "#1A0A2A",
+            cBd: "#5A4A6A",
+            oBg: "#3A2A4A",
+            oBd: "rgba(90,74,106,.4)",
+          },
         };
         const cfgBarStyle = (sec) => {
           const p = SEC_PAL[sec];
@@ -16819,39 +16878,6 @@ document.addEventListener('visibilitychange', async () => {
           boxShadow:
             "0 6px 22px rgba(30,61,43,.26), 0 2px 6px rgba(30,61,43,.14), inset 0 1px 0 rgba(255,255,255,.18)",
         };
-
-        if (!pinOk) return (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"340px",gap:"18px"}}>
-            <div style={{fontSize:"38px"}}>🔐</div>
-            <div style={{fontFamily:"var(--serif2)",fontWeight:700,fontSize:"20px",color:"var(--tx)"}}>Configuración</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:"12px",color:"var(--tx3)",textAlign:"center"}}>Ingresá la clave de administrador</div>
-            <div style={{display:"flex",gap:"8px"}}>
-              {Array.from({length:PIN_LEN}).map((_,i) => (
-                <input
-                  key={i}
-                  ref={el => pinBoxRefs.current[i] = el}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  autoComplete="off"
-                  value={pinDigits[i]}
-                  onChange={e => handlePinDigit(i, e.target.value)}
-                  onKeyDown={e => handlePinKey(i, e)}
-                  style={{
-                    width:"38px", height:"48px", textAlign:"center", fontSize:"20px",
-                    fontFamily:"var(--mono)", borderRadius:"8px",
-                    border: pinError ? "2px solid #c0392b" : "2px solid var(--vm)",
-                    background: pinDigits[i] ? "#E8F5EE" : "#F0EBE0",
-                    color:"var(--tx)", outline:"none", caretColor:"transparent",
-                    transition:"border-color 0.15s, background 0.15s",
-                  }}
-                />
-              ))}
-            </div>
-            {pinError && <div style={{color:"#c0392b",fontFamily:"var(--mono)",fontSize:"12px"}}>❌ Clave incorrecta</div>}
-            <button className="btn btn-p" onClick={checkPin}>Ingresar</button>
-          </div>
-        );
 
         return (
           <React.Fragment>
@@ -17618,107 +17644,113 @@ document.addEventListener('visibilitychange', async () => {
                 )}
               </div>
 
-              {/* ── DATOS Y BACKUP ── */}
-              <div style={cfgWrap}>
-                <div
-                  style={cfgBarStyle("backup")}
-                  onClick={() => toggle("backup")}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <span style={{ fontSize: "18px" }}>💾</span>
+              {/* ── SINCRONIZACIÓN (general) ── */}
+              <div style={{...cfgWrap, marginBottom:"12px"}}>
+                <div style={{background:"#4A6A5A", borderRadius:"18px", padding:"16px 22px", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+                  <div style={{display:"flex", alignItems:"center", gap:"10px"}}>
+                    <span style={{fontSize:"18px"}}>🔄</span>
                     <div>
-                      <div
-                        style={{
-                          fontFamily: "var(--serif2)",
-                          fontWeight: 700,
-                          fontSize: "15px",
-                          color: cfgTitleColor("backup"),
-                        }}
-                      >
-                        Datos y backup
+                      <div style={{fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px", color:"#E8F5EE"}}>Sincronización</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:"10px", marginTop:"1px", color:"rgba(232,245,238,.6)"}}>Recarga automática tras inactividad</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex", gap:"8px"}}>
+                    {[15, 30, 60].map(min => {
+                      const actual = (cfg.syncRefreshMin || 15);
+                      const activo = actual === min;
+                      return (
+                        <button
+                          key={min}
+                          onClick={() => {
+                            const nuevo = { ...getData("hgsp_config"), syncRefreshMin: min };
+                            setData("hgsp_config", nuevo);
+                            setCfg(nuevo);
+                            showToast(`✅ Recarga automática: ${min} min`);
+                          }}
+                          style={{
+                            padding: "5px 14px", borderRadius: "50px", border: "2px solid",
+                            fontFamily: "var(--mono)", fontSize: "12px", cursor: "pointer",
+                            fontWeight: activo ? 700 : 400,
+                            background: activo ? "#8DBFA4" : "transparent",
+                            borderColor: activo ? "#8DBFA4" : "rgba(232,245,238,.4)",
+                            color: activo ? "#0F2E1C" : "rgba(232,245,238,.7)",
+                          }}
+                        >
+                          {min} min
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── ZONA DE ADMINISTRADOR ── */}
+              <div style={cfgWrap}>
+                <div style={cfgBarStyle("admin")} onClick={() => toggle("admin")}>
+                  <div style={{display:"flex", alignItems:"center", gap:"10px"}}>
+                    <span style={{fontSize:"18px"}}>🔐</span>
+                    <div>
+                      <div style={{fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px", color:cfgTitleColor("admin")}}>
+                        Zona de administrador
                       </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--mono)",
-                          fontSize: "10px",
-                          marginTop: "1px",
-                          color: cfgSubColor("backup"),
-                        }}
-                      >
-                        Exportar · importar · sincronizar con la nube · limpiar
+                      <div style={{fontFamily:"var(--mono)", fontSize:"10px", marginTop:"1px", color:cfgSubColor("admin")}}>
+                        Backup · importar · nube · limpiar · emails admin
                       </div>
                     </div>
                   </div>
-                  {cfgChevron("backup")}
+                  {cfgChevron("admin")}
                 </div>
-                {open.backup && (
-                  <div style={cfgBody("backup")}>
-                    <p
-                      style={{
-                        color: "var(--tx2)",
-                        marginBottom: "14px",
-                        fontSize: "13px",
-                      }}
-                    >
-                      Exportá un backup JSON, importá uno previo (se sube a la nube automáticamente),
-                      forzá una sincronización manual o limpiá el sistema.
-                    </p>
-                    <div style={{ marginBottom: "16px" }}>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "var(--tx3)", marginBottom: "8px", textTransform: "uppercase" }}>
-                        Recarga automática tras inactividad
-                      </div>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        {[15, 30, 60].map(min => {
-                          const actual = (cfg.syncRefreshMin || 15);
-                          const activo = actual === min;
-                          return (
-                            <button
-                              key={min}
-                              onClick={() => {
-                                const nuevo = { ...getData("hgsp_config"), syncRefreshMin: min };
-                                setData("hgsp_config", nuevo);
-                                setCfg(nuevo);
-                                showToast(`✅ Recarga automática: ${min} min`);
-                              }}
-                              style={{
-                                padding: "6px 16px", borderRadius: "50px", border: "2px solid",
-                                fontFamily: "var(--mono)", fontSize: "12px", cursor: "pointer",
-                                fontWeight: activo ? 700 : 400,
-                                background: activo ? "var(--vm)" : "transparent",
-                                borderColor: activo ? "var(--vm)" : "var(--tx3)",
-                                color: activo ? "#fff" : "var(--tx2)",
-                              }}
-                            >
-                              {min} min
-                            </button>
-                          );
-                        })}
-                      </div>
+                {open.admin && !pinOk && (
+                  <div style={{...cfgBody("admin"), display:"flex", flexDirection:"column", alignItems:"center", gap:"14px", padding:"24px"}}>
+                    <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Ingresá la clave de administrador</div>
+                    <div style={{display:"flex", gap:"8px"}}>
+                      {Array.from({length:PIN_LEN}).map((_,i) => (
+                        <input
+                          key={i}
+                          ref={el => pinBoxRefs.current[i] = el}
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={1}
+                          autoComplete="off"
+                          value={pinDigits[i]}
+                          onChange={e => handlePinDigit(i, e.target.value)}
+                          onKeyDown={e => handlePinKey(i, e)}
+                          style={{
+                            width:"38px", height:"48px", textAlign:"center", fontSize:"20px",
+                            fontFamily:"var(--mono)", borderRadius:"8px",
+                            border: pinError ? "2px solid #c0392b" : "2px solid var(--vm)",
+                            background: pinDigits[i] ? "#E8F5EE" : "#F0EBE0",
+                            color:"var(--tx)", outline:"none", caretColor:"transparent",
+                          }}
+                        />
+                      ))}
                     </div>
-                    <div
-                      style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
-                    >
-                      <button className="btn btn-p" onClick={handleExport}>
-                        💾 Exportar backup
-                      </button>
-                      <button className="btn btn-sec" onClick={handleImport}>
-                        📂 Importar backup
-                      </button>
-                      <button className="btn btn-sec" onClick={handleSyncAll}>
-                        ☁️ Subir todo a la nube
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        onClick={() => setModalClear(true)}
-                      >
-                        🗑️ Limpiar todo
-                      </button>
+                    {pinError && <div style={{color:"#c0392b", fontFamily:"var(--mono)", fontSize:"12px"}}>❌ Clave incorrecta</div>}
+                    <button className="btn btn-p" onClick={checkPin}>Ingresar</button>
+                  </div>
+                )}
+                {open.admin && pinOk && (
+                  <div style={cfgBody("admin")}>
+                    <p style={{color:"var(--tx2)", marginBottom:"16px", fontSize:"13px"}}>
+                      Exportá un backup JSON, importá uno previo (sube a la nube automáticamente),
+                      forzá sincronización manual o limpiá el sistema.
+                    </p>
+                    <div style={{display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"20px"}}>
+                      <button className="btn btn-p" onClick={handleExport}>💾 Exportar backup</button>
+                      <button className="btn btn-sec" onClick={handleImport}>📂 Importar backup</button>
+                      <button className="btn btn-sec" onClick={handleSyncAll}>☁️ Subir todo a la nube</button>
+                      <button className="btn btn-danger" onClick={() => setModalClear(true)}>🗑️ Limpiar todo</button>
+                    </div>
+                    <div style={{borderTop:"1px solid rgba(0,0,0,.1)", paddingTop:"16px"}}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", textTransform:"uppercase", marginBottom:"8px"}}>
+                        Emails con acceso de administrador
+                      </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)", background:"rgba(0,0,0,.04)", borderRadius:"10px", padding:"10px 14px", lineHeight:2}}>
+                        psicologohernanstagni@gmail.com <span style={{color:"var(--vm)", fontWeight:700}}>← vos</span>
+                      </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", marginTop:"8px"}}>
+                        Para agregar otro email administrador, contactá al desarrollador o ejecutá el SQL en Supabase.
+                      </div>
                     </div>
                   </div>
                 )}
