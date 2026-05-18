@@ -16792,9 +16792,17 @@ document.addEventListener('visibilitychange', async () => {
         async function fetchAdminEmails() {
           setAdminEmailsLoading(true);
           try {
-            const { data, error } = await _sb.from('admin_emails').select('email, added_at').order('added_at');
-            if (!error && data) setAdminEmails(data);
-          } catch(e) {}
+            const { data, error } = await _sb.from('admin_emails').select('email, added_at');
+            if (error) {
+              showToast("❌ Error al cargar emails: " + error.message);
+              console.error('admin_emails error:', error);
+            } else {
+              setAdminEmails(data || []);
+            }
+          } catch(e) {
+            showToast("❌ Error de conexión: " + e.message);
+            console.error('admin_emails fetch error:', e);
+          }
           setAdminEmailsLoading(false);
         }
 
