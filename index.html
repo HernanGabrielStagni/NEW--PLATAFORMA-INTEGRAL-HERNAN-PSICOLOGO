@@ -16801,12 +16801,10 @@ window.addEventListener('DOMContentLoaded', authInit);
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"340px",gap:"18px"}}>
             <div style={{fontSize:"38px"}}>🔐</div>
             <div style={{fontFamily:"var(--serif2)",fontWeight:700,fontSize:"20px",color:"var(--tx)"}}>Configuración</div>
-            <div style={{fontFamily:"var(--mono)",fontSize:"12px",color:"var(--tx3)",textAlign:"center"}}>Ingresá tu número de documento para continuar</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:"12px",color:"var(--tx3)",textAlign:"center"}}>Ingresá la clave de administrador</div>
             <input
               type="password"
-              inputMode="numeric"
-              maxLength={8}
-              placeholder="········"
+              placeholder="•••••"
               value={pinInput}
               onChange={e => { setPinInput(e.target.value); setPinError(false); }}
               onKeyDown={e => e.key === "Enter" && checkPin()}
