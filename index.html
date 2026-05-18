@@ -16527,6 +16527,14 @@ window.addEventListener('DOMContentLoaded', authInit);
         const [draft, setDraft] = useState({});
         const [modalClear, setModalClear] = useState(false);
         const [clearPin, setClearPin] = useState("");
+        const CFG_PIN = "24521983";
+        const [pinOk, setPinOk] = useState(false);
+        const [pinInput, setPinInput] = useState("");
+        const [pinError, setPinError] = useState(false);
+        function checkPin() {
+          if (pinInput === CFG_PIN) { setPinOk(true); setPinError(false); }
+          else { setPinError(true); setPinInput(""); }
+        }
         const [nuevoOS, setNuevoOS] = useState({
           nombre: "",
           valorOrden: "",
@@ -16627,7 +16635,7 @@ window.addEventListener('DOMContentLoaded', authInit);
         }
 
         function handleClear() {
-          if (clearPin !== "1234") return;
+          if (clearPin !== CFG_PIN) return;
           Object.keys(localStorage).forEach((key) => {
             if (key.startsWith("hgsp_")) localStorage.removeItem(key);
           });
@@ -16646,21 +16654,25 @@ window.addEventListener('DOMContentLoaded', authInit);
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
               try {
                 const data = JSON.parse(event.target.result);
-                Object.keys(data).forEach((key) => {
-                  if (key.startsWith("hgsp_")) {
-                    localStorage.setItem(
-                      key,
-                      typeof data[key] === "string"
-                        ? data[key]
-                        : JSON.stringify(data[key]),
-                    );
-                  }
+                const keys = Object.keys(data).filter(k => k.startsWith("hgsp_"));
+                keys.forEach((key) => {
+                  localStorage.setItem(
+                    key,
+                    typeof data[key] === "string" ? data[key] : JSON.stringify(data[key]),
+                  );
                 });
-                showToast("✅ Datos importados. Reiniciando...");
-                setTimeout(() => window.location.reload(), 1500);
+                showToast("📂 Backup restaurado. Subiendo a la nube...");
+                for (const key of keys) {
+                  try {
+                    const d = JSON.parse(localStorage.getItem(key));
+                    await syncToSupabase(key, d);
+                  } catch(e) {}
+                }
+                showToast("✅ Datos restaurados y sincronizados. Reiniciando...");
+                setTimeout(() => window.location.reload(), 2000);
               } catch (err) {
                 showToast("❌ Error: El archivo no es un backup válido");
               }
@@ -16668,6 +16680,19 @@ window.addEventListener('DOMContentLoaded', authInit);
             reader.readAsText(file);
           };
           input.click();
+        }
+
+        async function handleSyncAll() {
+          const keys = Object.keys(localStorage).filter(k => k.startsWith("hgsp_"));
+          if (keys.length === 0) { showToast("⚠️ No hay datos locales para sincronizar"); return; }
+          showToast("☁️ Sincronizando...");
+          for (const key of keys) {
+            try {
+              const d = JSON.parse(localStorage.getItem(key));
+              await syncToSupabase(key, d);
+            } catch(e) {}
+          }
+          showToast(`✅ ${keys.length} secciones subidas a la nube`);
         }
 
         /* helpers de render */
@@ -16771,6 +16796,27 @@ window.addEventListener('DOMContentLoaded', authInit);
           boxShadow:
             "0 6px 22px rgba(30,61,43,.26), 0 2px 6px rgba(30,61,43,.14), inset 0 1px 0 rgba(255,255,255,.18)",
         };
+
+        if (!pinOk) return (
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"340px",gap:"18px"}}>
+            <div style={{fontSize:"38px"}}>🔐</div>
+            <div style={{fontFamily:"var(--serif2)",fontWeight:700,fontSize:"20px",color:"var(--tx)"}}>Configuración</div>
+            <div style={{fontFamily:"var(--mono)",fontSize:"12px",color:"var(--tx3)",textAlign:"center"}}>Ingresá tu número de documento para continuar</div>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="········"
+              value={pinInput}
+              onChange={e => { setPinInput(e.target.value); setPinError(false); }}
+              onKeyDown={e => e.key === "Enter" && checkPin()}
+              autoComplete="off"
+              style={{fontFamily:"var(--mono)",letterSpacing:"0.3em",textAlign:"center",fontSize:"22px",padding:"10px 20px",borderRadius:"50px",border:"2px solid var(--vm)",background:"#F0EBE0",color:"var(--tx)",width:"180px",outline:"none"}}
+            />
+            {pinError && <div style={{color:"#c0392b",fontFamily:"var(--mono)",fontSize:"12px"}}>❌ Documento incorrecto</div>}
+            <button className="btn btn-p" onClick={checkPin}>Ingresar</button>
+          </div>
+        );
 
         return (
           <React.Fragment>
@@ -17570,7 +17616,7 @@ window.addEventListener('DOMContentLoaded', authInit);
                           color: cfgSubColor("backup"),
                         }}
                       >
-                        Exportar, importar o limpiar todos los datos del sistema
+                        Exportar · importar · sincronizar con la nube · limpiar
                       </div>
                     </div>
                   </div>
@@ -17585,17 +17631,20 @@ window.addEventListener('DOMContentLoaded', authInit);
                         fontSize: "13px",
                       }}
                     >
-                      Exportá un backup JSON con todos los datos, importá uno
-                      previo o limpiá el sistema para empezar de cero.
+                      Exportá un backup JSON, importá uno previo (se sube a la nube automáticamente),
+                      forzá una sincronización manual o limpiá el sistema.
                     </p>
                     <div
                       style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
                     >
                       <button className="btn btn-p" onClick={handleExport}>
-                        💾 Exportar datos
+                        💾 Exportar backup
                       </button>
                       <button className="btn btn-sec" onClick={handleImport}>
-                        📂 Importar datos
+                        📂 Importar backup
+                      </button>
+                      <button className="btn btn-sec" onClick={handleSyncAll}>
+                        ☁️ Subir todo a la nube
                       </button>
                       <button
                         className="btn btn-danger"
@@ -17669,8 +17718,8 @@ window.addEventListener('DOMContentLoaded', authInit);
                         <input
                           className="modal-input"
                           type="password"
-                          maxLength={4}
-                          placeholder="····"
+                          maxLength={8}
+                          placeholder="········"
                           value={clearPin}
                           onChange={(e) => setClearPin(e.target.value)}
                           style={{
