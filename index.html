@@ -2620,9 +2620,34 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 <script>
 let _authMode = 'login';
 
+async function syncToSupabase(key, data) {
+  try {
+    const { data: { user } } = await _sb.auth.getUser();
+    if (!user) return;
+    await _sb.from('user_data').upsert(
+      { user_id: user.id, store_key: key, data: data, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,store_key' }
+    );
+  } catch(e) { console.warn('Supabase sync error:', e); }
+}
+
+async function loadFromSupabase() {
+  try {
+    const { data: { user } } = await _sb.auth.getUser();
+    if (!user) return;
+    const { data, error } = await _sb.from('user_data').select('store_key, data').eq('user_id', user.id);
+    if (error || !data || data.length === 0) return;
+    data.forEach(row => {
+      localStorage.setItem(row.store_key, JSON.stringify(row.data));
+    });
+    console.log(`✅ Datos cargados desde Supabase (${data.length} claves)`);
+  } catch(e) { console.warn('Supabase load error:', e); }
+}
+
 async function authInit() {
   const { data: { session } } = await _sb.auth.getSession();
   if (session) {
+    await loadFromSupabase();
     document.getElementById('login-screen').classList.remove('visible');
     document.getElementById('root').style.display = '';
   } else {
@@ -2661,6 +2686,7 @@ async function authSubmit() {
     btn.textContent = 'Crear cuenta';
     return;
   }
+  await loadFromSupabase();
   document.getElementById('login-screen').classList.remove('visible');
   document.getElementById('root').style.display = '';
 }
@@ -2729,6 +2755,7 @@ window.addEventListener('DOMContentLoaded', authInit);
       function setData(key, data) {
         try {
           localStorage.setItem(key, JSON.stringify(data));
+          syncToSupabase(key, data);
         } catch (e) {
           console.error(e);
           showToast(
