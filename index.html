@@ -2718,6 +2718,23 @@ async function authSignOut() {
 }
 
 window.addEventListener('DOMContentLoaded', authInit);
+
+let _hiddenAt = null;
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'hidden') {
+    _hiddenAt = Date.now();
+  } else if (document.visibilityState === 'visible' && _hiddenAt) {
+    const minutos = (Date.now() - _hiddenAt) / 60000;
+    _hiddenAt = null;
+    if (minutos >= 2) {
+      const { data: { user } } = await _sb.auth.getUser();
+      if (user) {
+        await loadFromSupabase();
+        window.location.reload();
+      }
+    }
+  }
+});
 </script>
 
 <div id="login-screen">
