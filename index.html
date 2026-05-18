@@ -16614,7 +16614,14 @@ document.addEventListener('visibilitychange', async () => {
         const [draft, setDraft] = useState({});
         const [modalClear, setModalClear] = useState(false);
         const [clearPin, setClearPin] = useState("");
-        const isAdmin = !!window._isAdmin;
+        const [isAdmin, setIsAdmin] = useState(false);
+        React.useEffect(() => {
+          _sb.auth.getUser().then(({ data: { user } }) => {
+            if (!user) return;
+            _sb.from('admin_emails').select('email').eq('email', user.email).maybeSingle()
+              .then(({ data, error }) => setIsAdmin(!error && !!data));
+          });
+        }, []);
         const CFG_PIN = "24521983";
         const PIN_LEN = CFG_PIN.length;
         const [pinOk, setPinOk] = useState(false);
