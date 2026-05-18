@@ -2668,6 +2668,7 @@ async function authInit() {
   const { data: { session } } = await _sb.auth.getSession();
   if (session) {
     await loadFromSupabase();
+    if (session.user) await _sb.from('registered_users').upsert({ email: session.user.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
     document.getElementById('login-screen').classList.remove('visible');
     document.getElementById('root').style.display = '';
   } else {
@@ -2708,6 +2709,8 @@ async function authSubmit() {
   }
   await loadFromSupabase();
   await checkIsAdmin();
+  const { data: { user: u2 } } = await _sb.auth.getUser();
+  if (u2) await _sb.from('registered_users').upsert({ email: u2.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
   document.getElementById('login-screen').classList.remove('visible');
   document.getElementById('root').style.display = '';
 }
@@ -2827,7 +2830,7 @@ document.addEventListener('visibilitychange', async () => {
     <div id="auth-error" class="login-error"></div>
     <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
     <p class="login-toggle" id="auth-toggle-text">¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a></p>
-    <p class="login-toggle" style="margin-top:4px"><a onclick="authShowReset()" style="color:rgba(255,255,255,0.5);font-size:11px">¿Olvidaste tu contraseña?</a></p>
+    <p class="login-toggle" style="margin-top:8px"><a onclick="authShowReset()" style="color:rgba(255,255,255,0.75);font-size:13px;text-decoration:underline">¿Olvidaste tu contraseña?</a></p>
   </div>
 </div>
 
@@ -16798,8 +16801,16 @@ document.addEventListener('visibilitychange', async () => {
         const [adminEmails, setAdminEmails] = useState([]);
         const [adminEmailsLoading, setAdminEmailsLoading] = useState(false);
         const [nuevoAdmin, setNuevoAdmin] = useState("");
+        const [registeredUsers, setRegisteredUsers] = useState([]);
 
-        React.useEffect(() => { if (pinOk) fetchAdminEmails(); }, [pinOk]);
+        React.useEffect(() => { if (pinOk) { fetchAdminEmails(); fetchRegisteredUsers(); } }, [pinOk]);
+
+        async function fetchRegisteredUsers() {
+          try {
+            const { data, error } = await _sb.from('registered_users').select('email, ultimo_login').order('ultimo_login', { ascending: false });
+            if (!error && data) setRegisteredUsers(data);
+          } catch(e) {}
+        }
 
         async function fetchAdminEmails() {
           setAdminEmailsLoading(true);
@@ -17816,6 +17827,26 @@ document.addEventListener('visibilitychange', async () => {
                       <button className="btn btn-sec" onClick={handleImport}>📂 Importar backup</button>
                       <button className="btn btn-sec" onClick={handleSyncAll}>☁️ Subir todo a la nube</button>
                       <button className="btn btn-danger" onClick={() => setModalClear(true)}>🗑️ Limpiar todo</button>
+                    </div>
+                    <div style={{borderTop:"1px solid rgba(0,0,0,.1)", paddingTop:"16px", marginBottom:"20px"}}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", textTransform:"uppercase", marginBottom:"8px"}}>
+                        Usuarios registrados ({registeredUsers.length})
+                      </div>
+                      <div style={{background:"rgba(0,0,0,.04)", borderRadius:"10px", padding:"10px 14px"}}>
+                        {registeredUsers.length === 0
+                          ? <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Sin usuarios registrados aún</div>
+                          : registeredUsers.map(u => (
+                              <div key={u.email} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
+                                <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)"}}>
+                                  {"****" + u.email.slice(u.email.indexOf("@"))}
+                                </span>
+                                <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>
+                                  {u.ultimo_login ? u.ultimo_login.slice(0,10) : "—"}
+                                </span>
+                              </div>
+                            ))
+                        }
+                      </div>
                     </div>
                     <div style={{borderTop:"1px solid rgba(0,0,0,.1)", paddingTop:"16px"}}>
                       <div style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", textTransform:"uppercase", marginBottom:"8px"}}>
