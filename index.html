@@ -16617,9 +16617,15 @@ document.addEventListener('visibilitychange', async () => {
         const [isAdmin, setIsAdmin] = useState(false);
         React.useEffect(() => {
           _sb.auth.getUser().then(({ data: { user } }) => {
-            if (!user) return;
+            if (!user) { showToast("❌ isAdmin: no hay usuario autenticado"); return; }
+            showToast("🔍 Verificando admin para: " + user.email);
             _sb.from('admin_emails').select('email').eq('email', user.email).maybeSingle()
-              .then(({ data, error }) => setIsAdmin(!error && !!data));
+              .then(({ data, error }) => {
+                if (error) { showToast("❌ RLS error: " + error.message + " [" + error.code + "]"); }
+                else if (!data) { showToast("⚠️ Email NO encontrado en admin_emails: " + user.email); }
+                else { showToast("✅ Admin OK: " + user.email); }
+                setIsAdmin(!error && !!data);
+              });
           });
         }, []);
         const CFG_PIN = "24521983";
