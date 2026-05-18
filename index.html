@@ -17823,7 +17823,7 @@ document.addEventListener('visibilitychange', async () => {
                             : registeredUsers.map(u => (
                                 <div key={u.email} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
                                   <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)"}}>
-                                    {"****" + u.email.slice(u.email.indexOf("@"))}
+                                    {(() => { const [u2,d] = u.email.split("@"); return (u2.length<=4 ? "****" : u2.slice(0,2)+"***"+u2.slice(-2)) + "@" + d; })()}
                                   </span>
                                   <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>
                                     {u.ultimo_login ? u.ultimo_login.slice(0,10) : "—"}
@@ -17855,7 +17855,7 @@ document.addEventListener('visibilitychange', async () => {
                               : adminEmails.map(a => (
                                   <div key={a.email} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px 0", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
                                     <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)"}}>
-                                      {"****" + a.email.slice(a.email.indexOf("@"))}
+                                      {(() => { const [u2,d] = a.email.split("@"); return (u2.length<=4 ? "****" : u2.slice(0,2)+"***"+u2.slice(-2)) + "@" + d; })()}
                                     </span>
                                     {adminEmails.length > 1 && (
                                       <span className="act-link" style={{color:"#C0392B", fontSize:"12px"}} onClick={() => removeAdminEmail(a.email)}>✕</span>
