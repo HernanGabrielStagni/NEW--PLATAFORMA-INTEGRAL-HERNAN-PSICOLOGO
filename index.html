@@ -2632,6 +2632,16 @@ async function syncToSupabase(key, data) {
 }
 
 window._adminEmails = [];
+window._isAdmin = false;
+
+async function checkIsAdmin() {
+  try {
+    const { data: { user } } = await _sb.auth.getUser();
+    if (!user) { window._isAdmin = false; return; }
+    const { data, error } = await _sb.from('admin_emails').select('email').eq('email', user.email).maybeSingle();
+    window._isAdmin = !error && !!data;
+  } catch(e) { window._isAdmin = false; }
+}
 
 async function loadAdminEmails() {
   try {
@@ -2649,7 +2659,7 @@ async function loadFromSupabase() {
     data.forEach(row => {
       localStorage.setItem(row.store_key, JSON.stringify(row.data));
     });
-    await loadAdminEmails();
+    await checkIsAdmin();
     console.log(`✅ Datos cargados desde Supabase (${data.length} claves)`);
   } catch(e) { console.warn('Supabase load error:', e); }
 }
@@ -2697,6 +2707,7 @@ async function authSubmit() {
     return;
   }
   await loadFromSupabase();
+  await checkIsAdmin();
   document.getElementById('login-screen').classList.remove('visible');
   document.getElementById('root').style.display = '';
 }
@@ -16595,6 +16606,7 @@ document.addEventListener('visibilitychange', async () => {
         const [draft, setDraft] = useState({});
         const [modalClear, setModalClear] = useState(false);
         const [clearPin, setClearPin] = useState("");
+        const isAdmin = !!window._isAdmin;
         const CFG_PIN = "24521983";
         const PIN_LEN = CFG_PIN.length;
         const [pinOk, setPinOk] = useState(false);
@@ -17740,7 +17752,16 @@ document.addEventListener('visibilitychange', async () => {
               </div>
 
               {/* ── ZONA DE ADMINISTRADOR ── */}
-              <div style={cfgWrap}>
+              {!isAdmin && (
+                <div style={{...cfgWrap, opacity:0.5}}>
+                  <div style={{background:"#3A2A4A", borderRadius:"18px", padding:"16px 22px", display:"flex", alignItems:"center", gap:"10px"}}>
+                    <span style={{fontSize:"18px"}}>🔐</span>
+                    <div style={{fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px", color:"rgba(255,255,255,.5)"}}>Zona de administrador</div>
+                    <span style={{fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.35)", marginLeft:"auto"}}>Sin permisos</span>
+                  </div>
+                </div>
+              )}
+              {isAdmin && <div style={cfgWrap}>
                 <div style={cfgBarStyle("admin")} onClick={() => toggle("admin")}>
                   <div style={{display:"flex", alignItems:"center", gap:"10px"}}>
                     <span style={{fontSize:"18px"}}>🔐</span>
@@ -17834,7 +17855,7 @@ document.addEventListener('visibilitychange', async () => {
                     </div>
                   </div>
                 )}
-              </div>
+              </div>}
             </div>
 
             {/* MODAL CONFIRMAR LIMPIEZA */}
