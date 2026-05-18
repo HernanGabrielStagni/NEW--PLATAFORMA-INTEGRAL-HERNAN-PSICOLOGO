@@ -16397,40 +16397,42 @@ document.addEventListener('visibilitychange', async () => {
                 <div className="card-header-icon">➕</div>
                 <div className="card-header-title">Nueva nota o pendiente</div>
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:"10px", alignItems:"center", marginBottom:"10px" }}>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:"10px", alignItems:"center", marginBottom:"10px" }}>
                 <input className="input-base" placeholder="Descripción..." autoComplete="off"
                   value={form.descripcion}
                   onChange={e => setForm(p => ({...p, descripcion: e.target.value}))}
-                  onKeyDown={e => e.key==="Enter" && agregar()} />
-                <input className="input-base" type="date" style={{ fontFamily:"var(--mono)", width:"155px" }}
-                  value={form.fecha} onChange={e => setForm(p => ({...p, fecha: e.target.value}))} />
-                <input className="input-base" type="time" style={{ fontFamily:"var(--mono)", width:"120px" }}
-                  value={form.hora} onChange={e => setForm(p => ({...p, hora: e.target.value}))} />
+                  onKeyDown={e => e.key==="Enter" && agregar()}
+                  style={{ flex:"1 1 180px", minWidth:"140px" }} />
+                <div style={{ display:"flex", gap:"8px", flexShrink:0 }}>
+                  <input className="input-base" type="date" style={{ fontFamily:"var(--mono)", width:"145px" }}
+                    value={form.fecha} onChange={e => setForm(p => ({...p, fecha: e.target.value}))} />
+                  <input className="input-base" type="time" style={{ fontFamily:"var(--mono)", width:"110px" }}
+                    value={form.hora} onChange={e => setForm(p => ({...p, hora: e.target.value}))} />
+                </div>
               </div>
-              <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
-                <span style={{ fontSize:"13px", color:"var(--tx3)", marginRight:"2px" }}>Prioridad:</span>
+              <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
+                <span style={{ fontSize:"13px", color:"var(--tx3)" }}>Prioridad:</span>
                 {Object.entries(PRIO_CFG).map(([k,v]) => (
                   <button key={k} onClick={() => setForm(p => ({...p, prioridad:k}))}
                     style={{
-                      display:"flex", alignItems:"center", gap:"5px", padding:"5px 13px", borderRadius:"20px",
+                      display:"flex", alignItems:"center", gap:"4px", padding:"5px 11px", borderRadius:"20px",
                       border: `2px solid ${form.prioridad===k ? v.color : "transparent"}`,
                       background: form.prioridad===k ? v.bg : "rgba(0,0,0,0.04)",
                       color: form.prioridad===k ? v.color : "var(--tx3)",
                       fontWeight: form.prioridad===k ? 700 : 400,
-                      cursor:"pointer", fontSize:"13px", transition:"all 0.15s",
+                      cursor:"pointer", fontSize:"12px", transition:"all 0.15s",
                     }}>
                     {v.dot} {v.label}
                   </button>
                 ))}
-                <div style={{ flex:1 }} />
-                <button className="btn btn-g" onClick={agregar}>Agregar</button>
+                <button className="btn btn-g" style={{ marginLeft:"auto" }} onClick={agregar}>Agregar</button>
               </div>
             </div>
 
             {/* FILTROS */}
             <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"16px" }}>
               <div className="tabs-container">
-                {[["todos","📋 Todos"],["semana","📅 Esta semana"],["mes","🗓️ Este mes"],["vencidos","⏰ Vencidos"]].map(([id,l]) => (
+                {[["todos","📋 Todos"],["semana","📅 Semana"],["mes","🗓️ Mes"],["vencidos","⏰ Vencidos"]].map(([id,l]) => (
                   <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}>{l}</div>
                 ))}
               </div>
@@ -17721,7 +17723,7 @@ document.addEventListener('visibilitychange', async () => {
                           type="password"
                           inputMode="numeric"
                           maxLength={1}
-                          autoComplete="off"
+                          autoComplete="one-time-code"
                           value={pinDigits[i]}
                           onChange={e => handlePinDigit(i, e.target.value)}
                           onKeyDown={e => handlePinKey(i, e)}
