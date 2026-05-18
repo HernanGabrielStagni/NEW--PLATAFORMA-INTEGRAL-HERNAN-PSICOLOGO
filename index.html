@@ -16602,6 +16602,10 @@ document.addEventListener('visibilitychange', async () => {
       function SeccionConfig({ onEditModeChange }) {
         const [cfg, setCfg] = useState(() => getData("hgsp_config") || {});
         const [editMode, setEditMode_] = useState(false);
+        const [userEmail, setUserEmail] = useState("");
+        React.useEffect(() => {
+          _sb.auth.getUser().then(({ data: { user } }) => { if (user) setUserEmail(user.email || ""); });
+        }, []);
         function setEditMode(val) {
           setEditMode_(val);
           if (onEditModeChange) onEditModeChange(val);
@@ -16975,27 +16979,11 @@ document.addEventListener('visibilitychange', async () => {
                   >
                     <span style={{ fontSize: "18px" }}>👤</span>
                     <div>
-                      <div
-                        style={{
-                          fontFamily: "var(--serif2)",
-                          fontWeight: 700,
-                          fontSize: "15px",
-                          color: cfgTitleColor("prestador"),
-                        }}
-                      >
-                        Datos del prestador
+                      <div style={{ fontFamily: "var(--serif2)", fontWeight: 700, fontSize: "15px", color: cfgTitleColor("prestador") }}>
+                        Mi perfil
                       </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--mono)",
-                          fontSize: "10px",
-                          marginTop: "1px",
-                          color: cfgSubColor("prestador"),
-                        }}
-                      >
-                        {open.prestador
-                          ? "Nombre · matrícula · CUIT · dirección del consultorio"
-                          : "Nombre, matrícula, CUIT y dirección del consultorio"}
+                      <div style={{ fontFamily: "var(--mono)", fontSize: "10px", marginTop: "1px", color: cfgSubColor("prestador") }}>
+                        {userEmail || "Perfil · matrícula · CUIT · consultorio"}
                       </div>
                     </div>
                   </div>
@@ -17031,54 +17019,34 @@ document.addEventListener('visibilitychange', async () => {
                 </div>
                 {open.prestador && (
                   <div style={cfgBody("prestador")}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "12px",
-                      }}
-                    >
+                    {/* Email (solo lectura) */}
+                    <div style={{ marginBottom: "16px", paddingBottom: "14px", borderBottom: "1px solid rgba(0,0,0,.07)" }}>
+                      <div style={monoLabel}>Email de cuenta</div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: "13px", fontWeight: 600, color: "var(--vm)", background: "rgba(0,0,0,.03)", padding: "8px 14px", borderRadius: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span>✉️</span> {userEmail || "—"}
+                        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--tx3)", fontWeight: 400 }}>Solo lectura</span>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                       {[
-                        {
-                          k: "prestador",
-                          label: "Nombre completo",
-                          mono: false,
-                        },
-                        { k: "mp", label: "Matrícula", mono: true },
-                        { k: "cuit", label: "CUIT", mono: true },
-                        {
-                          k: "domicilioTrabajo",
-                          label: "Dirección consultorio",
-                          mono: false,
-                        },
-                        {
-                          k: "especialidad",
-                          label: "Especialidad",
-                          mono: false,
-                        },
+                        { k: "nombreVisible", label: "Nombre visible en la app", mono: false },
+                        { k: "telefono",      label: "Teléfono de contacto",     mono: true  },
+                        { k: "prestador",     label: "Nombre completo",          mono: false },
+                        { k: "especialidad",  label: "Especialidad",             mono: false },
+                        { k: "mp",            label: "Matrícula",                mono: true  },
+                        { k: "cuit",          label: "CUIT",                     mono: true  },
+                        { k: "domicilioTrabajo", label: "Dirección consultorio", mono: false },
                       ].map(({ k, label, mono }) => (
                         <div key={k}>
                           <div style={monoLabel}>{label}</div>
                           {editMode ? (
                             <input
-                              style={{
-                                ...editInput,
-                                fontFamily: mono
-                                  ? "var(--mono)"
-                                  : "var(--sans)",
-                              }}
+                              style={{ ...editInput, fontFamily: mono ? "var(--mono)" : "var(--sans)" }}
                               value={draft[k] || ""}
                               onChange={(e) => upd(k, e.target.value)}
                             />
                           ) : (
-                            <div
-                              style={{
-                                fontWeight: 600,
-                                fontFamily: mono
-                                  ? "var(--mono)"
-                                  : "var(--sans)",
-                              }}
-                            >
+                            <div style={{ fontWeight: 600, fontFamily: mono ? "var(--mono)" : "var(--sans)" }}>
                               {D[k] || "—"}
                             </div>
                           )}
