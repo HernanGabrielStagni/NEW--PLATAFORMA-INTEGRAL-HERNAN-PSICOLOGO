@@ -2890,7 +2890,7 @@ document.addEventListener('visibilitychange', async () => {
     </div>
     <div class="login-field" id="auth-newpassword-field" style="display:none">
       <label>Nueva contraseña</label>
-      <input id="auth-newpassword" type="password" placeholder="Mínimo 6 caracteres" onkeydown="if(event.key==='Enter') authSetNewPassword()" />
+      <input id="auth-newpassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" onkeydown="if(event.key==='Enter') authSetNewPassword()" />
     </div>
     <div id="auth-error" class="login-error"></div>
     <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
