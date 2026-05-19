@@ -2703,10 +2703,10 @@ function authShowNewPassword() {
   document.getElementById('auth-btn').onclick = authSetNewPassword;
   document.getElementById('auth-toggle-text').style.display = 'none';
   document.getElementById('auth-forgot-link').style.display = 'none';
-  // Limpiar el campo después de que el navegador intente autocompletar
+  // Bloquear autofill: readonly al inicio, luego liberar limpio
   const input = document.getElementById('auth-newpassword');
   input.value = '';
-  setTimeout(() => { input.value = ''; input.focus(); }, 300);
+  setTimeout(() => { input.removeAttribute('readonly'); input.value = ''; input.focus(); }, 200);
 }
 
 async function authSetNewPassword() {
@@ -2894,7 +2894,7 @@ document.addEventListener('visibilitychange', async () => {
     </div>
     <div class="login-field" id="auth-newpassword-field" style="display:none">
       <label>Nueva contraseña</label>
-      <input id="auth-newpassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" onkeydown="if(event.key==='Enter') authSetNewPassword()" />
+      <input id="auth-newpassword" type="password" placeholder="" autocomplete="new-password" readonly onkeydown="if(event.key==='Enter') authSetNewPassword()" />
     </div>
     <div id="auth-error" class="login-error"></div>
     <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
