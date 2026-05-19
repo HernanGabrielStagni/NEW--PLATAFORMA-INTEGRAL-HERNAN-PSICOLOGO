@@ -2615,6 +2615,8 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-btn.loading::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent);animation:btn-sweep 1s ease-in-out infinite;z-index:2;pointer-events:none;}
 .login-btn.loading > *{position:relative;z-index:3;}
 @keyframes btn-sweep{0%{left:-100%;}100%{left:160%;}}
+.login-btn.pulse{animation:btn-pulse 1.8s ease-in-out infinite;}
+@keyframes btn-pulse{0%,100%{box-shadow:0 0 0 0 rgba(74,124,89,0.5);}60%{box-shadow:0 0 0 10px rgba(74,124,89,0);}}
 .login-error{color:#c0392b;font-size:0.85rem;text-align:center;background:#fdecea;border-radius:6px;padding:8px 12px;display:none;}
 .login-error.visible{display:block;}
 .login-toggle{font-size:0.83rem;color:var(--vc);text-align:center;}
@@ -2796,6 +2798,7 @@ async function authResetPassword() {
     return;
   }
   btn.disabled = true;
+  btn.classList.remove('pulse');
   btn.classList.add('loading');
   document.getElementById('auth-btn-text').textContent = 'Enviando...';
   const [{ error }] = await Promise.all([
@@ -2827,6 +2830,7 @@ function authShowReset() {
   btn.innerHTML = '<span id="auth-btn-text">Enviar link</span>';
   btn.disabled = false;
   btn.classList.remove('loading');
+  btn.classList.add('pulse');
   btn.onclick = authResetPassword;
   document.getElementById('auth-toggle-text').innerHTML = '<a onclick="authShowLogin()" style="cursor:pointer">← Volver al login</a>';
   document.getElementById('auth-error').classList.remove('visible');
