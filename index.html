@@ -2748,7 +2748,7 @@ function authShowReset() {
   _authMode = 'reset';
   document.getElementById('auth-title').textContent = 'Recuperar contraseña';
   document.getElementById('auth-subtitle').textContent = 'Te enviamos un link a tu email';
-  document.getElementById('auth-password').style.display = 'none';
+  document.getElementById('auth-password-field').style.display = 'none';
   document.getElementById('auth-btn').textContent = 'Enviar link';
   document.getElementById('auth-btn').onclick = authResetPassword;
   document.getElementById('auth-toggle-text').innerHTML = '<a onclick="authShowLogin()" style="cursor:pointer">← Volver al login</a>';
@@ -2759,7 +2759,7 @@ function authShowLogin() {
   _authMode = 'login';
   document.getElementById('auth-title').textContent = 'Plataforma Clínica';
   document.getElementById('auth-subtitle').textContent = 'Ingresá con tu cuenta';
-  document.getElementById('auth-password').style.display = '';
+  document.getElementById('auth-password-field').style.display = '';
   document.getElementById('auth-btn').textContent = 'Ingresar';
   document.getElementById('auth-btn').onclick = authSubmit;
   document.getElementById('auth-toggle-text').innerHTML = '¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a>';
@@ -2824,7 +2824,7 @@ document.addEventListener('visibilitychange', async () => {
       <label>Email</label>
       <input id="auth-email" type="email" placeholder="tu@email.com" />
     </div>
-    <div class="login-field">
+    <div class="login-field" id="auth-password-field">
       <label>Contraseña</label>
       <input id="auth-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') authSubmit()" />
     </div>
