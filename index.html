@@ -16349,6 +16349,8 @@ document.addEventListener('visibilitychange', async () => {
         const [reprogFecha, setReprogFecha] = React.useState("");
         const [lapizAbierto, setLapizAbierto] = React.useState({}); // {id: bool}
         const [comentariosEdit, setComentariosEdit] = React.useState({}); // {id: texto}
+        const [editId, setEditId]   = React.useState(null);
+        const [editDraft, setEditDraft] = React.useState({});
         const [form, setForm] = React.useState({
           descripcion: "", fecha: hoy, hora: "09:00", prioridad: "normal",
         });
@@ -16410,6 +16412,24 @@ document.addEventListener('visibilitychange', async () => {
           const idx = all.findIndex(e => e.id === id);
           if (idx >= 0) { all[idx].fecha = reprogFecha; setData("hgsp_eventos", all); }
           setReprogId(null); setReprogFecha(""); loadItems(); showToast("📅 Reprogramado");
+        }
+
+        function abrirEdit(ev) {
+          setEditId(ev.id);
+          setEditDraft({ descripcion: ev.descripcion, fecha: ev.fecha, hora: ev.hora || "", prioridad: ev.prioridad || "normal" });
+          setReprogId(null);
+        }
+
+        function guardarEdit(id) {
+          if (!editDraft.descripcion?.trim()) { showToast("⚠️ La descripción no puede estar vacía"); return; }
+          if (!editDraft.fecha) { showToast("⚠️ Ingresá una fecha"); return; }
+          const all = getData("hgsp_eventos");
+          const idx = all.findIndex(e => e.id === id);
+          if (idx >= 0) {
+            all[idx] = { ...all[idx], descripcion: editDraft.descripcion.trim(), fecha: editDraft.fecha, hora: editDraft.hora, prioridad: editDraft.prioridad };
+            setData("hgsp_eventos", all);
+          }
+          setEditId(null); setEditDraft({}); loadItems(); showToast("✅ Registro actualizado");
         }
 
         function eliminar(id) {
@@ -16625,30 +16645,62 @@ document.addEventListener('visibilitychange', async () => {
                               onChange={() => setEstado(ev.id, resuelto ? "en_espera" : "resuelto")}
                             />
                           </div>
-                          {/* Reprogramar + eliminar */}
+                          {/* Editar + eliminar */}
                           <div style={{ display:"flex", gap:"5px", alignItems:"center" }}>
-                            {vencido && !reprogMode && !resuelto && (
-                              <button className="btn" style={{ fontSize:"11px", padding:"5px 10px", background:"#FFF5F0", border:"1px solid #F97316", color:"#C05621" }}
-                                onClick={() => { setReprogId(ev.id); setReprogFecha(hoy); }}>
-                                📅
-                              </button>
-                            )}
+                            <button className="btn" title="Editar registro"
+                              style={{ fontSize:"12px", padding:"6px 10px", background: editId===ev.id ? "#EDE9FE" : "#F5F5F5", border:"1px solid #C4B5FD", color:"#5B21B6" }}
+                              onClick={() => editId===ev.id ? (setEditId(null),setEditDraft({})) : abrirEdit(ev)}>
+                              ✏️
+                            </button>
                             <button className="btn btn-danger" style={{ fontSize:"12px", padding:"6px 10px" }}
                               onClick={() => eliminar(ev.id)}>🗑️</button>
                           </div>
                         </div>
                       </div>
 
-                      {/* Reprogramar inline */}
-                      {reprogMode && (
-                        <div style={{ display:"flex", gap:"8px", alignItems:"center", marginTop:"10px" }}>
-                          <input className="input-base" type="date" value={reprogFecha} min={hoy}
-                            style={{ fontFamily:"var(--mono)", width:"155px", fontSize:"13px" }}
-                            onChange={e => setReprogFecha(e.target.value)} />
-                          <button className="btn btn-g" style={{ fontSize:"12px", padding:"6px 12px" }}
-                            onClick={() => reprogramar(ev.id)}>Confirmar</button>
-                          <button className="btn" style={{ fontSize:"12px", padding:"6px 12px", background:"transparent", border:"1px solid var(--crb)", color:"var(--tx2)" }}
-                            onClick={() => { setReprogId(null); setReprogFecha(""); }}>Cancelar</button>
+                      {/* Formulario edición inline */}
+                      {editId === ev.id && (
+                        <div style={{ marginTop:"12px", background:"#F5F3FF", border:"1.5px solid #C4B5FD", borderRadius:"12px", padding:"14px 16px", display:"flex", flexDirection:"column", gap:"10px" }}>
+                          <div>
+                            <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Descripción</div>
+                            <input className="input-base" autoComplete="off"
+                              value={editDraft.descripcion || ""}
+                              onChange={e => setEditDraft(p => ({...p, descripcion: e.target.value}))}
+                              style={{ fontSize:"13px" }} />
+                          </div>
+                          <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
+                            <div>
+                              <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Fecha</div>
+                              <input className="input-base" type="date"
+                                value={editDraft.fecha || ""}
+                                onChange={e => setEditDraft(p => ({...p, fecha: e.target.value}))}
+                                style={{ fontFamily:"var(--mono)", fontSize:"13px", width:"155px" }} />
+                            </div>
+                            <div>
+                              <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Hora</div>
+                              <input className="input-base" type="time"
+                                value={editDraft.hora || ""}
+                                onChange={e => setEditDraft(p => ({...p, hora: e.target.value}))}
+                                style={{ fontFamily:"var(--mono)", fontSize:"13px", width:"120px" }} />
+                            </div>
+                            <div>
+                              <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Prioridad</div>
+                              <select className="input-base"
+                                value={editDraft.prioridad || "normal"}
+                                onChange={e => setEditDraft(p => ({...p, prioridad: e.target.value}))}
+                                style={{ fontSize:"13px" }}>
+                                <option value="urgente">🔴 Urgente</option>
+                                <option value="normal">🟡 Normal</option>
+                                <option value="cuando_pueda">🟢 Cuando pueda</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div style={{ display:"flex", gap:"8px" }}>
+                            <button className="btn btn-p" style={{ fontSize:"12px", padding:"7px 16px" }}
+                              onClick={() => guardarEdit(ev.id)}>Guardar cambios</button>
+                            <button className="btn" style={{ fontSize:"12px", padding:"7px 14px", background:"transparent", border:"1px solid var(--crb)", color:"var(--tx2)" }}
+                              onClick={() => { setEditId(null); setEditDraft({}); }}>Cancelar</button>
+                          </div>
                         </div>
                       )}
 
