@@ -2664,20 +2664,26 @@ async function loadFromSupabase() {
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
-// Verificación síncrona del hash ANTES de cualquier operación async
-const _recoveryMode = (function() {
-  try {
-    const h = window.location.hash.slice(1);
-    return h.includes('type=recovery') && h.includes('access_token=');
-  } catch(e) { return false; }
-})();
+let _recoveryMode = false;
 
-async function authInit() {
-  if (_recoveryMode) {
+// Escuchar eventos de Supabase Auth
+_sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    _recoveryMode = true;
     document.getElementById('login-screen').classList.add('visible');
     document.getElementById('root').style.display = 'none';
     authShowNewPassword();
-    window.history.replaceState(null, '', window.location.pathname);
+  }
+});
+
+async function authInit() {
+  // Si hay token de recovery en el hash, esperar a que Supabase lo procese
+  const h = window.location.hash;
+  if (h.includes('type=recovery') && h.includes('access_token=')) {
+    // Supabase procesará el hash y disparará PASSWORD_RECOVERY via onAuthStateChange
+    // No hacemos nada acá, el listener de arriba se encarga
+    document.getElementById('login-screen').classList.add('visible');
+    document.getElementById('root').style.display = 'none';
     return;
   }
   const { data: { session } } = await _sb.auth.getSession();
