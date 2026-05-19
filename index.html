@@ -17818,9 +17818,13 @@ document.addEventListener('visibilitychange', async () => {
                       </button>
                       {showRegistered && (<>
                         <div style={{background:"rgba(0,0,0,.04)", borderRadius:"10px", padding:"10px 14px", marginBottom:"10px"}}>
-                          {registeredUsers.length === 0
-                            ? <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Sin usuarios registrados aún</div>
-                            : [...registeredUsers].sort((a,b) => {
+                          {(() => {
+                            // Combinar: registered_users + admins sin cuenta registrada
+                            const regEmails = registeredUsers.map(u => u.email);
+                            const sinRegistro = adminEmails.filter(a => !regEmails.includes(a.email)).map(a => ({ email: a.email, ultimo_login: null, sinCuenta: true }));
+                            const todos = [...registeredUsers.map(u => ({...u, sinCuenta:false})), ...sinRegistro];
+                            if (todos.length === 0) return <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Sin usuarios aún</div>;
+                            return todos.sort((a,b) => {
                                 const aA = adminEmails.some(x => x.email === a.email) ? 0 : 1;
                                 const bA = adminEmails.some(x => x.email === b.email) ? 0 : 1;
                                 if (aA !== bA) return aA - bA;
@@ -17832,31 +17836,26 @@ document.addEventListener('visibilitychange', async () => {
                                     <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)", flex:1, wordBreak:"break-all"}}>
                                       {u.email}
                                     </span>
-                                    <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)", whiteSpace:"nowrap"}}>
-                                      {u.ultimo_login ? u.ultimo_login.slice(0,10) : "—"}
-                                    </span>
+                                    {u.sinCuenta
+                                      ? <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#999", whiteSpace:"nowrap"}}>sin cuenta</span>
+                                      : <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)", whiteSpace:"nowrap"}}>
+                                          {u.ultimo_login ? u.ultimo_login.slice(0,10) : "—"}
+                                        </span>
+                                    }
                                     {esAdmin
-                                      ? <span style={{
-                                          fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700,
-                                          background:"#2E7D32", color:"#fff", borderRadius:"6px",
-                                          padding:"2px 7px", whiteSpace:"nowrap"
-                                        }}>ADMIN</span>
-                                      : <span style={{
-                                          fontFamily:"var(--mono)", fontSize:"10px",
-                                          background:"rgba(0,0,0,.08)", color:"var(--tx3)", borderRadius:"6px",
-                                          padding:"2px 7px", whiteSpace:"nowrap"
-                                        }}>usuario</span>
+                                      ? <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:"#2E7D32", color:"#fff", borderRadius:"6px", padding:"2px 7px", whiteSpace:"nowrap"}}>ADMIN</span>
+                                      : <span style={{fontFamily:"var(--mono)", fontSize:"10px", background:"rgba(0,0,0,.08)", color:"var(--tx3)", borderRadius:"6px", padding:"2px 7px", whiteSpace:"nowrap"}}>usuario</span>
                                     }
                                     {esAdmin
                                       ? adminEmails.length > 1 && (
                                           <span className="act-link" title="Quitar admin" style={{color:"#C0392B", fontSize:"12px", cursor:"pointer"}} onClick={() => removeAdminEmail(u.email)}>✕</span>
                                         )
-                                      : <span className="act-link" title="Dar acceso admin" style={{color:"#2E7D32", fontSize:"12px", cursor:"pointer"}} onClick={() => { setNuevoAdmin(u.email); addAdminEmail(u.email); }}>+</span>
+                                      : <span className="act-link" title="Dar acceso admin" style={{color:"#2E7D32", fontSize:"12px", cursor:"pointer"}} onClick={() => addAdminEmail(u.email)}>+</span>
                                     }
                                   </div>
                                 );
-                              })
-                          }
+                              });
+                          })()}
                         </div>
                         <div style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", marginBottom:"6px"}}>Dar acceso admin a un email no registrado:</div>
                         <div style={{display:"flex", gap:"8px"}}>
