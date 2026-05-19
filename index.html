@@ -2747,7 +2747,7 @@ async function authResetPassword() {
 function authShowReset() {
   _authMode = 'reset';
   document.getElementById('auth-title').textContent = 'Recuperar contraseña';
-  document.getElementById('auth-subtitle').textContent = 'Te enviamos un link a tu email';
+  document.getElementById('auth-subtitle').textContent = 'Ingresá tu email y te enviaremos un link para restablecer tu contraseña';
   document.getElementById('auth-password-field').style.display = 'none';
   document.getElementById('auth-btn').textContent = 'Enviar link';
   document.getElementById('auth-btn').onclick = authResetPassword;
