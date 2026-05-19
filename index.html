@@ -16658,7 +16658,7 @@ document.addEventListener('visibilitychange', async () => {
                           <span style={{ fontSize:"12px", color:"#1D4ED8", flexShrink:0 }}>💬</span>
                           <input
                             className="input-base"
-                            autoComplete="off"
+                            autoComplete="nope"
                             placeholder="¿Qué hiciste? ¿Qué estás esperando?..."
                             value={comentariosEdit[ev.id] ?? ""}
                             onChange={e => setComentariosEdit(prev => ({...prev, [ev.id]: e.target.value}))}
