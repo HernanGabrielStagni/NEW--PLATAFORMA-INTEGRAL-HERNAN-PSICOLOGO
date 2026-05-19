@@ -2612,7 +2612,8 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-btn:hover{background:var(--vd);}
 .login-btn:disabled{opacity:0.85;cursor:not-allowed;}
 .login-btn.loading{cursor:wait;}
-.login-btn.loading::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);animation:btn-sweep 1.1s ease-in-out infinite;}
+.login-btn.loading::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent);animation:btn-sweep 1s ease-in-out infinite;z-index:2;pointer-events:none;}
+.login-btn.loading > *{position:relative;z-index:3;}
 @keyframes btn-sweep{0%{left:-100%;}100%{left:160%;}}
 .login-error{color:#c0392b;font-size:0.85rem;text-align:center;background:#fdecea;border-radius:6px;padding:8px 12px;display:none;}
 .login-error.visible{display:block;}
@@ -2797,9 +2798,12 @@ async function authResetPassword() {
   btn.disabled = true;
   btn.classList.add('loading');
   document.getElementById('auth-btn-text').textContent = 'Enviando...';
-  const { error } = await _sb.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://hernangabrielstagni.github.io/NEW--PLATAFORMA-INTEGRAL-HERNAN-PSICOLOGO/'
-  });
+  const [{ error }] = await Promise.all([
+    _sb.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://hernangabrielstagni.github.io/NEW--PLATAFORMA-INTEGRAL-HERNAN-PSICOLOGO/'
+    }),
+    new Promise(r => setTimeout(r, 1500))
+  ]);
   btn.disabled = false;
   btn.classList.remove('loading');
   document.getElementById('auth-btn-text').textContent = 'Enviar link';
