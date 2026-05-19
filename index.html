@@ -2664,37 +2664,27 @@ async function loadFromSupabase() {
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
-let _recoveryMode = false;
+// Verificación síncrona del hash ANTES de cualquier operación async
+const _hashStr = window.location.hash.slice(1);
+const _hashParams = Object.fromEntries(new URLSearchParams(_hashStr));
+const _recoveryMode = _hashParams.type === 'recovery' && !!_hashParams.access_token;
 
-_sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    _recoveryMode = true;
+async function authInit() {
+  if (_recoveryMode) {
     document.getElementById('login-screen').classList.add('visible');
     document.getElementById('root').style.display = 'none';
     authShowNewPassword();
-  } else if (event === 'SIGNED_IN' && !_recoveryMode) {
-    if (session) {
-      await loadFromSupabase();
-      await checkIsAdmin();
-      await _sb.from('registered_users').upsert({ email: session.user.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
-      document.getElementById('login-screen').classList.remove('visible');
-      document.getElementById('root').style.display = '';
-    }
-  } else if (event === 'SIGNED_OUT') {
-    document.getElementById('login-screen').classList.add('visible');
-    document.getElementById('root').style.display = 'none';
+    window.history.replaceState(null, '', window.location.pathname);
+    return;
   }
-});
-
-async function authInit() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (session && !_recoveryMode) {
+  if (session) {
     await loadFromSupabase();
     await checkIsAdmin();
     if (session.user) await _sb.from('registered_users').upsert({ email: session.user.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
     document.getElementById('login-screen').classList.remove('visible');
     document.getElementById('root').style.display = '';
-  } else if (!session) {
+  } else {
     document.getElementById('login-screen').classList.add('visible');
     document.getElementById('root').style.display = 'none';
   }
