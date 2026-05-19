@@ -2665,9 +2665,12 @@ async function loadFromSupabase() {
 }
 
 // Verificación síncrona del hash ANTES de cualquier operación async
-const _hashStr = window.location.hash.slice(1);
-const _hashParams = Object.fromEntries(new URLSearchParams(_hashStr));
-const _recoveryMode = _hashParams.type === 'recovery' && !!_hashParams.access_token;
+const _recoveryMode = (function() {
+  try {
+    const h = window.location.hash.slice(1);
+    return h.includes('type=recovery') && h.includes('access_token=');
+  } catch(e) { return false; }
+})();
 
 async function authInit() {
   if (_recoveryMode) {
