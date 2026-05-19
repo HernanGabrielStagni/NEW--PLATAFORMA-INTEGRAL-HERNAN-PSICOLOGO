@@ -2665,6 +2665,18 @@ async function loadFromSupabase() {
 }
 
 async function authInit() {
+  // Detectar si viene de un link de recuperación de contraseña
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery') && hash.includes('access_token')) {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) {
+      document.getElementById('login-screen').classList.add('visible');
+      document.getElementById('root').style.display = 'none';
+      authShowNewPassword();
+      return;
+    }
+  }
+
   const { data: { session } } = await _sb.auth.getSession();
   if (session) {
     await loadFromSupabase();
@@ -2675,6 +2687,51 @@ async function authInit() {
   } else {
     document.getElementById('login-screen').classList.add('visible');
     document.getElementById('root').style.display = 'none';
+  }
+}
+
+function authShowNewPassword() {
+  document.getElementById('auth-title').textContent = 'Nueva contraseña';
+  document.getElementById('auth-subtitle').textContent = 'Ingresá tu nueva contraseña';
+  document.getElementById('auth-email').closest('.login-field').style.display = 'none';
+  document.getElementById('auth-password-field').style.display = 'none';
+  document.getElementById('auth-newpassword-field').style.display = '';
+  document.getElementById('auth-btn').textContent = 'Guardar contraseña';
+  document.getElementById('auth-btn').onclick = authSetNewPassword;
+  document.getElementById('auth-toggle-text').style.display = 'none';
+  document.getElementById('auth-forgot-link').style.display = 'none';
+}
+
+async function authSetNewPassword() {
+  const password = document.getElementById('auth-newpassword').value;
+  const btn = document.getElementById('auth-btn');
+  const errEl = document.getElementById('auth-error');
+  errEl.classList.remove('visible');
+  if (!password || password.length < 6) {
+    errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    errEl.classList.add('visible');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  const { error } = await _sb.auth.updateUser({ password });
+  btn.disabled = false;
+  if (error) {
+    btn.textContent = 'Guardar contraseña';
+    errEl.textContent = 'Error: ' + error.message;
+    errEl.classList.add('visible');
+  } else {
+    errEl.style.color = '#2d5a3d';
+    errEl.style.background = '#d4e6da';
+    errEl.textContent = '✅ Contraseña actualizada. Iniciando sesión...';
+    errEl.classList.add('visible');
+    window.history.replaceState(null, '', window.location.pathname);
+    setTimeout(async () => {
+      await loadFromSupabase();
+      await checkIsAdmin();
+      document.getElementById('login-screen').classList.remove('visible');
+      document.getElementById('root').style.display = '';
+    }, 1500);
   }
 }
 
@@ -2828,10 +2885,14 @@ document.addEventListener('visibilitychange', async () => {
       <label>Contraseña</label>
       <input id="auth-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') authSubmit()" />
     </div>
+    <div class="login-field" id="auth-newpassword-field" style="display:none">
+      <label>Nueva contraseña</label>
+      <input id="auth-newpassword" type="password" placeholder="Mínimo 6 caracteres" onkeydown="if(event.key==='Enter') authSetNewPassword()" />
+    </div>
     <div id="auth-error" class="login-error"></div>
     <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
     <p class="login-toggle" id="auth-toggle-text">¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a></p>
-    <p class="login-toggle" style="margin-top:8px"><a onclick="authShowReset()">¿Olvidaste tu contraseña?</a></p>
+    <p class="login-toggle" id="auth-forgot-link" style="margin-top:8px"><a onclick="authShowReset()">¿Olvidaste tu contraseña?</a></p>
   </div>
 </div>
 
