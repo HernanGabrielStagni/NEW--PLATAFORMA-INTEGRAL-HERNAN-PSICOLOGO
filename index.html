@@ -2703,6 +2703,10 @@ function authShowNewPassword() {
   document.getElementById('auth-btn').onclick = authSetNewPassword;
   document.getElementById('auth-toggle-text').style.display = 'none';
   document.getElementById('auth-forgot-link').style.display = 'none';
+  // Limpiar el campo después de que el navegador intente autocompletar
+  const input = document.getElementById('auth-newpassword');
+  input.value = '';
+  setTimeout(() => { input.value = ''; input.focus(); }, 300);
 }
 
 async function authSetNewPassword() {
