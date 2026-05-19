@@ -2608,9 +2608,13 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-field label{font-size:0.8rem;font-weight:600;color:var(--vm);text-transform:uppercase;letter-spacing:0.04em;}
 .login-field input{padding:10px 14px;border:1.5px solid var(--vs);border-radius:8px;font-size:0.95rem;font-family:'DM Sans',sans-serif;background:white;color:var(--vd);outline:none;transition:border-color 0.2s;}
 .login-field input:focus{border-color:var(--vm);}
-.login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;}
+.login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;position:relative;overflow:hidden;}
 .login-btn:hover{background:var(--vd);}
-.login-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.login-btn:disabled{opacity:0.85;cursor:not-allowed;}
+.login-btn.loading::after{content:'';position:absolute;inset:-4px;border-radius:12px;background:conic-gradient(from 0deg,transparent 60%,rgba(255,255,255,0.6) 80%,transparent 100%);animation:btn-spin 1.2s linear infinite;}
+.login-btn.loading::before{content:'';position:absolute;inset:2px;background:var(--vm);border-radius:6px;z-index:1;}
+.login-btn.loading span{position:relative;z-index:2;}
+@keyframes btn-spin{to{transform:rotate(360deg);}}
 .login-error{color:#c0392b;font-size:0.85rem;text-align:center;background:#fdecea;border-radius:6px;padding:8px 12px;display:none;}
 .login-error.visible{display:block;}
 .login-toggle{font-size:0.83rem;color:var(--vc);text-align:center;}
@@ -2792,12 +2796,14 @@ async function authResetPassword() {
     return;
   }
   btn.disabled = true;
-  btn.textContent = 'Enviando...';
+  btn.classList.add('loading');
+  document.getElementById('auth-btn-text').textContent = 'Enviando...';
   const { error } = await _sb.auth.resetPasswordForEmail(email, {
     redirectTo: 'https://hernangabrielstagni.github.io/NEW--PLATAFORMA-INTEGRAL-HERNAN-PSICOLOGO/'
   });
   btn.disabled = false;
-  btn.textContent = 'Enviar link';
+  btn.classList.remove('loading');
+  document.getElementById('auth-btn-text').textContent = 'Enviar link';
   if (error) {
     errEl.textContent = 'Error al enviar. Verificá el email.';
     errEl.classList.add('visible');
@@ -2898,7 +2904,7 @@ document.addEventListener('visibilitychange', async () => {
       <input id="auth-newpassword" type="password" placeholder="" autocomplete="new-password" readonly onkeydown="if(event.key==='Enter') authSetNewPassword()" />
     </div>
     <div id="auth-error" class="login-error"></div>
-    <button id="auth-btn" class="login-btn" onclick="authSubmit()">Ingresar</button>
+    <button id="auth-btn" class="login-btn" onclick="authSubmit()"><span id="auth-btn-text">Ingresar</span></button>
     <p class="login-toggle" id="auth-toggle-text">¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a></p>
     <p class="login-toggle" id="auth-forgot-link" style="margin-top:8px"><a onclick="authShowReset()">¿Olvidaste tu contraseña?</a></p>
   </div>
