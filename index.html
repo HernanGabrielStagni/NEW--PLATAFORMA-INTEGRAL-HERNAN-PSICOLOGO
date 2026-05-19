@@ -2608,11 +2608,12 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-field label{font-size:0.8rem;font-weight:600;color:var(--vm);text-transform:uppercase;letter-spacing:0.04em;}
 .login-field input{padding:10px 14px;border:1.5px solid var(--vs);border-radius:8px;font-size:0.95rem;font-family:'DM Sans',sans-serif;background:white;color:var(--vd);outline:none;transition:border-color 0.2s;}
 .login-field input:focus{border-color:var(--vm);}
-.login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s,box-shadow 0.2s;margin-top:4px;}
+.login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;position:relative;overflow:hidden;}
 .login-btn:hover{background:var(--vd);}
 .login-btn:disabled{opacity:0.85;cursor:not-allowed;}
-.login-btn.loading{animation:btn-glow 1s ease-in-out infinite;cursor:wait;}
-@keyframes btn-glow{0%,100%{box-shadow:0 0 6px 2px rgba(255,255,255,0.2);}50%{box-shadow:0 0 18px 6px rgba(255,255,255,0.55);}}
+.login-btn.loading{cursor:wait;}
+.login-btn.loading::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);animation:btn-sweep 1.1s ease-in-out infinite;}
+@keyframes btn-sweep{0%{left:-100%;}100%{left:160%;}}
 .login-error{color:#c0392b;font-size:0.85rem;text-align:center;background:#fdecea;border-radius:6px;padding:8px 12px;display:none;}
 .login-error.visible{display:block;}
 .login-toggle{font-size:0.83rem;color:var(--vc);text-align:center;}
