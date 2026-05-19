@@ -2664,27 +2664,37 @@ async function loadFromSupabase() {
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
-async function authInit() {
-  // Detectar si viene de un link de recuperación de contraseña
-  const hash = window.location.hash;
-  if (hash.includes('type=recovery') && hash.includes('access_token')) {
-    const { data: { session } } = await _sb.auth.getSession();
-    if (session) {
-      document.getElementById('login-screen').classList.add('visible');
-      document.getElementById('root').style.display = 'none';
-      authShowNewPassword();
-      return;
-    }
-  }
+let _recoveryMode = false;
 
+_sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    _recoveryMode = true;
+    document.getElementById('login-screen').classList.add('visible');
+    document.getElementById('root').style.display = 'none';
+    authShowNewPassword();
+  } else if (event === 'SIGNED_IN' && !_recoveryMode) {
+    if (session) {
+      await loadFromSupabase();
+      await checkIsAdmin();
+      await _sb.from('registered_users').upsert({ email: session.user.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
+      document.getElementById('login-screen').classList.remove('visible');
+      document.getElementById('root').style.display = '';
+    }
+  } else if (event === 'SIGNED_OUT') {
+    document.getElementById('login-screen').classList.add('visible');
+    document.getElementById('root').style.display = 'none';
+  }
+});
+
+async function authInit() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (session) {
+  if (session && !_recoveryMode) {
     await loadFromSupabase();
     await checkIsAdmin();
     if (session.user) await _sb.from('registered_users').upsert({ email: session.user.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
     document.getElementById('login-screen').classList.remove('visible');
     document.getElementById('root').style.display = '';
-  } else {
+  } else if (!session) {
     document.getElementById('login-screen').classList.add('visible');
     document.getElementById('root').style.display = 'none';
   }
