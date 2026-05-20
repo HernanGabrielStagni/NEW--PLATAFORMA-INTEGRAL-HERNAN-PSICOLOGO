@@ -672,6 +672,23 @@
         overflow-y: auto;
         flex: 1;
       }
+      .modal-footer {
+        flex-shrink: 0; padding: 12px 18px;
+        background: var(--vd);
+        border-top: 1px solid rgba(200,146,42,0.2);
+        display: none;
+      }
+      .modal-footer-btn {
+        width: 100%; padding: 13px; background: var(--vm); color: #fff;
+        border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+        font-family: var(--sans); cursor: pointer; transition: background 0.2s;
+      }
+      .modal-footer-btn:active { background: #1a3d28; }
+      @media (max-width: 600px) {
+        .modal-footer { display: block; }
+        .modal-card { max-height: 72vh; width: 95%; }
+        .modal-overlay { padding-bottom: 60px; }
+      }
       .modal-icon-btn {
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.15);
@@ -8894,6 +8911,7 @@ document.addEventListener('visibilitychange', async () => {
           RESERVA_CATS.find((c) => c.v === f.categoria) || RESERVA_CATS[0];
         const resOverlayMDRef = useRef(false);
         const [confirmCancel, setConfirmCancel] = useState(false);
+        const [colorAbierto, setColorAbierto] = useState(false);
         function tryClose() {
           setConfirmCancel(true);
         }
@@ -8987,78 +9005,55 @@ document.addEventListener('visibilitychange', async () => {
                 )}
               </div>
               <div className="modal-body">
-                {/* COLOR DE ETIQUETA */}
-                <div style={{ marginBottom: "14px" }}>
-                  <div
+                {/* COLOR DE ETIQUETA — colapsable */}
+                <div style={{ marginBottom: "14px", border: "1px solid rgba(255,255,255,.08)", borderRadius: "10px", overflow: "hidden" }}>
+                  <button
+                    onClick={() => setColorAbierto(a => !a)}
                     style={{
-                      fontFamily: "var(--mono)",
-                      fontSize: "10px",
-                      color: "rgba(255,255,255,.4)",
-                      textTransform: "uppercase",
-                      letterSpacing: ".07em",
-                      marginBottom: "6px",
+                      width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "9px 12px", background: "rgba(255,255,255,.05)", border: "none",
+                      cursor: "pointer", color: "rgba(255,255,255,.6)", fontFamily: "var(--mono)",
+                      fontSize: "10px", textTransform: "uppercase", letterSpacing: ".07em",
                     }}
                   >
-                    Color etiqueta
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: "6px",
-                    }}
-                  >
-                    <button
-                      onClick={() => upd("colorLabel", "")}
-                      title="Color por defecto (gris)"
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        border: `2px solid ${!f.colorLabel ? "var(--do)" : "rgba(255,255,255,.18)"}`,
-                        background: "rgba(255,255,255,.08)",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "10px",
-                        color: "rgba(255,255,255,.45)",
-                        lineHeight: 1,
-                        boxShadow: !f.colorLabel
-                          ? "0 0 0 2px rgba(200,146,42,.5)"
-                          : "none",
-                        transition: "all .15s",
-                      }}
-                    >
-                      ↺
-                    </button>
-                    {PALETA_COLORES.map((c) => {
-                      const sel = f.colorLabel === c.id;
-                      return (
-                        <button
-                          key={c.id}
-                          onClick={() => upd("colorLabel", c.id)}
-                          title={c.id}
-                          style={{
-                            width: "20px",
-                            height: "20px",
-                            borderRadius: "50%",
-                            background: c.bg,
-                            border: `2px solid ${sel ? "#fff" : "transparent"}`,
-                            boxShadow: sel
-                              ? `0 0 0 2px rgba(255,255,255,.6)`
-                              : "none",
-                            cursor: "pointer",
-                            flexShrink: 0,
-                            transition: "all .15s",
-                            transform: sel ? "scale(1.25)" : "scale(1)",
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      🎨 Color etiqueta
+                      {f.colorLabel && (() => {
+                        const c = PALETA_COLORES.find(p => p.id === f.colorLabel);
+                        return c ? <span style={{ width: "12px", height: "12px", borderRadius: "50%", background: c.bg, display: "inline-block", border: "2px solid rgba(255,255,255,.4)" }} /> : null;
+                      })()}
+                    </span>
+                    <span style={{ fontSize: "11px", opacity: 0.5 }}>{colorAbierto ? "▴" : "▾"}</span>
+                  </button>
+                  {colorAbierto && (
+                    <div style={{ padding: "10px 12px", display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                      <button onClick={() => upd("colorLabel", "")} title="Color por defecto"
+                        style={{
+                          width: "20px", height: "20px", borderRadius: "50%",
+                          border: `2px solid ${!f.colorLabel ? "var(--do)" : "rgba(255,255,255,.18)"}`,
+                          background: "rgba(255,255,255,.08)", cursor: "pointer", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "10px", color: "rgba(255,255,255,.45)", lineHeight: 1,
+                          boxShadow: !f.colorLabel ? "0 0 0 2px rgba(200,146,42,.5)" : "none",
+                          transition: "all .15s",
+                        }}
+                      >↺</button>
+                      {PALETA_COLORES.map((c) => {
+                        const sel = f.colorLabel === c.id;
+                        return (
+                          <button key={c.id} onClick={() => upd("colorLabel", c.id)} title={c.id}
+                            style={{
+                              width: "20px", height: "20px", borderRadius: "50%", background: c.bg,
+                              border: `2px solid ${sel ? "#fff" : "transparent"}`,
+                              boxShadow: sel ? "0 0 0 2px rgba(255,255,255,.6)" : "none",
+                              cursor: "pointer", flexShrink: 0, transition: "all .15s",
+                              transform: sel ? "scale(1.25)" : "scale(1)",
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* CATEGORÍA */}
@@ -9150,6 +9145,11 @@ document.addEventListener('visibilitychange', async () => {
                   onChange={(e) => upd("notas", e.target.value)}
                   placeholder="Observaciones..."
                 />
+              </div>
+              <div className="modal-footer">
+                <button className="modal-footer-btn" onClick={handleSave}>
+                  💾 Guardar reserva
+                </button>
               </div>
             </div>
           </div>,
