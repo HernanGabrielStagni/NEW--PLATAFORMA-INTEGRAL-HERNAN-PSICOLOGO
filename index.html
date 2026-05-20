@@ -18047,7 +18047,9 @@ document.addEventListener('visibilitychange', async () => {
                                   ? {label:"Activo", bg:"#2E7D32", color:"#fff"}
                                   : vencido
                                     ? {label:"Vencido", bg:"#C0392B", color:"#fff"}
-                                    : {label:`Trial (${diasRestantes}d)`, bg:"#F97316", color:"#fff"};
+                                    : diasRestantes !== null
+                                      ? {label:`Trial (${diasRestantes}d)`, bg:"#F97316", color:"#fff"}
+                                      : {label:"Trial", bg:"#F97316", color:"#fff"};
                                 return (
                                   <div key={u.email} style={{background: i%2===0 ? "rgba(0,0,0,.03)" : "rgba(0,0,0,.06)", padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
                                     {/* Fila principal */}
