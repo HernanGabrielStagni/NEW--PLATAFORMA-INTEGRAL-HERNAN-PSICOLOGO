@@ -8958,8 +8958,13 @@ document.addEventListener('visibilitychange', async () => {
         const resOverlayMDRef = useRef(false);
         const [confirmCancel, setConfirmCancel] = useState(false);
         const [colorAbierto, setColorAbierto] = useState(false);
+        const initialF = useRef(JSON.stringify(f));
+        function haycambios() {
+          return JSON.stringify(f) !== initialF.current;
+        }
         function tryClose() {
-          setConfirmCancel(true);
+          if (haycambios()) setConfirmCancel(true);
+          else onClose();
         }
         function doClose() {
           setConfirmCancel(false);
