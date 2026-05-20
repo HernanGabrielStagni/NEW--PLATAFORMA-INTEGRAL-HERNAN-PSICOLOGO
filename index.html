@@ -18042,10 +18042,14 @@ document.addEventListener('visibilitychange', async () => {
                             width:"clamp(28px, 9vw, 38px)", height:"clamp(36px, 11vw, 48px)",
                             textAlign:"center", fontSize:"clamp(14px, 4vw, 20px)",
                             fontFamily:"var(--mono)", borderRadius:"8px",
-                            border: pinError ? "2px solid #c0392b" : "2px solid var(--vm)",
-                            background: pinDigits[i] ? "#E8F5EE" : "#F0EBE0",
-                            color:"var(--tx)", outline:"none", caretColor:"transparent",
+                            border: pinError ? "2px solid #c0392b" : pinDigits[i] ? "2px solid #2E7D32" : "2px solid var(--vs)",
+                            background: pinError ? "#FFF0F0" : pinDigits[i] ? "#2E7D32" : "#F8F5EF",
+                            color: pinDigits[i] ? "#fff" : "var(--tx)",
+                            boxShadow: pinDigits[i] ? "0 3px 10px rgba(46,125,50,0.45)" : "none",
+                            transform: pinDigits[i] ? "scale(1.08)" : "scale(1)",
+                            outline:"none", caretColor:"transparent",
                             flexShrink: 0,
+                            transition:"all .15s ease",
                           }}
                         />
                       ))}
