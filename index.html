@@ -3435,18 +3435,26 @@ document.addEventListener('visibilitychange', async () => {
                   <div className="topbar-icon">🌱</div>
                   <div className="topbar-brand-copy">
                     <div className="topbar-title">Plataforma Integral</div>
-                    <div className="topbar-subtitle">
+                    <div className="topbar-subtitle" style={{display:"flex", alignItems:"center", gap:"7px", flexWrap:"wrap"}}>
+                      <span>Hernán Gabriel Stagni · MP 11919</span>
                       {(() => {
-                        if (!userAcceso || userAcceso.status === 'activo') return 'Hernán Gabriel Stagni · MP 11919 · v1.0';
+                        if (!userAcceso || userAcceso.status === 'activo') return null;
                         if (userAcceso.status === 'trial' && userAcceso.trial_end) {
                           const d = new Date(userAcceso.trial_end);
-                          const hoy = new Date();
-                          const dias = Math.ceil((d - hoy) / 86400000);
-                          const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' });
-                          if (dias < 0) return `⏰ Acceso vencido el ${fecha}`;
-                          return `⏱ Habilitado hasta ${fecha} (+${dias}d)`;
+                          const dias = Math.ceil((d - new Date()) / 86400000);
+                          const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+                          if (dias < 0) return (
+                            <span style={{background:"#C0392B", color:"#fff", borderRadius:"20px", padding:"2px 9px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>
+                              ⏰ Vencido {fecha}
+                            </span>
+                          );
+                          return (
+                            <span style={{background:"#F97316", color:"#fff", borderRadius:"20px", padding:"2px 9px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>
+                              Hasta {fecha} (+{dias}d)
+                            </span>
+                          );
                         }
-                        return 'Hernán Gabriel Stagni · MP 11919 · v1.0';
+                        return null;
                       })()}
                     </div>
                   </div>
