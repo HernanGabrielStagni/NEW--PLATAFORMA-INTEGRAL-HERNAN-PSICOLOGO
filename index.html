@@ -18072,24 +18072,29 @@ document.addEventListener('visibilitychange', async () => {
                         onClick={() => setShowRegistered(v => !v)}
                         style={{
                           display:"flex", alignItems:"center", justifyContent:"space-between",
-                          width:"100%", cursor:"pointer", padding:"9px 14px",
-                          background: showRegistered ? "rgba(46,125,50,0.10)" : "rgba(0,0,0,0.04)",
-                          border: showRegistered ? "1.5px solid rgba(46,125,50,0.35)" : "1.5px solid rgba(0,0,0,0.10)",
-                          borderRadius:"10px",
-                          marginBottom: showRegistered ? "10px" : "0",
-                          transition:"background .2s, border-color .2s"
+                          width:"100%", cursor:"pointer", padding:"11px 16px",
+                          background: showRegistered
+                            ? "linear-gradient(135deg, #2E7D32 0%, #388E3C 100%)"
+                            : "linear-gradient(135deg, #37474F 0%, #455A64 100%)",
+                          border:"none",
+                          borderRadius:"12px",
+                          marginBottom: showRegistered ? "12px" : "0",
+                          boxShadow: showRegistered
+                            ? "0 3px 12px rgba(46,125,50,0.35)"
+                            : "0 2px 8px rgba(0,0,0,0.18)",
+                          transition:"all .25s"
                         }}
                       >
-                        <span style={{display:"flex", alignItems:"center", gap:"8px"}}>
-                          <span style={{fontSize:"15px"}}>👥</span>
-                          <span style={{fontFamily:"var(--mono)", fontSize:"12px", fontWeight:700, color:"var(--tx2)", textTransform:"uppercase", letterSpacing:"0.04em"}}>
+                        <span style={{display:"flex", alignItems:"center", gap:"10px"}}>
+                          <span style={{fontSize:"17px"}}>👥</span>
+                          <span style={{fontFamily:"var(--mono)", fontSize:"12px", fontWeight:700, color:"#fff", textTransform:"uppercase", letterSpacing:"0.07em"}}>
                             Usuarios
                           </span>
-                          <span style={{fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, background:"rgba(46,125,50,0.15)", color:"#2E7D32", borderRadius:"20px", padding:"1px 8px"}}>
+                          <span style={{fontFamily:"var(--mono)", fontSize:"11px", fontWeight:800, background:"rgba(255,255,255,0.22)", color:"#fff", borderRadius:"20px", padding:"2px 9px"}}>
                             {registeredUsers.length}
                           </span>
                         </span>
-                        <span style={{fontSize:"13px", color:"var(--tx2)", fontWeight:700, transition:"transform .25s", display:"inline-block", transform: showRegistered ? "rotate(180deg)" : "rotate(0deg)"}}>▼</span>
+                        <span style={{fontSize:"12px", color:"rgba(255,255,255,0.85)", fontWeight:700, transition:"transform .25s", display:"inline-block", transform: showRegistered ? "rotate(180deg)" : "rotate(0deg)"}}>▼</span>
                       </button>
                       {showRegistered && (<>
                         <div style={{borderRadius:"10px", overflow:"hidden", marginBottom:"10px"}}>
