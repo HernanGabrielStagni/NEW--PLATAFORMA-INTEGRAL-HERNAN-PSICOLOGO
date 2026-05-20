@@ -2901,10 +2901,23 @@ function authShowLogin() {
   document.getElementById('auth-title').textContent = 'Plataforma Clínica';
   document.getElementById('auth-subtitle').textContent = 'Ingresá con tu cuenta';
   document.getElementById('auth-password-field').style.display = '';
-  document.getElementById('auth-btn').textContent = 'Ingresar';
-  document.getElementById('auth-btn').onclick = authSubmit;
+  // Reset botón completamente
+  const btnSL = document.getElementById('auth-btn');
+  btnSL.innerHTML = '<span id="auth-btn-text">Ingresar</span>';
+  btnSL.disabled = false;
+  btnSL.classList.remove('loading', 'pulse');
+  btnSL.onclick = authSubmit;
+  // Reset campos
+  const pwdInp = document.getElementById('auth-password');
+  if (pwdInp) { pwdInp.value = ''; pwdInp.type = 'password'; }
+  const pwdToggle = pwdInp && pwdInp.parentElement && pwdInp.parentElement.querySelector('.login-pwd-toggle');
+  if (pwdToggle) { pwdToggle.textContent = '👁'; }
+  const emailInp = document.getElementById('auth-email');
+  if (emailInp) emailInp.value = '';
   document.getElementById('auth-toggle-text').innerHTML = '¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a>';
+  document.getElementById('auth-forgot-link').style.display = '';
   document.getElementById('auth-error').classList.remove('visible');
+  document.getElementById('auth-error').textContent = '';
 }
 
 function authToggleMode() {
@@ -2929,6 +2942,7 @@ function tradAuth(msg) {
 
 async function authSignOut() {
   await _sb.auth.signOut();
+  authShowLogin();
   document.getElementById('login-screen').classList.add('visible');
   document.getElementById('root').style.display = 'none';
 }
