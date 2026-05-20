@@ -2677,7 +2677,12 @@ async function checkUserAccess(email) {
       .eq('email', email)
       .maybeSingle();
     if (error || !data) return 'ok';
-    if (data.status === 'activo' || data.status === 'pro' || data.status === 'vip') return 'ok';
+    if (data.status === 'vip') return 'ok'; // VIP: ilimitado
+    if (data.status === 'activo' || data.status === 'pro') {
+      if (!data.trial_end) return 'ok'; // Pro sin fecha = ilimitado
+      if (new Date() > new Date(data.trial_end)) return 'expired';
+      return 'ok';
+    }
     if (data.status === 'trial') {
       if (!data.trial_end) return 'ok';
       if (new Date() > new Date(data.trial_end)) return 'expired';
@@ -17025,9 +17030,17 @@ document.addEventListener('visibilitychange', async () => {
         }
 
         async function cambiarPlan(email, plan) {
-          const { error } = await _sb.from('registered_users').update({ status: plan }).eq('email', email);
+          let update = { status: plan };
+          if (plan === 'trial') {
+            const trialEnd = new Date(Date.now() + 7*24*60*60*1000);
+            update.trial_end = trialEnd.toISOString();
+          } else if (plan === 'vip') {
+            update.trial_end = null; // VIP: sin vencimiento
+          }
+          // Pro mantiene trial_end existente o se puede editar luego con el date picker
+          const { error } = await _sb.from('registered_users').update(update).eq('email', email);
           if (error) { showToast("❌ Error: " + error.message); return; }
-          const labels = { trial: "☀️ Trial", pro: "🌞 Pro", vip: "✅ VIP" };
+          const labels = { trial: "☀️ Trial (7 días)", pro: "🌞 Pro", vip: "✅ VIP (ilimitado)" };
           showToast(`Plan actualizado a ${labels[plan] || plan}`);
           fetchRegisteredUsers();
         }
@@ -18071,16 +18084,21 @@ document.addEventListener('visibilitychange', async () => {
                                       {u.trial_start && (
                                         <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>Inicio: {u.trial_start.slice(0,10)}</span>
                                       )}
-                                      {esTrial && (
-                                        <div style={{display:"flex", alignItems:"center", gap:"6px"}}>
-                                          <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>Vence:</span>
-                                          <input type="date"
-                                            defaultValue={u.trial_end ? u.trial_end.slice(0,10) : ""}
-                                            onChange={e => actualizarTrialEnd(u.email, e.target.value)}
-                                            style={{fontFamily:"var(--mono)", fontSize:"11px", border:"1px solid var(--vs)", borderRadius:"6px", padding:"2px 6px", background:"#fff", color:"var(--tx)", cursor:"pointer"}}
-                                          />
-                                        </div>
-                                      )}
+                                      {esVip
+                                        ? <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#7B2FBE", fontWeight:700}}>✅ Acceso ilimitado</span>
+                                        : (
+                                          <div style={{display:"flex", alignItems:"center", gap:"6px"}}>
+                                            <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>
+                                              {esPro ? "Pro hasta:" : "Trial hasta:"}
+                                            </span>
+                                            <input type="date"
+                                              defaultValue={u.trial_end ? u.trial_end.slice(0,10) : ""}
+                                              onChange={e => actualizarTrialEnd(u.email, e.target.value)}
+                                              style={{fontFamily:"var(--mono)", fontSize:"11px", border:"1px solid var(--vs)", borderRadius:"6px", padding:"2px 6px", background:"#fff", color:"var(--tx)", cursor:"pointer"}}
+                                            />
+                                          </div>
+                                        )
+                                      }
                                       <div style={{display:"flex", gap:"4px"}}>
                                         {[{k:"trial",l:"☀️ Trial",bg:"#F97316"},{k:"pro",l:"🌞 Pro",bg:"#2E7D32"},{k:"vip",l:"✅ VIP",bg:"#7B2FBE"}].map(p => (
                                           <button key={p.k} onClick={() => cambiarPlan(u.email, p.k)}
