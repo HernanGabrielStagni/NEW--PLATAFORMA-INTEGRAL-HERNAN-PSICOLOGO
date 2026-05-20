@@ -2612,6 +2612,8 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-pwd-wrap input{flex:1;padding-right:42px;}
 .login-pwd-toggle{position:absolute;right:0;top:0;bottom:0;width:40px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--vc);font-size:18px;padding:0;transition:color 0.2s;}
 .login-pwd-toggle:hover{color:var(--vm);}
+@keyframes glow-amber{0%,100%{box-shadow:0 0 6px 1px rgba(230,81,0,.5)}50%{box-shadow:0 0 14px 4px rgba(230,81,0,.9)}}
+@keyframes glow-red{0%,100%{box-shadow:0 0 6px 1px rgba(192,57,43,.5)}50%{box-shadow:0 0 14px 4px rgba(192,57,43,.9)}}
 .login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;position:relative;overflow:hidden;}
 .login-btn:hover{background:var(--vd);}
 .login-btn:disabled{opacity:0.85;cursor:not-allowed;}
@@ -18114,56 +18116,73 @@ document.addEventListener('visibilitychange', async () => {
                                 const esPro = u.status === 'pro' || u.status === 'activo';
                                 const esVip = u.status === 'vip';
                                 const esTrial = !esPro && !esVip;
-                                const vencido = esTrial && u.trial_end && new Date() > new Date(u.trial_end);
-                                const diasRestantes = u.trial_end && esTrial ? Math.ceil((new Date(u.trial_end) - new Date()) / 86400000) : null;
-                                const fechaVenceStr = u.trial_end ? new Date(u.trial_end).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'}) : null;
-                                const statusBadge = esVip
-                                  ? {label:"VIP ✅", bg:"#7B2FBE", color:"#fff"}
-                                  : esPro
-                                    ? {label:"Pro 🌞", bg:"#2E7D32", color:"#fff"}
-                                    : vencido
-                                      ? {label: fechaVenceStr ? `Venció el ${fechaVenceStr}` : "Vencido", bg:"#C0392B", color:"#fff"}
-                                      : diasRestantes !== null
-                                        ? {label:`☀️ Trial · Hasta ${fechaVenceStr} (+${diasRestantes}d)`, bg:"#F97316", color:"#fff"}
-                                        : {label:"☀️ Trial", bg:"#F97316", color:"#fff"};
+                                const now = new Date();
+                                const endDate = u.trial_end ? new Date(u.trial_end) : null;
+                                const diasRestantes = endDate ? Math.ceil((endDate - now) / 86400000) : null;
+                                const fechaCorta = endDate ? endDate.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}) : null;
+
+                                // Badge único según plan + estado
+                                let badge = {};
+                                if (esVip) {
+                                  badge = {label:"✅ VIP", bg:"#7B2FBE", glow:false};
+                                } else if (esPro) {
+                                  if (diasRestantes !== null && diasRestantes <= 0)
+                                    badge = {label:"⚠️ Pro vencido", bg:"#C0392B", glow:false};
+                                  else if (diasRestantes !== null && diasRestantes <= 2)
+                                    badge = {label:`🌞 Pro · vence en ${diasRestantes}d`, bg:"#E65100", glow:"glow-amber"};
+                                  else
+                                    badge = {label: fechaCorta ? `🌞 Pro · hasta ${fechaCorta}` : "🌞 Pro", bg:"#2E7D32", glow:false};
+                                } else {
+                                  if (diasRestantes !== null && diasRestantes <= 0)
+                                    badge = {label:"⚠️ Vencido · Pedir Pro", bg:"#C0392B", glow:"glow-red"};
+                                  else if (diasRestantes !== null && diasRestantes <= 3)
+                                    badge = {label:`☀️ Trial +${diasRestantes}d`, bg:"#DC2626", glow:"glow-red"};
+                                  else
+                                    badge = {label: diasRestantes !== null ? `☀️ Trial +${diasRestantes}d` : "☀️ Trial", bg:"#F97316", glow:false};
+                                }
+
                                 return (
-                                  <div key={u.email} style={{background: i%2===0 ? "rgba(0,0,0,.03)" : "rgba(0,0,0,.06)", padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
-                                    {/* Fila principal */}
-                                    <div style={{display:"flex", alignItems:"center", gap:"8px", flexWrap:"wrap"}}>
-                                      <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)", flex:1, minWidth:"140px", wordBreak:"break-all"}}>{u.email}</span>
-                                      <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:statusBadge.bg, color:statusBadge.color, borderRadius:"6px", padding:"2px 8px", whiteSpace:"nowrap"}}>{statusBadge.label}</span>
+                                  <div key={u.email} style={{background: i%2===0 ? "rgba(0,0,0,.02)" : "rgba(0,0,0,.05)", padding:"9px 12px", borderBottom:"1px solid rgba(0,0,0,.05)"}}>
+                                    {/* Fila 1: email + badges */}
+                                    <div style={{display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap"}}>
+                                      <span style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx2)", flex:1, minWidth:"120px", wordBreak:"break-all"}}>{u.email}</span>
+                                      <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:badge.bg, color:"#fff", borderRadius:"20px", padding:"2px 9px", whiteSpace:"nowrap",
+                                        animation: badge.glow ? `${badge.glow} 1.4s ease-in-out infinite` : "none"
+                                      }}>{badge.label}</span>
                                       {esAdmin && <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:"#1565C0", color:"#fff", borderRadius:"6px", padding:"2px 7px"}}>ADMIN</span>}
                                     </div>
-                                    {/* Fechas + controles */}
-                                    <div style={{display:"flex", alignItems:"center", gap:"12px", marginTop:"8px", flexWrap:"wrap"}}>
-                                      {u.trial_start && (
-                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>Inicio: {u.trial_start.slice(0,10)}</span>
-                                      )}
-                                      {!esVip && (
-                                        <div style={{display:"flex", alignItems:"center", gap:"6px"}}>
-                                          <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>{esPro ? "Pro hasta:" : "Trial hasta:"}</span>
-                                          <input type="date"
-                                            defaultValue={u.trial_end ? u.trial_end.slice(0,10) : ""}
-                                            onChange={e => actualizarTrialEnd(u.email, e.target.value)}
-                                            style={{fontFamily:"var(--mono)", fontSize:"11px", border:"1px solid var(--vs)", borderRadius:"6px", padding:"2px 6px", background:"#fff", color:"var(--tx)", cursor:"pointer"}}
-                                          />
-                                        </div>
-                                      )}
-                                      {esVip && (
-                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#7B2FBE", fontWeight:700}}>✅ Acceso ilimitado</span>
-                                      )}
-                                      <div style={{display:"flex", gap:"4px"}}>
-                                        {[{k:"trial",l:"☀️ Trial",bg:"#F97316"},{k:"pro",l:"🌞 Pro",bg:"#2E7D32"},{k:"vip",l:"✅ VIP",bg:"#7B2FBE"}].map(p => (
-                                          <button key={p.k} onClick={() => cambiarPlan(u.email, p.k)}
-                                            style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, padding:"2px 8px", borderRadius:"6px", border:"none", cursor:"pointer",
-                                              background: u.status === p.k || (p.k==='pro' && u.status==='activo') ? p.bg : "rgba(0,0,0,.1)",
-                                              color: u.status === p.k || (p.k==='pro' && u.status==='activo') ? "#fff" : "var(--tx3)",
+                                    {/* Fila 2: controles */}
+                                    <div style={{display:"flex", alignItems:"center", gap:"8px", marginTop:"6px", flexWrap:"wrap"}}>
+                                      {/* Botones de plan */}
+                                      <div style={{display:"flex", gap:"3px"}}>
+                                        {[{k:"trial",l:"☀️",bg:"#F97316"},{k:"pro",l:"🌞",bg:"#2E7D32"},{k:"vip",l:"✅",bg:"#7B2FBE"}].map(p => (
+                                          <button key={p.k} onClick={() => cambiarPlan(u.email, p.k)} title={p.k.charAt(0).toUpperCase()+p.k.slice(1)}
+                                            style={{fontFamily:"var(--mono)", fontSize:"13px", padding:"1px 6px", borderRadius:"5px", border:"none", cursor:"pointer",
+                                              background: u.status === p.k || (p.k==='pro' && u.status==='activo') ? p.bg : "rgba(0,0,0,.08)",
+                                              opacity: u.status === p.k || (p.k==='pro' && u.status==='activo') ? 1 : 0.45,
                                             }}>{p.l}</button>
                                         ))}
                                       </div>
+                                      {/* Fecha (solo Pro) */}
+                                      {esPro && (
+                                        <input type="date"
+                                          defaultValue={u.trial_end ? u.trial_end.slice(0,10) : ""}
+                                          onChange={e => actualizarTrialEnd(u.email, e.target.value)}
+                                          style={{fontFamily:"var(--mono)", fontSize:"10px", border:"1px solid var(--vs)", borderRadius:"5px", padding:"1px 5px", background:"#fff", color:"var(--tx)", cursor:"pointer"}}
+                                        />
+                                      )}
+                                      {/* Alerta Pro por vencer */}
+                                      {esPro && diasRestantes !== null && diasRestantes <= 2 && diasRestantes > 0 && (
+                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#E65100", fontWeight:700}}>⚡ Renovar</span>
+                                      )}
+                                      {/* VIP: acceso ilimitado */}
+                                      {esVip && (
+                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#7B2FBE", fontWeight:700}}>∞ Ilimitado</span>
+                                      )}
+                                      {/* Admin toggle */}
                                       {!esAdmin
-                                        ? <span className="act-link" title="Dar acceso admin" style={{color:"#2E7D32", fontSize:"11px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => addAdminEmail(u.email)}>+ admin</span>
-                                        : adminEmails.length > 1 && <span className="act-link" title="Quitar admin" style={{color:"#C0392B", fontSize:"11px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => removeAdminEmail(u.email)}>✕ admin</span>
+                                        ? <span className="act-link" style={{color:"#2E7D32", fontSize:"10px", cursor:"pointer", fontFamily:"var(--mono)", marginLeft:"auto"}} onClick={() => addAdminEmail(u.email)}>+ admin</span>
+                                        : adminEmails.length > 1 && <span className="act-link" style={{color:"#C0392B", fontSize:"10px", cursor:"pointer", fontFamily:"var(--mono)", marginLeft:"auto"}} onClick={() => removeAdminEmail(u.email)}>✕ admin</span>
                                       }
                                     </div>
                                   </div>
