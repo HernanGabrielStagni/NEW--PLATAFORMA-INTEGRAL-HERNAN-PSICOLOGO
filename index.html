@@ -3369,6 +3369,7 @@ document.addEventListener('visibilitychange', async () => {
         facturacionBar,
         eventosBar,
         configBar,
+        userAcceso,
       }) {
         const current = NAV_SECTIONS.find((s) => s.id === activeSection);
         const topbarRef = useRef(null);
@@ -3435,7 +3436,18 @@ document.addEventListener('visibilitychange', async () => {
                   <div className="topbar-brand-copy">
                     <div className="topbar-title">Plataforma Integral</div>
                     <div className="topbar-subtitle">
-                      Hernán Gabriel Stagni · MP 11919 · v1.0
+                      {(() => {
+                        if (!userAcceso || userAcceso.status === 'activo') return 'Hernán Gabriel Stagni · MP 11919 · v1.0';
+                        if (userAcceso.status === 'trial' && userAcceso.trial_end) {
+                          const d = new Date(userAcceso.trial_end);
+                          const hoy = new Date();
+                          const dias = Math.ceil((d - hoy) / 86400000);
+                          const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' });
+                          if (dias < 0) return `⏰ Acceso vencido el ${fecha}`;
+                          return `⏱ Habilitado hasta ${fecha} (+${dias}d)`;
+                        }
+                        return 'Hernán Gabriel Stagni · MP 11919 · v1.0';
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -21096,6 +21108,16 @@ document.addEventListener('visibilitychange', async () => {
         /* ── Estado compartido: Config editMode ── */
         const [cfgEditMode, setCfgEditMode] = useState(false);
 
+        /* ── Acceso del usuario actual ── */
+        const [userAcceso, setUserAcceso] = useState(null);
+        useEffect(() => {
+          _sb.auth.getUser().then(({ data: { user } }) => {
+            if (!user) return;
+            _sb.from('registered_users').select('status, trial_end').eq('email', user.email).maybeSingle()
+              .then(({ data }) => { if (data) setUserAcceso(data); });
+          });
+        }, []);
+
         const hoyStr = dateStr(new Date());
 
         function prevWeek() {
@@ -21194,6 +21216,7 @@ document.addEventListener('visibilitychange', async () => {
             <Topbar
               activeSection={activeSection}
               onNavigate={setActiveSection}
+              userAcceso={userAcceso}
               onNewTurno={() =>
                 setModalTurno({
                   mode: "nuevo",
