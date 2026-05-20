@@ -672,23 +672,6 @@
         overflow-y: auto;
         flex: 1;
       }
-      .modal-footer {
-        flex-shrink: 0; padding: 12px 18px;
-        background: var(--vd);
-        border-top: 1px solid rgba(200,146,42,0.2);
-        display: none;
-      }
-      .modal-footer-btn {
-        width: 100%; padding: 13px; background: var(--vm); color: #fff;
-        border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
-        font-family: var(--sans); cursor: pointer; transition: background 0.2s;
-      }
-      .modal-footer-btn:active { background: #1a3d28; }
-      @media (max-width: 600px) {
-        .modal-footer { display: block; }
-        .modal-card { max-height: 72vh; width: 95%; }
-        .modal-overlay { padding-bottom: 60px; }
-      }
       .modal-icon-btn {
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.15);
@@ -9145,11 +9128,6 @@ document.addEventListener('visibilitychange', async () => {
                   onChange={(e) => upd("notas", e.target.value)}
                   placeholder="Observaciones..."
                 />
-              </div>
-              <div className="modal-footer">
-                <button className="modal-footer-btn" onClick={handleSave}>
-                  💾 Guardar reserva
-                </button>
               </div>
             </div>
           </div>,
