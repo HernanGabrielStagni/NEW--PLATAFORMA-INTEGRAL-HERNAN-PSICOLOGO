@@ -2670,6 +2670,44 @@ async function loadFromSupabase() {
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
+async function checkUserAccess(email) {
+  try {
+    const { data, error } = await _sb.from('registered_users')
+      .select('status, trial_end')
+      .eq('email', email)
+      .maybeSingle();
+    if (error || !data) return 'ok';
+    if (data.status === 'activo') return 'ok';
+    if (data.status === 'trial') {
+      if (!data.trial_end) return 'ok';
+      if (new Date() > new Date(data.trial_end)) return 'expired';
+      return 'ok';
+    }
+    return 'ok';
+  } catch(e) { return 'ok'; }
+}
+
+async function registrarOActualizarUsuario(email) {
+  const { data: existing } = await _sb.from('registered_users')
+    .select('status').eq('email', email).maybeSingle();
+  if (!existing) {
+    const now = new Date();
+    const trialEnd = new Date(now.getTime() + 7*24*60*60*1000);
+    await _sb.from('registered_users').insert({
+      email, ultimo_login: now.toISOString(),
+      status: 'trial', trial_start: now.toISOString(), trial_end: trialEnd.toISOString()
+    });
+  } else {
+    await _sb.from('registered_users').update({ ultimo_login: new Date().toISOString() }).eq('email', email);
+  }
+}
+
+function mostrarAccesoVencido(email) {
+  document.getElementById('login-screen').classList.remove('visible');
+  document.getElementById('root').style.display = 'none';
+  document.getElementById('trial-expired-screen').style.display = 'flex';
+}
+
 async function authInit() {
   // Si hay token de recovery en el hash, establecer sesión manualmente
   const h = window.location.hash.slice(1);
@@ -2678,9 +2716,7 @@ async function authInit() {
       const params = new URLSearchParams(h);
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token') || '';
-      if (accessToken) {
-        await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-      }
+      if (accessToken) await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
     } catch(e) { console.warn('Error estableciendo sesión de recovery:', e); }
     document.getElementById('login-screen').classList.add('visible');
     document.getElementById('root').style.display = 'none';
@@ -2691,7 +2727,9 @@ async function authInit() {
   if (session) {
     await loadFromSupabase();
     await checkIsAdmin();
-    if (session.user) await _sb.from('registered_users').upsert({ email: session.user.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
+    await registrarOActualizarUsuario(session.user.email);
+    const access = await checkUserAccess(session.user.email);
+    if (access === 'expired') { mostrarAccesoVencido(session.user.email); return; }
     document.getElementById('login-screen').classList.remove('visible');
     document.getElementById('root').style.display = '';
   } else {
@@ -2782,7 +2820,11 @@ async function authSubmit() {
   await loadFromSupabase();
   await checkIsAdmin();
   const { data: { user: u2 } } = await _sb.auth.getUser();
-  if (u2) await _sb.from('registered_users').upsert({ email: u2.email, ultimo_login: new Date().toISOString() }, { onConflict: 'email' });
+  if (u2) {
+    await registrarOActualizarUsuario(u2.email);
+    const access = await checkUserAccess(u2.email);
+    if (access === 'expired') { mostrarAccesoVencido(u2.email); return; }
+  }
   document.getElementById('login-screen').classList.remove('visible');
   document.getElementById('root').style.display = '';
 }
@@ -2917,6 +2959,24 @@ document.addEventListener('visibilitychange', async () => {
     <button id="auth-btn" class="login-btn" onclick="authSubmit()"><span id="auth-btn-text">Ingresar</span></button>
     <p class="login-toggle" id="auth-toggle-text">¿No tenés cuenta? <a onclick="authToggleMode()">Registrate</a></p>
     <p class="login-toggle" id="auth-forgot-link" style="margin-top:8px"><a onclick="authShowReset()">¿Olvidaste tu contraseña?</a></p>
+  </div>
+</div>
+
+<!-- PANTALLA ACCESO VENCIDO -->
+<div id="trial-expired-screen" style="display:none;position:fixed;inset:0;background:var(--vd);z-index:9999;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;">
+  <div style="background:var(--vu);border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.3);text-align:center;display:flex;flex-direction:column;gap:20px;">
+    <div style="font-size:48px;">⏰</div>
+    <h1 style="font-family:'Josefin Slab',serif;color:var(--vd);font-size:1.5rem;font-weight:700;margin:0;">Período de prueba vencido</h1>
+    <p style="color:var(--vc);font-size:0.9rem;margin:0;line-height:1.6;">
+      Tu acceso de 7 días ha finalizado.<br>
+      Para continuar usando la plataforma, contactá al administrador:<br>
+      <strong style="color:var(--vm);">hernangabrielst@gmail.com</strong>
+    </p>
+    <p style="color:var(--vc);font-size:0.85rem;margin:0;">Una vez que el administrador habilite tu cuenta, podrás ingresar normalmente.</p>
+    <button onclick="_sb.auth.signOut().then(()=>{ document.getElementById('trial-expired-screen').style.display='none'; document.getElementById('login-screen').classList.add('visible'); })"
+      style="padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">
+      Cerrar sesión
+    </button>
   </div>
 </div>
 
@@ -16958,9 +17018,25 @@ document.addEventListener('visibilitychange', async () => {
 
         async function fetchRegisteredUsers() {
           try {
-            const { data, error } = await _sb.from('registered_users').select('email, ultimo_login').order('ultimo_login', { ascending: false });
+            const { data, error } = await _sb.from('registered_users').select('email, ultimo_login, status, trial_start, trial_end').order('ultimo_login', { ascending: false });
             if (!error && data) setRegisteredUsers(data);
           } catch(e) {}
+        }
+
+        async function habilitarUsuario(email, habilitar) {
+          const nuevoStatus = habilitar ? 'activo' : 'trial';
+          const { error } = await _sb.from('registered_users').update({ status: nuevoStatus }).eq('email', email);
+          if (error) { showToast("❌ Error: " + error.message); return; }
+          showToast(habilitar ? "✅ Usuario habilitado permanentemente" : "↩️ Usuario volvió a trial");
+          fetchRegisteredUsers();
+        }
+
+        async function actualizarTrialEnd(email, nuevaFecha) {
+          if (!nuevaFecha) return;
+          const { error } = await _sb.from('registered_users').update({ trial_end: nuevaFecha, status: 'trial' }).eq('email', email);
+          if (error) { showToast("❌ Error: " + error.message); return; }
+          showToast("📅 Fecha de vencimiento actualizada");
+          fetchRegisteredUsers();
         }
 
         async function fetchAdminEmails() {
@@ -17954,60 +18030,70 @@ document.addEventListener('visibilitychange', async () => {
                         <span style={{fontSize:"12px", color:"var(--tx3)", transition:"transform .2s", display:"inline-block", transform: showRegistered ? "rotate(180deg)" : "rotate(0deg)"}}>▼</span>
                       </button>
                       {showRegistered && (<>
-                        <div style={{background:"rgba(0,0,0,.04)", borderRadius:"10px", padding:"10px 14px", marginBottom:"10px"}}>
-                          {(() => {
-                            // Combinar: registered_users + admins sin cuenta registrada
-                            const regEmails = registeredUsers.map(u => u.email);
-                            const sinRegistro = adminEmails.filter(a => !regEmails.includes(a.email)).map(a => ({ email: a.email, ultimo_login: null, sinCuenta: true }));
-                            const todos = [...registeredUsers.map(u => ({...u, sinCuenta:false})), ...sinRegistro];
-                            if (todos.length === 0) return <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)"}}>Sin usuarios aún</div>;
-                            return todos.sort((a,b) => {
+                        <div style={{borderRadius:"10px", overflow:"hidden", marginBottom:"10px"}}>
+                          {registeredUsers.length === 0
+                            ? <div style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx3)", padding:"10px"}}>Sin usuarios aún</div>
+                            : registeredUsers.sort((a,b) => {
                                 const aA = adminEmails.some(x => x.email === a.email) ? 0 : 1;
                                 const bA = adminEmails.some(x => x.email === b.email) ? 0 : 1;
                                 if (aA !== bA) return aA - bA;
                                 return a.email.localeCompare(b.email);
-                              }).map(u => {
+                              }).map((u, i) => {
                                 const esAdmin = adminEmails.some(a => a.email === u.email);
+                                const activo = u.status === 'activo';
+                                const vencido = !activo && u.trial_end && new Date() > new Date(u.trial_end);
+                                const diasRestantes = u.trial_end && !activo ? Math.ceil((new Date(u.trial_end) - new Date()) / 86400000) : null;
+                                const statusBadge = activo
+                                  ? {label:"Activo", bg:"#2E7D32", color:"#fff"}
+                                  : vencido
+                                    ? {label:"Vencido", bg:"#C0392B", color:"#fff"}
+                                    : {label:`Trial (${diasRestantes}d)`, bg:"#F97316", color:"#fff"};
                                 return (
-                                  <div key={u.email} style={{display:"flex", alignItems:"center", gap:"8px", padding:"6px 0", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
-                                    <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)", flex:1, wordBreak:"break-all"}}>
-                                      {u.email}
-                                    </span>
-                                    {u.sinCuenta
-                                      ? <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#999", whiteSpace:"nowrap"}}>sin cuenta</span>
-                                      : <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)", whiteSpace:"nowrap"}}>
-                                          {u.ultimo_login ? u.ultimo_login.slice(0,10) : "—"}
-                                        </span>
-                                    }
-                                    {esAdmin
-                                      ? <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:"#2E7D32", color:"#fff", borderRadius:"6px", padding:"2px 7px", whiteSpace:"nowrap"}}>ADMIN</span>
-                                      : <span style={{fontFamily:"var(--mono)", fontSize:"10px", background:"rgba(0,0,0,.08)", color:"var(--tx3)", borderRadius:"6px", padding:"2px 7px", whiteSpace:"nowrap"}}>usuario</span>
-                                    }
-                                    {esAdmin
-                                      ? adminEmails.length > 1 && (
-                                          <span className="act-link" title="Quitar admin" style={{color:"#C0392B", fontSize:"12px", cursor:"pointer"}} onClick={() => removeAdminEmail(u.email)}>✕</span>
-                                        )
-                                      : <span className="act-link" title="Dar acceso admin" style={{color:"#2E7D32", fontSize:"12px", cursor:"pointer"}} onClick={() => addAdminEmail(u.email)}>+</span>
-                                    }
+                                  <div key={u.email} style={{background: i%2===0 ? "rgba(0,0,0,.03)" : "rgba(0,0,0,.06)", padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
+                                    {/* Fila principal */}
+                                    <div style={{display:"flex", alignItems:"center", gap:"8px", flexWrap:"wrap"}}>
+                                      <span style={{fontFamily:"var(--mono)", fontSize:"12px", color:"var(--tx2)", flex:1, minWidth:"140px", wordBreak:"break-all"}}>{u.email}</span>
+                                      <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:statusBadge.bg, color:statusBadge.color, borderRadius:"6px", padding:"2px 8px", whiteSpace:"nowrap"}}>{statusBadge.label}</span>
+                                      {esAdmin && <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:"#1565C0", color:"#fff", borderRadius:"6px", padding:"2px 7px"}}>ADMIN</span>}
+                                    </div>
+                                    {/* Fechas + controles */}
+                                    <div style={{display:"flex", alignItems:"center", gap:"12px", marginTop:"8px", flexWrap:"wrap"}}>
+                                      {u.trial_start && (
+                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>Inicio: {u.trial_start.slice(0,10)}</span>
+                                      )}
+                                      {!activo && (
+                                        <div style={{display:"flex", alignItems:"center", gap:"6px"}}>
+                                          <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>Vence:</span>
+                                          <input type="date"
+                                            defaultValue={u.trial_end ? u.trial_end.slice(0,10) : ""}
+                                            onChange={e => actualizarTrialEnd(u.email, e.target.value)}
+                                            style={{fontFamily:"var(--mono)", fontSize:"11px", border:"1px solid var(--vs)", borderRadius:"6px", padding:"2px 6px", background:"#fff", color:"var(--tx)", cursor:"pointer"}}
+                                          />
+                                        </div>
+                                      )}
+                                      <label style={{display:"flex", alignItems:"center", gap:"5px", cursor:"pointer", fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx2)"}}>
+                                        <input type="checkbox"
+                                          checked={activo}
+                                          onChange={e => habilitarUsuario(u.email, e.target.checked)}
+                                        />
+                                        Habilitado permanente
+                                      </label>
+                                      {!esAdmin
+                                        ? <span className="act-link" title="Dar acceso admin" style={{color:"#2E7D32", fontSize:"11px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => addAdminEmail(u.email)}>+ admin</span>
+                                        : adminEmails.length > 1 && <span className="act-link" title="Quitar admin" style={{color:"#C0392B", fontSize:"11px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => removeAdminEmail(u.email)}>✕ admin</span>
+                                      }
+                                    </div>
                                   </div>
                                 );
-                              });
-                          })()}
+                              })
+                          }
                         </div>
                         <div style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", marginBottom:"6px"}}>Dar acceso admin a un email no registrado:</div>
                         <div style={{display:"flex", gap:"8px"}}>
-                          <input
-                            className="input-base"
-                            placeholder="nuevo@email.com"
-                            autoComplete="off"
-                            value={nuevoAdmin}
-                            onChange={e => setNuevoAdmin(e.target.value)}
-                            onKeyDown={e => e.key === "Enter" && addAdminEmail()}
-                            style={{flex:1, fontSize:"13px"}}
-                          />
-                          <button className="btn btn-p" style={{fontSize:"12px", padding:"6px 14px"}} onClick={() => addAdminEmail()}>
-                            + Admin
-                          </button>
+                          <input className="input-base" placeholder="nuevo@email.com" autoComplete="off"
+                            value={nuevoAdmin} onChange={e => setNuevoAdmin(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && addAdminEmail()} style={{flex:1, fontSize:"13px"}} />
+                          <button className="btn btn-p" style={{fontSize:"12px", padding:"6px 14px"}} onClick={() => addAdminEmail()}>+ Admin</button>
                         </div>
                       </>)}
                     </div>
