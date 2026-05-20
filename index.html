@@ -2799,7 +2799,7 @@ async function authSubmit() {
   if (_authMode === 'login') {
     result = await _sb.auth.signInWithPassword({ email, password });
   } else {
-    result = await _sb.auth.signUp({ email, password });
+    result = await _sb.auth.signUp({ email, password, options: { emailRedirectTo: 'https://hernangabrielstagni.github.io/NEW--PLATAFORMA-INTEGRAL-HERNAN-PSICOLOGO/' } });
   }
   if (result.error) {
     errEl.textContent = tradAuth(result.error.message);
