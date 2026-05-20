@@ -2614,6 +2614,7 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-pwd-toggle:hover{color:var(--vm);}
 @keyframes glow-amber{0%,100%{box-shadow:0 0 6px 1px rgba(230,81,0,.5)}50%{box-shadow:0 0 14px 4px rgba(230,81,0,.9)}}
 @keyframes glow-red{0%,100%{box-shadow:0 0 6px 1px rgba(192,57,43,.5)}50%{box-shadow:0 0 14px 4px rgba(192,57,43,.9)}}
+@keyframes glow-slate{0%,100%{box-shadow:0 2px 8px rgba(55,71,79,.35)}50%{box-shadow:0 4px 20px rgba(55,71,79,.7),0 0 0 3px rgba(255,255,255,.08)}}
 .login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;position:relative;overflow:hidden;}
 .login-btn:hover{background:var(--vd);}
 .login-btn:disabled{opacity:0.85;cursor:not-allowed;}
@@ -17071,17 +17072,16 @@ document.addEventListener('visibilitychange', async () => {
 
         async function cambiarPlan(email, plan) {
           const campos = { status: plan };
-          if (plan === 'trial') {
-            campos.trial_end = new Date(Date.now() + 7*24*60*60*1000).toISOString();
-          }
-          if (plan === 'vip') {
-            campos.trial_end = null;
-          }
+          if (plan === 'trial') campos.trial_end = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+          if (plan === 'vip') campos.trial_end = null;
+          // Actualización optimista inmediata
+          setRegisteredUsers(prev => prev.map(u =>
+            u.email === email ? { ...u, status: plan, trial_end: campos.trial_end !== undefined ? campos.trial_end : u.trial_end } : u
+          ));
           const { error } = await _sb.from('registered_users').update(campos).eq('email', email);
-          if (error) { showToast("❌ Error: " + error.message); return; }
-          const labels = { trial: "Trial (7d)", pro: "Pro", vip: "VIP ilimitado" };
-          showToast("Plan: " + (labels[plan] || plan));
-          fetchRegisteredUsers();
+          if (error) { showToast("❌ Error: " + error.message); fetchRegisteredUsers(); return; }
+          const labels = { trial: "☀️ Trial (7d)", pro: "🌞 Pro", vip: "✅ VIP ilimitado" };
+          showToast("Plan actualizado: " + (labels[plan] || plan));
         }
 
         async function actualizarTrialEnd(email, nuevaFecha) {
@@ -18093,7 +18093,8 @@ document.addEventListener('visibilitychange', async () => {
                           boxShadow: showRegistered
                             ? "0 3px 12px rgba(46,125,50,0.35)"
                             : "0 2px 8px rgba(0,0,0,0.18)",
-                          transition:"all .25s"
+                          animation: showRegistered ? "none" : "glow-slate 2s ease-in-out infinite",
+                          transition:"background .25s, box-shadow .25s"
                         }}
                       >
                         <span style={{display:"flex", alignItems:"center", gap:"10px"}}>
@@ -18151,44 +18152,61 @@ document.addEventListener('visibilitychange', async () => {
                                     {/* Fila 1: email + badges */}
                                     <div style={{display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap"}}>
                                       <span style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx2)", flex:1, minWidth:"120px", wordBreak:"break-all"}}>{u.email}</span>
-                                      <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:badge.bg, color:"#fff", borderRadius:"20px", padding:"2px 9px", whiteSpace:"nowrap",
-                                        animation: badge.glow ? `${badge.glow} 1.4s ease-in-out infinite` : "none"
-                                      }}>{badge.label}</span>
-                                      {esAdmin && <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:"#1565C0", color:"#fff", borderRadius:"6px", padding:"2px 7px"}}>ADMIN</span>}
+                                      {/* Badge plan — oculto si es admin (los admins siempre tienen acceso) */}
+                                      {!esAdmin && (
+                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:badge.bg, color:"#fff", borderRadius:"20px", padding:"2px 9px", whiteSpace:"nowrap",
+                                          animation: badge.glow ? `${badge.glow} 1.4s ease-in-out infinite` : "none"
+                                        }}>{badge.label}</span>
+                                      )}
+                                      {esAdmin && <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:"#1565C0", color:"#fff", borderRadius:"20px", padding:"2px 10px"}}>👑 Admin</span>}
                                     </div>
-                                    {/* Fila 2: controles */}
+                                    {/* Fila 2: controles de plan (solo para no-admins) + toggle admin */}
                                     <div style={{display:"flex", alignItems:"center", gap:"8px", marginTop:"6px", flexWrap:"wrap"}}>
-                                      {/* Botones de plan */}
-                                      <div style={{display:"flex", gap:"3px"}}>
-                                        {[{k:"trial",l:"☀️",bg:"#F97316"},{k:"pro",l:"🌞",bg:"#2E7D32"},{k:"vip",l:"✅",bg:"#7B2FBE"}].map(p => (
-                                          <button key={p.k} onClick={() => cambiarPlan(u.email, p.k)} title={p.k.charAt(0).toUpperCase()+p.k.slice(1)}
-                                            style={{fontFamily:"var(--mono)", fontSize:"13px", padding:"1px 6px", borderRadius:"5px", border:"none", cursor:"pointer",
-                                              background: u.status === p.k || (p.k==='pro' && u.status==='activo') ? p.bg : "rgba(0,0,0,.08)",
-                                              opacity: u.status === p.k || (p.k==='pro' && u.status==='activo') ? 1 : 0.45,
-                                            }}>{p.l}</button>
-                                        ))}
-                                      </div>
-                                      {/* Fecha (solo Pro) */}
-                                      {esPro && (
-                                        <input type="date"
-                                          defaultValue={u.trial_end ? u.trial_end.slice(0,10) : ""}
-                                          onChange={e => actualizarTrialEnd(u.email, e.target.value)}
-                                          style={{fontFamily:"var(--mono)", fontSize:"10px", border:"1px solid var(--vs)", borderRadius:"5px", padding:"1px 5px", background:"#fff", color:"var(--tx)", cursor:"pointer"}}
-                                        />
-                                      )}
-                                      {/* Alerta Pro por vencer */}
-                                      {esPro && diasRestantes !== null && diasRestantes <= 2 && diasRestantes > 0 && (
-                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#E65100", fontWeight:700}}>⚡ Renovar</span>
-                                      )}
-                                      {/* VIP: acceso ilimitado */}
-                                      {esVip && (
-                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#7B2FBE", fontWeight:700}}>∞ Ilimitado</span>
-                                      )}
-                                      {/* Admin toggle */}
-                                      {!esAdmin
-                                        ? <span className="act-link" style={{color:"#2E7D32", fontSize:"10px", cursor:"pointer", fontFamily:"var(--mono)", marginLeft:"auto"}} onClick={() => addAdminEmail(u.email)}>+ admin</span>
-                                        : adminEmails.length > 1 && <span className="act-link" style={{color:"#C0392B", fontSize:"10px", cursor:"pointer", fontFamily:"var(--mono)", marginLeft:"auto"}} onClick={() => removeAdminEmail(u.email)}>✕ admin</span>
-                                      }
+                                      {!esAdmin && (<>
+                                        {/* Botones de plan con label + tilde visible */}
+                                        {[{k:"trial",l:"Trial",icon:"☀️",bg:"#F97316"},{k:"pro",l:"Pro",icon:"🌞",bg:"#2E7D32"},{k:"vip",l:"VIP",icon:"✅",bg:"#7B2FBE"}].map(p => {
+                                          const activo = u.status === p.k || (p.k==='pro' && u.status==='activo');
+                                          return (
+                                            <button key={p.k} onClick={() => cambiarPlan(u.email, p.k)}
+                                              style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700,
+                                                padding:"3px 9px", borderRadius:"20px",
+                                                border: activo ? "none" : "1.5px solid rgba(0,0,0,.15)",
+                                                cursor:"pointer",
+                                                background: activo ? p.bg : "rgba(255,255,255,.6)",
+                                                color: activo ? "#fff" : "var(--tx3)",
+                                                display:"flex", alignItems:"center", gap:"3px",
+                                                boxShadow: activo ? `0 2px 6px ${p.bg}66` : "none",
+                                                transition:"all .15s"
+                                              }}>
+                                              {activo && <span style={{fontSize:"9px"}}>✔</span>}
+                                              {p.icon} {p.l}
+                                            </button>
+                                          );
+                                        })}
+                                        {/* Fecha (solo Pro) */}
+                                        {esPro && (
+                                          <input type="date"
+                                            defaultValue={u.trial_end ? u.trial_end.slice(0,10) : ""}
+                                            onChange={e => actualizarTrialEnd(u.email, e.target.value)}
+                                            style={{fontFamily:"var(--mono)", fontSize:"10px", border:"1px solid var(--vs)", borderRadius:"5px", padding:"1px 5px", background:"#fff", color:"var(--tx)", cursor:"pointer"}}
+                                          />
+                                        )}
+                                        {/* Alerta Pro por vencer */}
+                                        {esPro && diasRestantes !== null && diasRestantes <= 2 && diasRestantes > 0 && (
+                                          <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#E65100", fontWeight:700}}>⚡ Renovar</span>
+                                        )}
+                                        {/* VIP: acceso ilimitado */}
+                                        {esVip && (
+                                          <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#7B2FBE", fontWeight:700}}>∞ Ilimitado</span>
+                                        )}
+                                      </>)}
+                                      {/* Admin toggle — siempre al final */}
+                                      <span style={{marginLeft:"auto"}}>
+                                        {!esAdmin
+                                          ? <span className="act-link" style={{color:"#2E7D32", fontSize:"10px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => addAdminEmail(u.email)}>+ admin</span>
+                                          : adminEmails.length > 1 && <span className="act-link" style={{color:"#C0392B", fontSize:"10px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => removeAdminEmail(u.email)}>✕ admin</span>
+                                        }
+                                      </span>
                                     </div>
                                   </div>
                                 );
