@@ -18023,12 +18023,13 @@ document.addEventListener('visibilitychange', async () => {
                                 const activo = u.status === 'activo';
                                 const vencido = !activo && u.trial_end && new Date() > new Date(u.trial_end);
                                 const diasRestantes = u.trial_end && !activo ? Math.ceil((new Date(u.trial_end) - new Date()) / 86400000) : null;
+                                const fechaVenceStr = u.trial_end ? new Date(u.trial_end).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'}) : null;
                                 const statusBadge = activo
                                   ? {label:"Activo", bg:"#2E7D32", color:"#fff"}
                                   : vencido
-                                    ? {label:"Vencido", bg:"#C0392B", color:"#fff"}
+                                    ? {label: fechaVenceStr ? `Venció el ${fechaVenceStr}` : "Vencido", bg:"#C0392B", color:"#fff"}
                                     : diasRestantes !== null
-                                      ? {label:`Trial (${diasRestantes}d)`, bg:"#F97316", color:"#fff"}
+                                      ? {label:`Hasta ${fechaVenceStr} (+${diasRestantes}d)`, bg:"#F97316", color:"#fff"}
                                       : {label:"Trial", bg:"#F97316", color:"#fff"};
                                 return (
                                   <div key={u.email} style={{background: i%2===0 ? "rgba(0,0,0,.03)" : "rgba(0,0,0,.06)", padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
