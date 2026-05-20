@@ -2608,6 +2608,10 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-field label{font-size:0.8rem;font-weight:600;color:var(--vm);text-transform:uppercase;letter-spacing:0.04em;}
 .login-field input{padding:10px 14px;border:1.5px solid var(--vs);border-radius:8px;font-size:0.95rem;font-family:'DM Sans',sans-serif;background:white;color:var(--vd);outline:none;transition:border-color 0.2s;}
 .login-field input:focus{border-color:var(--vm);}
+.login-pwd-wrap{position:relative;display:flex;align-items:center;}
+.login-pwd-wrap input{flex:1;padding-right:42px;}
+.login-pwd-toggle{position:absolute;right:0;top:0;bottom:0;width:40px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--vc);font-size:18px;padding:0;transition:color 0.2s;}
+.login-pwd-toggle:hover{color:var(--vm);}
 .login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;position:relative;overflow:hidden;}
 .login-btn:hover{background:var(--vd);}
 .login-btn:disabled{opacity:0.85;cursor:not-allowed;}
@@ -2883,6 +2887,15 @@ function authShowReset() {
   document.getElementById('auth-error').classList.remove('visible');
 }
 
+function authTogglePwd(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  btn.textContent = showing ? '👁' : '🙈';
+  btn.title = showing ? 'Mostrar contraseña' : 'Ocultar contraseña';
+}
+
 function authShowLogin() {
   _authMode = 'login';
   document.getElementById('auth-title').textContent = 'Plataforma Clínica';
@@ -2954,11 +2967,17 @@ document.addEventListener('visibilitychange', async () => {
     </div>
     <div class="login-field" id="auth-password-field">
       <label>Contraseña</label>
-      <input id="auth-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') authSubmit()" />
+      <div class="login-pwd-wrap">
+        <input id="auth-password" type="password" placeholder="" onkeydown="if(event.key==='Enter') authSubmit()" />
+        <button type="button" class="login-pwd-toggle" onclick="authTogglePwd('auth-password',this)" title="Mostrar/ocultar contraseña">👁</button>
+      </div>
     </div>
     <div class="login-field" id="auth-newpassword-field" style="display:none">
       <label>Nueva contraseña</label>
-      <input id="auth-newpassword" type="password" placeholder="" autocomplete="new-password" readonly onkeydown="if(event.key==='Enter') authSetNewPassword()" />
+      <div class="login-pwd-wrap">
+        <input id="auth-newpassword" type="password" placeholder="" autocomplete="new-password" readonly onkeydown="if(event.key==='Enter') authSetNewPassword()" />
+        <button type="button" class="login-pwd-toggle" onclick="authTogglePwd('auth-newpassword',this)" title="Mostrar/ocultar contraseña">👁</button>
+      </div>
     </div>
     <div id="auth-error" class="login-error"></div>
     <button id="auth-btn" class="login-btn" onclick="authSubmit()"><span id="auth-btn-text">Ingresar</span></button>
