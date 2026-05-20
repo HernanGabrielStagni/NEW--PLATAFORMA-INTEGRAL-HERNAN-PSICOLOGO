@@ -2677,7 +2677,7 @@ async function checkUserAccess(email) {
       .eq('email', email)
       .maybeSingle();
     if (error || !data) return 'ok';
-    if (data.status === 'activo') return 'ok';
+    if (data.status === 'activo' || data.status === 'pro' || data.status === 'vip') return 'ok';
     if (data.status === 'trial') {
       if (!data.trial_end) return 'ok';
       if (new Date() > new Date(data.trial_end)) return 'expired';
@@ -3438,20 +3438,23 @@ document.addEventListener('visibilitychange', async () => {
                     <div className="topbar-subtitle" style={{display:"flex", alignItems:"center", gap:"7px", flexWrap:"wrap"}}>
                       <span>Hernán Gabriel Stagni · MP 11919</span>
                       {(() => {
-                        if (!userAcceso || userAcceso.status === 'activo') return null;
-                        if (userAcceso.status === 'trial' && userAcceso.trial_end) {
+                        if (!userAcceso) return null;
+                        const st = userAcceso.status;
+                        if (st === 'vip') return (
+                          <span style={{background:"#7B2FBE", color:"#fff", borderRadius:"20px", padding:"2px 10px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>VIP ✅</span>
+                        );
+                        if (st === 'pro' || st === 'activo') return (
+                          <span style={{background:"#2E7D32", color:"#fff", borderRadius:"20px", padding:"2px 10px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>Pro 🌞</span>
+                        );
+                        if (st === 'trial' && userAcceso.trial_end) {
                           const d = new Date(userAcceso.trial_end);
                           const dias = Math.ceil((d - new Date()) / 86400000);
                           const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
                           if (dias < 0) return (
-                            <span style={{background:"#C0392B", color:"#fff", borderRadius:"20px", padding:"2px 9px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>
-                              ⏰ Vencido {fecha}
-                            </span>
+                            <span style={{background:"#C0392B", color:"#fff", borderRadius:"20px", padding:"2px 9px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>⏰ Vencido {fecha}</span>
                           );
                           return (
-                            <span style={{background:"#F97316", color:"#fff", borderRadius:"20px", padding:"2px 9px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>
-                              Hasta {fecha} (+{dias}d)
-                            </span>
+                            <span style={{background:"#F97316", color:"#fff", borderRadius:"20px", padding:"2px 9px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>☀️ Trial · Hasta {fecha} (+{dias}d)</span>
                           );
                         }
                         return null;
@@ -17021,11 +17024,11 @@ document.addEventListener('visibilitychange', async () => {
           } catch(e) {}
         }
 
-        async function habilitarUsuario(email, habilitar) {
-          const nuevoStatus = habilitar ? 'activo' : 'trial';
-          const { error } = await _sb.from('registered_users').update({ status: nuevoStatus }).eq('email', email);
+        async function cambiarPlan(email, plan) {
+          const { error } = await _sb.from('registered_users').update({ status: plan }).eq('email', email);
           if (error) { showToast("❌ Error: " + error.message); return; }
-          showToast(habilitar ? "✅ Usuario habilitado permanentemente" : "↩️ Usuario volvió a trial");
+          const labels = { trial: "☀️ Trial", pro: "🌞 Pro", vip: "✅ VIP" };
+          showToast(`Plan actualizado a ${labels[plan] || plan}`);
           fetchRegisteredUsers();
         }
 
@@ -18040,17 +18043,21 @@ document.addEventListener('visibilitychange', async () => {
                                 return a.email.localeCompare(b.email);
                               }).map((u, i) => {
                                 const esAdmin = adminEmails.some(a => a.email === u.email);
-                                const activo = u.status === 'activo';
-                                const vencido = !activo && u.trial_end && new Date() > new Date(u.trial_end);
-                                const diasRestantes = u.trial_end && !activo ? Math.ceil((new Date(u.trial_end) - new Date()) / 86400000) : null;
+                                const esPro = u.status === 'pro' || u.status === 'activo';
+                                const esVip = u.status === 'vip';
+                                const esTrial = !esPro && !esVip;
+                                const vencido = esTrial && u.trial_end && new Date() > new Date(u.trial_end);
+                                const diasRestantes = u.trial_end && esTrial ? Math.ceil((new Date(u.trial_end) - new Date()) / 86400000) : null;
                                 const fechaVenceStr = u.trial_end ? new Date(u.trial_end).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'}) : null;
-                                const statusBadge = activo
-                                  ? {label:"Activo", bg:"#2E7D32", color:"#fff"}
-                                  : vencido
-                                    ? {label: fechaVenceStr ? `Venció el ${fechaVenceStr}` : "Vencido", bg:"#C0392B", color:"#fff"}
-                                    : diasRestantes !== null
-                                      ? {label:`Hasta ${fechaVenceStr} (+${diasRestantes}d)`, bg:"#F97316", color:"#fff"}
-                                      : {label:"Trial", bg:"#F97316", color:"#fff"};
+                                const statusBadge = esVip
+                                  ? {label:"VIP ✅", bg:"#7B2FBE", color:"#fff"}
+                                  : esPro
+                                    ? {label:"Pro 🌞", bg:"#2E7D32", color:"#fff"}
+                                    : vencido
+                                      ? {label: fechaVenceStr ? `Venció el ${fechaVenceStr}` : "Vencido", bg:"#C0392B", color:"#fff"}
+                                      : diasRestantes !== null
+                                        ? {label:`☀️ Trial · Hasta ${fechaVenceStr} (+${diasRestantes}d)`, bg:"#F97316", color:"#fff"}
+                                        : {label:"☀️ Trial", bg:"#F97316", color:"#fff"};
                                 return (
                                   <div key={u.email} style={{background: i%2===0 ? "rgba(0,0,0,.03)" : "rgba(0,0,0,.06)", padding:"10px 14px", borderBottom:"1px solid rgba(0,0,0,.06)"}}>
                                     {/* Fila principal */}
@@ -18064,7 +18071,7 @@ document.addEventListener('visibilitychange', async () => {
                                       {u.trial_start && (
                                         <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>Inicio: {u.trial_start.slice(0,10)}</span>
                                       )}
-                                      {!activo && (
+                                      {esTrial && (
                                         <div style={{display:"flex", alignItems:"center", gap:"6px"}}>
                                           <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"var(--tx3)"}}>Vence:</span>
                                           <input type="date"
@@ -18074,13 +18081,15 @@ document.addEventListener('visibilitychange', async () => {
                                           />
                                         </div>
                                       )}
-                                      <label style={{display:"flex", alignItems:"center", gap:"5px", cursor:"pointer", fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx2)"}}>
-                                        <input type="checkbox"
-                                          checked={activo}
-                                          onChange={e => habilitarUsuario(u.email, e.target.checked)}
-                                        />
-                                        Habilitado permanente
-                                      </label>
+                                      <div style={{display:"flex", gap:"4px"}}>
+                                        {[{k:"trial",l:"☀️ Trial",bg:"#F97316"},{k:"pro",l:"🌞 Pro",bg:"#2E7D32"},{k:"vip",l:"✅ VIP",bg:"#7B2FBE"}].map(p => (
+                                          <button key={p.k} onClick={() => cambiarPlan(u.email, p.k)}
+                                            style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, padding:"2px 8px", borderRadius:"6px", border:"none", cursor:"pointer",
+                                              background: u.status === p.k || (p.k==='pro' && u.status==='activo') ? p.bg : "rgba(0,0,0,.1)",
+                                              color: u.status === p.k || (p.k==='pro' && u.status==='activo') ? "#fff" : "var(--tx3)",
+                                            }}>{p.l}</button>
+                                        ))}
+                                      </div>
                                       {!esAdmin
                                         ? <span className="act-link" title="Dar acceso admin" style={{color:"#2E7D32", fontSize:"11px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => addAdminEmail(u.email)}>+ admin</span>
                                         : adminEmails.length > 1 && <span className="act-link" title="Quitar admin" style={{color:"#C0392B", fontSize:"11px", cursor:"pointer", fontFamily:"var(--mono)"}} onClick={() => removeAdminEmail(u.email)}>✕ admin</span>
