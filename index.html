@@ -1019,6 +1019,64 @@
         font-family: var(--data);
       }
 
+      /* ── STATS EVENTOS (compacto, 4 en una fila siempre) ── */
+      .stats-eventos {
+        display: flex;
+        gap: 6px;
+        flex-wrap: nowrap;
+      }
+      .stats-eventos .se-pill {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #faf7f2;
+        border: 1px solid rgba(184,176,160,0.55);
+        border-radius: 10px;
+        padding: 5px 8px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 1px rgba(255,255,255,0.8);
+      }
+      .stats-eventos .se-pill::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--do), #e8b84b);
+      }
+      .stats-eventos .se-emoji { font-size: 15px; flex-shrink: 0; }
+      .stats-eventos .se-body  { min-width: 0; }
+      .stats-eventos .se-label {
+        font-family: var(--mono);
+        font-size: 8px;
+        text-transform: uppercase;
+        color: var(--tx3);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .stats-eventos .se-num {
+        font-family: var(--data);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--vd);
+        line-height: 1;
+      }
+      /* Mobile: ocultar label texto, centrar emoji+número */
+      @media (max-width: 480px) {
+        .stats-eventos .se-pill {
+          flex-direction: column;
+          align-items: center;
+          gap: 1px;
+          padding: 5px 4px;
+        }
+        .stats-eventos .se-label { display: none; }
+        .stats-eventos .se-num   { font-size: 18px; }
+      }
+
       /* ── SEARCH INPUT ── */
       .search-wrap {
         position: relative;
@@ -16612,18 +16670,28 @@ document.addEventListener('visibilitychange', async () => {
 
         return (
           <div>
-            {/* STATS — sticky debajo del topbar */}
+            {/* STATS — sticky debajo del topbar, compacto */}
             <div style={{
               position:"sticky", top:"64px", zIndex:10,
-              background:"var(--bg)", paddingTop:"8px", paddingBottom:"8px",
-              marginBottom:"8px",
+              background:"var(--bg)", paddingTop:"6px", paddingBottom:"6px",
+              marginBottom:"10px",
               boxShadow:"0 2px 8px rgba(0,0,0,0.06)",
             }}>
-              <div className="stats-grid">
-                <StatCard label="Pendientes" value={pendientes.length} />
-                <StatCard label="En espera"  value={enEspera.length} />
-                <StatCard label="Vencidos"   value={vencidos.length} />
-                <StatCard label="Resueltos"  value={resueltos.length} />
+              <div className="stats-eventos">
+                {[
+                  { emoji:"📋", label:"Pendientes", value: pendientes.length, color:"#D97706" },
+                  { emoji:"⏳", label:"En espera",  value: enEspera.length,  color:"#2563EB" },
+                  { emoji:"⏰", label:"Vencidos",   value: vencidos.length,  color:"#DC2626" },
+                  { emoji:"✅", label:"Resueltos",  value: resueltos.length, color:"#16A34A" },
+                ].map(s => (
+                  <div key={s.label} className="se-pill">
+                    <span className="se-emoji">{s.emoji}</span>
+                    <div className="se-body">
+                      <div className="se-label">{s.label}</div>
+                      <div className="se-num" style={{ color: s.value > 0 ? s.color : "var(--tx3)" }}>{s.value}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
