@@ -2614,7 +2614,7 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-pwd-toggle:hover{color:var(--vm);}
 @keyframes glow-amber{0%,100%{box-shadow:0 0 6px 1px rgba(230,81,0,.5)}50%{box-shadow:0 0 14px 4px rgba(230,81,0,.9)}}
 @keyframes glow-red{0%,100%{box-shadow:0 0 6px 1px rgba(192,57,43,.5)}50%{box-shadow:0 0 14px 4px rgba(192,57,43,.9)}}
-@keyframes glow-slate{0%,100%{box-shadow:0 2px 8px rgba(55,71,79,.35)}50%{box-shadow:0 4px 20px rgba(55,71,79,.7),0 0 0 3px rgba(255,255,255,.08)}}
+@keyframes glow-slate{0%,100%{box-shadow:0 2px 10px rgba(249,115,22,.4)}50%{box-shadow:0 4px 24px rgba(249,115,22,.85),0 0 0 3px rgba(249,115,22,.2)}}
 .login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;position:relative;overflow:hidden;}
 .login-btn:hover{background:var(--vd);}
 .login-btn:disabled{opacity:0.85;cursor:not-allowed;}
@@ -3480,24 +3480,32 @@ document.addEventListener('visibilitychange', async () => {
                     <div className="topbar-subtitle" style={{display:"flex", alignItems:"center", gap:"7px", flexWrap:"wrap"}}>
                       <span>Hernán Gabriel Stagni · MP 11919</span>
                       {(() => {
-                        const bdg = (bg, txt) => (
-                          <span style={{background:bg, color:"#fff", borderRadius:"20px", padding:"2px 10px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>{txt}</span>
+                        const bdg = (bg, txt, ml) => (
+                          <span style={{background:bg, color:"#fff", borderRadius:"20px", padding:"2px 10px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap", marginLeft: ml ? "4px" : 0}}>{txt}</span>
                         );
-                        // Admin: siempre muestra 👑 Admin, sin importar plan
-                        if (isAdminUser) return bdg("#1565C0", "👑 Admin");
-                        if (!userAcceso) return null;
-                        const st = userAcceso.status;
-                        if (st === 'vip')  return bdg("#7B2FBE", "✅ VIP");
-                        if (st === 'pro' || st === 'activo') return bdg("#2E7D32", "🌞 Pro");
-                        if (st === 'trial' || st === 'trial' && !userAcceso.trial_end) {
-                          if (!userAcceso.trial_end) return bdg("#F97316", "☀️ Trial");
-                          const d = new Date(userAcceso.trial_end);
-                          const dias = Math.ceil((d - new Date()) / 86400000);
-                          const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
-                          if (dias < 0) return bdg("#C0392B", "⏰ Vencido " + fecha);
-                          return bdg("#F97316", "☀️ Trial · Hasta " + fecha + " (+" + dias + "d)");
-                        }
-                        return null;
+                        const planBadge = () => {
+                          if (!userAcceso) return null;
+                          const st = userAcceso.status;
+                          if (st === 'vip') return bdg("#7B2FBE", "✅ VIP");
+                          if (st === 'pro' || st === 'activo') {
+                            if (!userAcceso.trial_end) return bdg("#2E7D32", "🌞 Pro");
+                            const d = new Date(userAcceso.trial_end);
+                            const dias = Math.ceil((d - new Date()) / 86400000);
+                            const fecha = d.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+                            return bdg(dias <= 2 && dias > 0 ? "#E65100" : "#2E7D32", "🌞 Pro · " + fecha);
+                          }
+                          if (st === 'trial') {
+                            if (!userAcceso.trial_end) return bdg("#F97316", "☀️ Trial");
+                            const d = new Date(userAcceso.trial_end);
+                            const dias = Math.ceil((d - new Date()) / 86400000);
+                            const fecha = d.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+                            if (dias <= 0) return bdg("#C0392B", "⏰ Vencido");
+                            return bdg(dias <= 3 ? "#DC2626" : "#F97316", "☀️ Trial +" + dias + "d");
+                          }
+                          return null;
+                        };
+                        if (isAdminUser) return <>{bdg("#1565C0", "👑 Admin")}{planBadge() && <span style={{marginLeft:"4px"}}>{planBadge()}</span>}</>;
+                        return planBadge();
                       })()}
                     </div>
                   </div>
@@ -17117,7 +17125,10 @@ document.addEventListener('visibilitychange', async () => {
           if (adminEmails.some(a => a.email === email)) { showToast("⚠️ Ese email ya tiene acceso admin"); return; }
           const { error } = await _sb.from('admin_emails').insert({ email });
           if (error) { showToast("❌ Error: " + (error.message || "sin permiso")); return; }
-          showToast("✅ Acceso admin otorgado a " + email);
+          // Auto-promover a VIP al dar acceso admin
+          await _sb.from('registered_users').update({ status: 'vip', trial_end: null }).eq('email', email);
+          setRegisteredUsers(prev => prev.map(u => u.email === email ? { ...u, status: 'vip', trial_end: null } : u));
+          showToast("✅ Admin + VIP otorgado a " + email);
           setNuevoAdmin("");
           fetchAdminEmails();
         }
@@ -18184,12 +18195,10 @@ document.addEventListener('visibilitychange', async () => {
                                     {/* Fila 1: email + badges */}
                                     <div style={{display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap"}}>
                                       <span style={{fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx2)", flex:1, minWidth:"120px", wordBreak:"break-all"}}>{u.email}</span>
-                                      {/* Badge plan — oculto si es admin (los admins siempre tienen acceso) */}
-                                      {!esAdmin && (
-                                        <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:badge.bg, color:"#fff", borderRadius:"20px", padding:"2px 9px", whiteSpace:"nowrap",
-                                          animation: badge.glow ? `${badge.glow} 1.4s ease-in-out infinite` : "none"
-                                        }}>{badge.label}</span>
-                                      )}
+                                      {/* Badge plan siempre visible + badge Admin si corresponde */}
+                                      <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:badge.bg, color:"#fff", borderRadius:"20px", padding:"2px 9px", whiteSpace:"nowrap",
+                                        animation: badge.glow ? `${badge.glow} 1.4s ease-in-out infinite` : "none"
+                                      }}>{badge.label}</span>
                                       {esAdmin && <span style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, background:"#1565C0", color:"#fff", borderRadius:"20px", padding:"2px 10px"}}>👑 Admin</span>}
                                     </div>
                                     {/* Fila 2: controles de plan (solo para no-admins) + toggle admin */}
