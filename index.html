@@ -3411,6 +3411,7 @@ document.addEventListener('visibilitychange', async () => {
         eventosBar,
         configBar,
         userAcceso,
+        isAdminUser,
       }) {
         const current = NAV_SECTIONS.find((s) => s.id === activeSection);
         const topbarRef = useRef(null);
@@ -3483,7 +3484,7 @@ document.addEventListener('visibilitychange', async () => {
                           <span style={{background:bg, color:"#fff", borderRadius:"20px", padding:"2px 10px", fontSize:"10px", fontWeight:700, fontFamily:"var(--mono)", whiteSpace:"nowrap"}}>{txt}</span>
                         );
                         // Admin: siempre muestra 👑 Admin, sin importar plan
-                        if (window._isAdmin) return bdg("#1565C0", "👑 Admin");
+                        if (isAdminUser) return bdg("#1565C0", "👑 Admin");
                         if (!userAcceso) return null;
                         const st = userAcceso.status;
                         if (st === 'vip')  return bdg("#7B2FBE", "✅ VIP");
@@ -16857,11 +16858,14 @@ document.addEventListener('visibilitychange', async () => {
         const [modalClear, setModalClear] = useState(false);
         const [clearPin, setClearPin] = useState("");
         const [isAdmin, setIsAdmin] = useState(false);
+        const [userAcceso, setUserAcceso] = useState(null);
         React.useEffect(() => {
           _sb.auth.getUser().then(({ data: { user } }) => {
             if (!user) return;
             _sb.from('admin_emails').select('email').eq('email', user.email).maybeSingle()
               .then(({ data, error }) => setIsAdmin(!error && !!data));
+            _sb.from('registered_users').select('status, trial_end').eq('email', user.email).maybeSingle()
+              .then(({ data }) => { if (data) setUserAcceso(data); });
           });
         }, []);
         const CFG_PIN = "24521983";
@@ -17293,12 +17297,42 @@ document.addEventListener('visibilitychange', async () => {
                 </div>
                 {open.prestador && (
                   <div style={cfgBody("prestador")}>
-                    {/* Email (solo lectura) */}
+                    {/* Email + Plan (solo lectura) */}
                     <div style={{ marginBottom: "16px", paddingBottom: "14px", borderBottom: "1px solid rgba(0,0,0,.07)" }}>
                       <div style={monoLabel}>Email de cuenta</div>
                       <div style={{ fontFamily: "var(--mono)", fontSize: "13px", fontWeight: 600, color: "var(--vm)", background: "rgba(0,0,0,.03)", padding: "8px 14px", borderRadius: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
                         <span>✉️</span> {userEmail || "—"}
                         <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--tx3)", fontWeight: 400 }}>Solo lectura</span>
+                      </div>
+                      {/* Badge de plan */}
+                      <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={monoLabel}>Plan activo</div>
+                        {(() => {
+                          const bdg = (bg, txt) => (
+                            <span style={{ fontFamily: "var(--mono)", fontSize: "11px", fontWeight: 700, background: bg, color: "#fff", borderRadius: "20px", padding: "3px 12px" }}>{txt}</span>
+                          );
+                          if (isAdmin) return bdg("#1565C0", "👑 Administrador · Acceso completo");
+                          if (!userAcceso) return null;
+                          const st = userAcceso.status;
+                          if (st === 'vip') return bdg("#7B2FBE", "✅ VIP · Acceso ilimitado");
+                          if (st === 'pro' || st === 'activo') {
+                            if (!userAcceso.trial_end) return bdg("#2E7D32", "🌞 Pro");
+                            const d = new Date(userAcceso.trial_end);
+                            const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+                            const dias = Math.ceil((d - new Date()) / 86400000);
+                            if (dias <= 0) return bdg("#C0392B", "⚠️ Pro vencido");
+                            return bdg(dias <= 2 ? "#E65100" : "#2E7D32", `🌞 Pro · hasta ${fecha} (+${dias}d)`);
+                          }
+                          if (st === 'trial') {
+                            if (!userAcceso.trial_end) return bdg("#F97316", "☀️ Trial");
+                            const d = new Date(userAcceso.trial_end);
+                            const dias = Math.ceil((d - new Date()) / 86400000);
+                            const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+                            if (dias <= 0) return bdg("#C0392B", "⚠️ Trial vencido · Contactar administrador");
+                            return bdg(dias <= 3 ? "#DC2626" : "#F97316", `☀️ Trial · hasta ${fecha} (+${dias}d)`);
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -21238,11 +21272,14 @@ document.addEventListener('visibilitychange', async () => {
 
         /* ── Acceso del usuario actual ── */
         const [userAcceso, setUserAcceso] = useState(null);
+        const [isAdminUser, setIsAdminUser] = useState(false);
         useEffect(() => {
           _sb.auth.getUser().then(({ data: { user } }) => {
             if (!user) return;
             _sb.from('registered_users').select('status, trial_end').eq('email', user.email).maybeSingle()
               .then(({ data }) => { if (data) setUserAcceso(data); });
+            _sb.from('admin_emails').select('email').eq('email', user.email).maybeSingle()
+              .then(({ data, error }) => setIsAdminUser(!error && !!data));
           });
         }, []);
 
@@ -21345,6 +21382,7 @@ document.addEventListener('visibilitychange', async () => {
               activeSection={activeSection}
               onNavigate={setActiveSection}
               userAcceso={userAcceso}
+              isAdminUser={isAdminUser}
               onNewTurno={() =>
                 setModalTurno({
                   mode: "nuevo",
