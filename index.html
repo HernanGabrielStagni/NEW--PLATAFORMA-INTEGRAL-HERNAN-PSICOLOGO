@@ -16468,6 +16468,7 @@ document.addEventListener('visibilitychange', async () => {
         const [form, setForm] = React.useState({
           descripcion: "", fecha: hoy, hora: "09:00", prioridad: "normal",
         });
+        const [formAbierto, setFormAbierto] = React.useState(false);
 
         function loadItems() {
           const data = getData("hgsp_eventos");
@@ -16497,6 +16498,7 @@ document.addEventListener('visibilitychange', async () => {
           all.push({ id: genId(), descripcion: form.descripcion.trim(), fecha: form.fecha, hora: form.hora, prioridad: form.prioridad, estado: "pendiente", comentario: "" });
           setData("hgsp_eventos", all);
           setForm({ descripcion: "", fecha: hoy, hora: "09:00", prioridad: "normal" });
+          setFormAbierto(false);
           loadItems(); showToast("📌 Nota agregada");
         }
 
@@ -16610,67 +16612,99 @@ document.addEventListener('visibilitychange', async () => {
 
         return (
           <div>
-            <div className="stats-grid">
-              <StatCard label="Pendientes" value={pendientes.length} />
-              <StatCard label="En espera"  value={enEspera.length} />
-              <StatCard label="Vencidos"   value={vencidos.length} />
-              <StatCard label="Resueltos"  value={resueltos.length} />
+            {/* STATS — sticky debajo del topbar */}
+            <div style={{
+              position:"sticky", top:"64px", zIndex:10,
+              background:"var(--bg)", paddingTop:"8px", paddingBottom:"8px",
+              marginBottom:"8px",
+              boxShadow:"0 2px 8px rgba(0,0,0,0.06)",
+            }}>
+              <div className="stats-grid">
+                <StatCard label="Pendientes" value={pendientes.length} />
+                <StatCard label="En espera"  value={enEspera.length} />
+                <StatCard label="Vencidos"   value={vencidos.length} />
+                <StatCard label="Resueltos"  value={resueltos.length} />
+              </div>
             </div>
 
-            {/* FORMULARIO */}
-            <div className="card" style={{ marginBottom:"20px" }}>
-              <div className="card-header">
-                <div className="card-header-icon">➕</div>
-                <div className="card-header-title">Nueva nota o pendiente</div>
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"10px", alignItems:"center", marginBottom:"10px" }}>
-                <input className="input-base" placeholder="Descripción..." autoComplete="off"
-                  value={form.descripcion}
-                  onChange={e => setForm(p => ({...p, descripcion: e.target.value}))}
-                  onKeyDown={e => e.key==="Enter" && agregar()}
-                  style={{ flex:"1 1 180px", minWidth:"140px" }} />
-                <div style={{ display:"flex", gap:"8px", flexShrink:0 }}>
-                  <input className="input-base" type="date" style={{ fontFamily:"var(--mono)", width:"145px" }}
-                    value={form.fecha} onChange={e => setForm(p => ({...p, fecha: e.target.value}))} />
-                  <input className="input-base" type="time" style={{ fontFamily:"var(--mono)", width:"110px" }}
-                    value={form.hora} onChange={e => setForm(p => ({...p, hora: e.target.value}))} />
+            {/* FORMULARIO — colapsable */}
+            {formAbierto && (
+              <div className="card" style={{ marginBottom:"20px" }}>
+                <div className="card-header">
+                  <div className="card-header-icon">➕</div>
+                  <div className="card-header-title">Nueva nota o pendiente</div>
+                  <button onClick={() => setFormAbierto(false)} style={{
+                    marginLeft:"auto", background:"none", border:"none", cursor:"pointer",
+                    fontSize:"18px", color:"var(--tx3)", lineHeight:1, padding:"0 4px",
+                  }}>✕</button>
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:"10px", alignItems:"center", marginBottom:"10px" }}>
+                  <input className="input-base" placeholder="Descripción..." autoComplete="off"
+                    value={form.descripcion}
+                    onChange={e => setForm(p => ({...p, descripcion: e.target.value}))}
+                    onKeyDown={e => e.key==="Enter" && agregar()}
+                    style={{ flex:"1 1 180px", minWidth:"140px" }} />
+                  <div style={{ display:"flex", gap:"8px", flexShrink:0 }}>
+                    <input className="input-base" type="date" style={{ fontFamily:"var(--mono)", width:"145px" }}
+                      value={form.fecha} onChange={e => setForm(p => ({...p, fecha: e.target.value}))} />
+                    <input className="input-base" type="time" style={{ fontFamily:"var(--mono)", width:"110px" }}
+                      value={form.hora} onChange={e => setForm(p => ({...p, hora: e.target.value}))} />
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
+                  <span style={{ fontSize:"13px", color:"var(--tx3)" }}>Prioridad:</span>
+                  {Object.entries(PRIO_CFG).map(([k,v]) => (
+                    <button key={k} onClick={() => setForm(p => ({...p, prioridad:k}))}
+                      style={{
+                        display:"flex", alignItems:"center", gap:"4px", padding:"5px 11px", borderRadius:"20px",
+                        border: `2px solid ${form.prioridad===k ? v.color : "transparent"}`,
+                        background: form.prioridad===k ? v.bg : "rgba(0,0,0,0.04)",
+                        color: form.prioridad===k ? v.color : "var(--tx3)",
+                        fontWeight: form.prioridad===k ? 700 : 400,
+                        cursor:"pointer", fontSize:"12px", transition:"all 0.15s",
+                      }}>
+                      {v.dot} {v.label}
+                    </button>
+                  ))}
+                  <button className="btn btn-g" style={{ marginLeft:"auto" }} onClick={agregar}>Agregar</button>
                 </div>
               </div>
-              <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
-                <span style={{ fontSize:"13px", color:"var(--tx3)" }}>Prioridad:</span>
-                {Object.entries(PRIO_CFG).map(([k,v]) => (
-                  <button key={k} onClick={() => setForm(p => ({...p, prioridad:k}))}
-                    style={{
-                      display:"flex", alignItems:"center", gap:"4px", padding:"5px 11px", borderRadius:"20px",
-                      border: `2px solid ${form.prioridad===k ? v.color : "transparent"}`,
-                      background: form.prioridad===k ? v.bg : "rgba(0,0,0,0.04)",
-                      color: form.prioridad===k ? v.color : "var(--tx3)",
-                      fontWeight: form.prioridad===k ? 700 : 400,
-                      cursor:"pointer", fontSize:"12px", transition:"all 0.15s",
-                    }}>
-                    {v.dot} {v.label}
-                  </button>
-                ))}
-                <button className="btn btn-g" style={{ marginLeft:"auto" }} onClick={agregar}>Agregar</button>
-              </div>
-            </div>
+            )}
 
-            {/* FILTROS */}
+            {/* FILTROS + botón Nueva nota */}
             <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"16px" }}>
               <div className="tabs-container">
                 {[["todos","📋 Todos"],["semana","📅 Semana"],["mes","🗓️ Mes"],["vencidos","⏰ Vencidos"]].map(([id,l]) => (
                   <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}>{l}</div>
                 ))}
               </div>
-              <div className="tabs-container">
-                {[["urgente","🔴"],["normal","🟡"],["cuando_pueda","🟢"]].map(([id,l]) => (
-                  <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}
-                    style={{ padding:"6px 12px", fontSize:"16px" }}>{l}</div>
-                ))}
+              <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", whiteSpace:"nowrap" }}>Prioridad:</span>
+                <div className="tabs-container">
+                  {[["urgente","🔴"],["normal","🟡"],["cuando_pueda","🟢"]].map(([id,l]) => (
+                    <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}
+                      style={{ padding:"6px 12px", fontSize:"16px" }}>{l}</div>
+                  ))}
+                </div>
               </div>
               {vencidos.length > 0 && (
                 <Badge type="danger" style={{ marginLeft:"4px" }}>{vencidos.length} vencido{vencidos.length!==1?"s":""}</Badge>
               )}
+              <button onClick={() => setFormAbierto(true)} style={{
+                marginLeft:"auto",
+                display:"flex", alignItems:"center", gap:"6px",
+                padding:"8px 16px", borderRadius:"20px",
+                background:"linear-gradient(135deg, #D97706 0%, #B45309 100%)",
+                color:"#fff", fontWeight:700, fontSize:"13px",
+                border:"none", cursor:"pointer",
+                boxShadow:"0 2px 8px rgba(180,83,9,0.35)",
+                transition:"all 0.18s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.transform="translateY(-1px)"}
+                onMouseLeave={e => e.currentTarget.style.transform="translateY(0)"}
+              >
+                ➕ Nueva nota
+              </button>
             </div>
 
             {/* LISTA */}
