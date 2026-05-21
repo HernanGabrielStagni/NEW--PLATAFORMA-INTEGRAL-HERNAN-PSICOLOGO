@@ -1075,6 +1075,13 @@
         }
         .stats-eventos .se-label { display: none; }
         .stats-eventos .se-num   { font-size: 18px; }
+        /* Filtros: ocultar texto en pantallas pequeñas */
+        .filtro-tab-txt  { display: none; }
+        .filtro-prio-txt { display: none; }
+        .filtro-nueva-txt{ display: none; }
+      }
+      @media (max-width: 360px) {
+        .filtro-nueva-txt { display: none; }
       }
 
       /* ── SEARCH INPUT ── */
@@ -16527,6 +16534,18 @@ document.addEventListener('visibilitychange', async () => {
           descripcion: "", fecha: hoy, hora: "09:00", prioridad: "normal",
         });
         const [formAbierto, setFormAbierto] = React.useState(false);
+        const [filtroPrio, setFiltroPrio] = React.useState("todas");
+        const PRIO_CICLO = ["todas","urgente","normal","cuando_pueda"];
+        const PRIO_CICLO_CFG = {
+          todas:       { dot:"⚪", label:"Prioridad", color:"var(--tx3)",  bg:"rgba(0,0,0,0.04)", border:"rgba(0,0,0,0.12)" },
+          urgente:     { dot:"🔴", label:"Urgente",   color:"#e53e3e",     bg:"#FFF5F5",          border:"#e53e3e" },
+          normal:      { dot:"🟡", label:"Normal",    color:"#d69e2e",     bg:"#FFFBEB",          border:"#d69e2e" },
+          cuando_pueda:{ dot:"🟢", label:"C/pueda",   color:"#38a169",     bg:"#F0FFF4",          border:"#38a169" },
+        };
+        function ciclarPrio() {
+          const idx = PRIO_CICLO.indexOf(filtroPrio);
+          setFiltroPrio(PRIO_CICLO[(idx + 1) % PRIO_CICLO.length]);
+        }
 
         function loadItems() {
           const data = getData("hgsp_eventos");
@@ -16638,13 +16657,11 @@ document.addEventListener('visibilitychange', async () => {
         const vencidos   = pendientes.filter(e => esVencido(e));
 
         let visible;
-        if      (filtro === "semana")       visible = items.filter(e => e.fecha >= semanaRango[0] && e.fecha <= semanaRango[1]);
-        else if (filtro === "mes")          visible = items.filter(e => e.fecha >= mesInicio && e.fecha <= mesFin);
-        else if (filtro === "vencidos")     visible = vencidos;
-        else if (filtro === "urgente")      visible = items.filter(e => (e.prioridad??"normal") === "urgente");
-        else if (filtro === "normal")       visible = items.filter(e => (e.prioridad??"normal") === "normal");
-        else if (filtro === "cuando_pueda") visible = items.filter(e => (e.prioridad??"normal") === "cuando_pueda");
-        else                                visible = items;
+        if      (filtro === "semana")   visible = items.filter(e => e.fecha >= semanaRango[0] && e.fecha <= semanaRango[1]);
+        else if (filtro === "mes")      visible = items.filter(e => e.fecha >= mesInicio && e.fecha <= mesFin);
+        else if (filtro === "vencidos") visible = vencidos;
+        else                            visible = items;
+        if (filtroPrio !== "todas")     visible = visible.filter(e => (e.prioridad??"normal") === filtroPrio);
         visible = smartSort(visible);
 
         /* ── Checkbox visual ── */
@@ -16739,29 +16756,35 @@ document.addEventListener('visibilitychange', async () => {
               </div>
             )}
 
-            {/* FILTROS + botón Nueva nota */}
-            <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"16px" }}>
-              <div className="tabs-container">
-                {[["todos","📋 Todos"],["semana","📅 Semana"],["mes","🗓️ Mes"],["vencidos","⏰ Vencidos"]].map(([id,l]) => (
-                  <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}>{l}</div>
+            {/* FILTROS + botón Nueva nota — fila única compacta */}
+            <div style={{ display:"flex", gap:"6px", alignItems:"center", marginBottom:"12px", flexWrap:"nowrap" }}>
+              {/* Tabs de tiempo */}
+              <div className="tabs-container" style={{ flex:"1 1 auto", minWidth:0, overflow:"hidden" }}>
+                {[["todos","📋","Todos"],["semana","📅","Semana"],["mes","🗓️","Mes"],["vencidos","⏰","Venc."]].map(([id,ico,txt]) => (
+                  <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}
+                    style={{ whiteSpace:"nowrap" }}>
+                    {ico} <span className="filtro-tab-txt">{txt}</span>
+                  </div>
                 ))}
               </div>
-              <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-                <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", whiteSpace:"nowrap" }}>Prioridad:</span>
-                <div className="tabs-container">
-                  {[["urgente","🔴"],["normal","🟡"],["cuando_pueda","🟢"]].map(([id,l]) => (
-                    <div key={id} className={`tab-item ${filtro===id?"active":""}`} onClick={() => setFiltro(id)}
-                      style={{ padding:"6px 12px", fontSize:"16px" }}>{l}</div>
-                  ))}
-                </div>
-              </div>
-              {vencidos.length > 0 && (
-                <Badge type="danger" style={{ marginLeft:"4px" }}>{vencidos.length} vencido{vencidos.length!==1?"s":""}</Badge>
-              )}
+              {/* Botón cíclico de prioridad */}
+              <button onClick={ciclarPrio} title="Filtrar por prioridad (toca para ciclar)" style={{
+                display:"flex", alignItems:"center", gap:"4px",
+                padding:"5px 10px", borderRadius:"20px", flexShrink:0,
+                border: `2px solid ${PRIO_CICLO_CFG[filtroPrio].border}`,
+                background: PRIO_CICLO_CFG[filtroPrio].bg,
+                color: PRIO_CICLO_CFG[filtroPrio].color,
+                fontWeight: filtroPrio !== "todas" ? 700 : 400,
+                fontSize:"12px", cursor:"pointer",
+                transition:"all 0.2s", whiteSpace:"nowrap",
+              }}>
+                <span style={{ fontSize:"14px" }}>{PRIO_CICLO_CFG[filtroPrio].dot}</span>
+                <span className="filtro-prio-txt">{PRIO_CICLO_CFG[filtroPrio].label}</span>
+              </button>
+              {/* Nueva nota */}
               <button onClick={() => setFormAbierto(true)} style={{
-                marginLeft:"auto",
-                display:"flex", alignItems:"center", gap:"6px",
-                padding:"8px 16px", borderRadius:"20px",
+                display:"flex", alignItems:"center", gap:"5px", flexShrink:0,
+                padding:"6px 13px", borderRadius:"20px",
                 background:"linear-gradient(135deg, #D97706 0%, #B45309 100%)",
                 color:"#fff", fontWeight:700, fontSize:"13px",
                 border:"none", cursor:"pointer",
@@ -16771,7 +16794,7 @@ document.addEventListener('visibilitychange', async () => {
                 onMouseEnter={e => e.currentTarget.style.transform="translateY(-1px)"}
                 onMouseLeave={e => e.currentTarget.style.transform="translateY(0)"}
               >
-                ➕ Nueva nota
+                ➕ <span className="filtro-nueva-txt">Nueva nota</span>
               </button>
             </div>
 
