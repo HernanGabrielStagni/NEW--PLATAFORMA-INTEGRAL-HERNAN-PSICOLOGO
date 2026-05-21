@@ -3177,7 +3177,7 @@ document.addEventListener('visibilitychange', async () => {
         },
         { id: "gastos", label: "Gastos", emoji: "📊", group: "PRINCIPAL" },
         { id: "vida_hogar", label: "Vida y Hogar", emoji: "🌳", group: "VIDA" },
-        { id: "eventos", label: "Notas y Pendientes", emoji: "📝", group: "PRINCIPAL" },
+        { id: "eventos", label: "Notas y Pendientes", emoji: "📝", group: "PRINCIPAL", sub: "Ayuda-memoria con prioridades y seguimiento de vencimientos" },
         { id: "config", label: "Configuración", emoji: "⚙️", group: "SISTEMA" },
       ];
 
@@ -16610,14 +16610,6 @@ document.addEventListener('visibilitychange', async () => {
 
         return (
           <div>
-            <div className="page-header">
-              <div className="page-header-icon">📝</div>
-              <div>
-                <div className="page-header-title">Notas y Pendientes</div>
-                <div className="page-header-sub">Ayuda-memoria con prioridades y seguimiento de vencimientos</div>
-              </div>
-            </div>
-
             <div className="stats-grid">
               <StatCard label="Pendientes" value={pendientes.length} />
               <StatCard label="En espera"  value={enEspera.length} />
