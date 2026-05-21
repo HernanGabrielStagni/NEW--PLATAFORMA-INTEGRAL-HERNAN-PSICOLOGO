@@ -16721,14 +16721,16 @@ document.addEventListener('visibilitychange', async () => {
                           }}>
                             {ev.descripcion}
                           </div>
-                          <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", display:"flex", gap:"10px", flexWrap:"wrap", alignItems:"center", marginTop:"3px" }}>
-                            <span>📅 {ev.fecha}</span>
-                            <span>🕐 {ev.hora}</span>
-                            {!resuelto && !enEsperaItem && (
-                              <span style={{ background:pc.color+"22", color:pc.color, borderRadius:"10px", padding:"1px 7px", fontWeight:600, fontSize:"11px" }}>{pc.dot} {pc.label}</span>
-                            )}
-                            {vencido && <span style={{ background:"#e53e3e", color:"#fff", borderRadius:"10px", padding:"1px 7px", fontWeight:700, fontSize:"11px" }}>⏰ Vencido</span>}
-                          </div>
+                          {editId !== ev.id && (
+                            <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx3)", display:"flex", gap:"10px", flexWrap:"wrap", alignItems:"center", marginTop:"3px" }}>
+                              <span>📅 {ev.fecha}</span>
+                              <span>🕐 {ev.hora}</span>
+                              {!resuelto && !enEsperaItem && (
+                                <span style={{ background:pc.color+"22", color:pc.color, borderRadius:"10px", padding:"1px 7px", fontWeight:600, fontSize:"11px" }}>{pc.dot} {pc.label}</span>
+                              )}
+                              {vencido && <span style={{ background:"#e53e3e", color:"#fff", borderRadius:"10px", padding:"1px 7px", fontWeight:700, fontSize:"11px" }}>⏰ Vencido</span>}
+                            </div>
+                          )}
                         </div>
                         {/* Checkboxes + lápiz + acciones */}
                         <div style={{ display:"flex", alignItems:"center", gap:"12px", flexShrink:0 }}>
@@ -16775,45 +16777,44 @@ document.addEventListener('visibilitychange', async () => {
                       {/* Formulario edición inline */}
                       {editId === ev.id && (
                         <div style={{ marginTop:"12px", background:"#F5F3FF", border:"1.5px solid #C4B5FD", borderRadius:"12px", padding:"14px 16px", display:"flex", flexDirection:"column", gap:"10px" }}>
-                          <div>
-                            <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Descripción</div>
-                            <input className="input-base" autoComplete="off"
-                              value={editDraft.descripcion || ""}
-                              onChange={e => setEditDraft(p => ({...p, descripcion: e.target.value}))}
-                              style={{ fontSize:"13px" }} />
+                          {/* Descripción */}
+                          <input className="input-base" autoComplete="off"
+                            value={editDraft.descripcion || ""}
+                            onChange={e => setEditDraft(p => ({...p, descripcion: e.target.value}))}
+                            style={{ fontSize:"13px" }} />
+                          {/* Fecha · Hora · Prioridad (dot cíclico) */}
+                          <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", alignItems:"center" }}>
+                            <input className="input-base" type="date"
+                              value={editDraft.fecha || ""}
+                              onChange={e => setEditDraft(p => ({...p, fecha: e.target.value}))}
+                              style={{ fontFamily:"var(--mono)", fontSize:"13px", width:"155px" }} />
+                            <input className="input-base" type="time"
+                              value={editDraft.hora || ""}
+                              onChange={e => setEditDraft(p => ({...p, hora: e.target.value}))}
+                              style={{ fontFamily:"var(--mono)", fontSize:"13px", width:"110px" }} />
+                            {/* Dot cíclico: click → siguiente prioridad */}
+                            {(() => {
+                              const PRIS = ["urgente","normal","cuando_pueda"];
+                              const pri = editDraft.prioridad || "normal";
+                              const pcE = PRIO_CFG[pri];
+                              return (
+                                <button
+                                  title={`Prioridad: ${pcE.label} · Click para cambiar`}
+                                  onClick={() => {
+                                    const idx = PRIS.indexOf(pri);
+                                    setEditDraft(p => ({...p, prioridad: PRIS[(idx+1)%PRIS.length]}));
+                                  }}
+                                  style={{ fontSize:"22px", background:"none", border:"none", cursor:"pointer", padding:"0 4px", lineHeight:1, userSelect:"none" }}
+                                >{pcE.dot}</button>
+                              );
+                            })()}
                           </div>
-                          <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
-                            <div>
-                              <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Fecha</div>
-                              <input className="input-base" type="date"
-                                value={editDraft.fecha || ""}
-                                onChange={e => setEditDraft(p => ({...p, fecha: e.target.value}))}
-                                style={{ fontFamily:"var(--mono)", fontSize:"13px", width:"155px" }} />
-                            </div>
-                            <div>
-                              <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Hora</div>
-                              <input className="input-base" type="time"
-                                value={editDraft.hora || ""}
-                                onChange={e => setEditDraft(p => ({...p, hora: e.target.value}))}
-                                style={{ fontFamily:"var(--mono)", fontSize:"13px", width:"120px" }} />
-                            </div>
-                            <div>
-                              <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"#5B21B6", marginBottom:"4px", textTransform:"uppercase" }}>Prioridad</div>
-                              <select className="input-base"
-                                value={editDraft.prioridad || "normal"}
-                                onChange={e => setEditDraft(p => ({...p, prioridad: e.target.value}))}
-                                style={{ fontSize:"13px" }}>
-                                <option value="urgente">🔴 Urgente</option>
-                                <option value="normal">🟡 Normal</option>
-                                <option value="cuando_pueda">🟢 Cuando pueda</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div style={{ display:"flex", gap:"8px" }}>
-                            <button className="btn btn-p" style={{ fontSize:"12px", padding:"7px 16px" }}
-                              onClick={() => guardarEdit(ev.id)}>Guardar cambios</button>
-                            <button className="btn" style={{ fontSize:"12px", padding:"7px 14px", background:"transparent", border:"1px solid var(--crb)", color:"var(--tx2)" }}
-                              onClick={() => { setEditId(null); setEditDraft({}); }}>Cancelar</button>
+                          {/* Botones compactos */}
+                          <div style={{ display:"flex", gap:"6px" }}>
+                            <button className="btn btn-p" style={{ fontSize:"16px", padding:"6px 14px" }} title="Guardar"
+                              onClick={() => guardarEdit(ev.id)}>💾</button>
+                            <button className="btn" style={{ fontSize:"16px", padding:"6px 12px", background:"transparent", border:"1px solid var(--crb)", color:"var(--tx2)" }} title="Cancelar"
+                              onClick={() => { setEditId(null); setEditDraft({}); }}>✕</button>
                           </div>
                         </div>
                       )}
@@ -16824,7 +16825,7 @@ document.addEventListener('visibilitychange', async () => {
                           <span style={{ fontSize:"12px", color:"#1D4ED8", flexShrink:0 }}>💬</span>
                           <input
                             className="input-base"
-                            autoComplete="nope"
+                            autoComplete="new-password"
                             placeholder="¿Qué hiciste? ¿Qué estás esperando?..."
                             value={comentariosEdit[ev.id] ?? ""}
                             onChange={e => setComentariosEdit(prev => ({...prev, [ev.id]: e.target.value}))}
