@@ -2614,7 +2614,7 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 .login-pwd-toggle:hover{color:var(--vm);}
 @keyframes glow-amber{0%,100%{box-shadow:0 0 6px 1px rgba(230,81,0,.5)}50%{box-shadow:0 0 14px 4px rgba(230,81,0,.9)}}
 @keyframes glow-red{0%,100%{box-shadow:0 0 6px 1px rgba(192,57,43,.5)}50%{box-shadow:0 0 14px 4px rgba(192,57,43,.9)}}
-@keyframes glow-slate{0%,100%{box-shadow:0 2px 10px rgba(249,115,22,.4)}50%{box-shadow:0 4px 24px rgba(249,115,22,.85),0 0 0 3px rgba(249,115,22,.2)}}
+@keyframes glow-slate{0%,100%{box-shadow:0 2px 10px rgba(27,67,50,.5)}50%{box-shadow:0 4px 26px rgba(27,67,50,1),0 0 0 4px rgba(46,125,50,.3)}}
 .login-btn{padding:12px;background:var(--vm);color:white;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.2s;margin-top:4px;position:relative;overflow:hidden;}
 .login-btn:hover{background:var(--vd);}
 .login-btn:disabled{opacity:0.85;cursor:not-allowed;}
@@ -17178,11 +17178,11 @@ document.addEventListener('visibilitychange', async () => {
             oBd: "rgba(201,167,64,.4)",
           },
           os: {
-            cBg: "#72AE95",
-            cTx: "#0F2E1C",
-            cBd: "#4F9278",
-            oBg: "#3D6B55",
-            oBd: "rgba(79,146,120,.4)",
+            cBg: "#3ABAB4",
+            cTx: "#001F1E",
+            cBd: "#1A9490",
+            oBg: "#0B3D3A",
+            oBd: "rgba(26,148,144,.4)",
           },
           feriados: {
             cBg: "#6B8EAE",
@@ -18010,12 +18010,12 @@ document.addEventListener('visibilitychange', async () => {
 
               {/* ── SINCRONIZACIÓN (general) ── */}
               <div style={{...cfgWrap, marginBottom:"12px"}}>
-                <div style={{background:"#4A6A5A", borderRadius:"18px", padding:"16px 22px", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+                <div style={{background:"#2A1F5A", borderRadius:"18px", padding:"16px 22px", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
                   <div style={{display:"flex", alignItems:"center", gap:"10px"}}>
                     <span style={{fontSize:"18px"}}>🔄</span>
                     <div>
-                      <div style={{fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px", color:"#E8F5EE"}}>Sincronización</div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:"10px", marginTop:"1px", color:"rgba(232,245,238,.6)"}}>Recarga automática tras inactividad</div>
+                      <div style={{fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px", color:"#E8E4FF"}}>Sincronización</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:"10px", marginTop:"1px", color:"rgba(232,228,255,.6)"}}>Recarga automática tras inactividad</div>
                     </div>
                   </div>
                   <div style={{display:"flex", gap:"8px"}}>
