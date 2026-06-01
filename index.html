@@ -5648,7 +5648,7 @@ document.addEventListener('visibilitychange', async () => {
           const hr = Math.floor(total / 60);
           const mn = total % 60;
           const hora = `${String(hr).padStart(2, "0")}:${String(mn).padStart(2, "0")}`;
-          onCellClick(ds, hora);
+          onCellClick(ds, hora, e);
         }
 
         return (
@@ -9284,6 +9284,8 @@ document.addEventListener('visibilitychange', async () => {
         setModalTurno,
         modalReserva,
         setModalReserva,
+        cellMenu,
+        setCellMenu,
         baseDate,
         setBaseDate,
         vista,
@@ -10249,9 +10251,10 @@ document.addEventListener('visibilitychange', async () => {
                 pacientes={pacientes}
                 hoyStr={hoyStr}
                 feriadoMap={feriadoMap}
-                onCellClick={(fecha, hora) =>
-                  setModalTurno({ mode: "nuevo", sesion: null, fecha, hora })
-                }
+                onCellClick={(fecha, hora, evt) => {
+                  const rect = evt?.currentTarget?.getBoundingClientRect?.() || { left: evt?.clientX || 200, top: evt?.clientY || 200, width: 0, height: 0 };
+                  setCellMenu({ fecha, hora, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                }}
                 onSessionClick={(s) => {
                   if (s.tipo === "reserva_personal")
                     setModalReserva({
@@ -11126,6 +11129,74 @@ document.addEventListener('visibilitychange', async () => {
                 </div>,
                 document.body,
               )}
+
+            {/* MENÚ SELECCIÓN TIPO DE RESERVA */}
+            {cellMenu && ReactDOM.createPortal(
+              <div
+                style={{
+                  position: "fixed", inset: 0, zIndex: 3000,
+                  background: "transparent",
+                }}
+                onClick={() => setCellMenu(null)}
+              >
+                <div
+                  style={{
+                    position: "fixed",
+                    left: Math.min(cellMenu.x, window.innerWidth - 220),
+                    top: Math.min(cellMenu.y, window.innerHeight - 140),
+                    background: "var(--surface, #fff)",
+                    border: "1px solid var(--border, #e0e0e0)",
+                    borderRadius: 12,
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                    padding: "10px 8px",
+                    minWidth: 200,
+                    zIndex: 3001,
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div style={{ fontSize: 11, color: "var(--text-muted, #888)", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", paddingLeft: 8, paddingBottom: 6 }}>
+                    {cellMenu.fecha} · {cellMenu.hora}
+                  </div>
+                  <button
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "10px 12px", border: "none",
+                      background: "none", borderRadius: 8, cursor: "pointer",
+                      fontSize: 14, fontWeight: 500, color: "var(--text, #222)",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "var(--primary-light, #e8f0fe)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}
+                    onClick={() => {
+                      setModalTurno({ mode: "nuevo", sesion: null, fecha: cellMenu.fecha, hora: cellMenu.hora });
+                      setCellMenu(null);
+                    }}
+                  >
+                    <span style={{ fontSize: 20 }}>👤</span>
+                    <span>Turno con paciente</span>
+                  </button>
+                  <button
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "10px 12px", border: "none",
+                      background: "none", borderRadius: 8, cursor: "pointer",
+                      fontSize: 14, fontWeight: 500, color: "var(--text, #222)",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "var(--primary-light, #e8f0fe)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}
+                    onClick={() => {
+                      setModalReserva({ reserva: null, fecha: cellMenu.fecha, hora: cellMenu.hora });
+                      setCellMenu(null);
+                    }}
+                  >
+                    <span style={{ fontSize: 20 }}>🗓️</span>
+                    <span>Reserva de horario</span>
+                  </button>
+                </div>
+              </div>,
+              document.body
+            )}
 
             {/* MODAL RESERVA PERSONAL */}
             {modalReserva && (
@@ -21346,6 +21417,7 @@ document.addEventListener('visibilitychange', async () => {
         const [badgeCounts, setBadgeCounts] = useState({});
         const [modalTurno, setModalTurno] = useState(null);
         const [modalReserva, setModalReserva] = useState(null);
+        const [cellMenu, setCellMenu] = useState(null); // {fecha, hora, x, y}
         const [baseDate, setBaseDate] = useState(new Date());
         const [vista, setVista] = useState("semanal");
         const [modalConfirmActivar, setModalConfirmActivar] = useState(false);
@@ -21418,6 +21490,8 @@ document.addEventListener('visibilitychange', async () => {
             setModalTurno,
             modalReserva,
             setModalReserva,
+            cellMenu,
+            setCellMenu,
             baseDate,
             setBaseDate,
             vista,
