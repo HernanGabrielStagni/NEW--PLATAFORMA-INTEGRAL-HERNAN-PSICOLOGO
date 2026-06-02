@@ -2227,18 +2227,26 @@
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
-      /* Mes en vertical — derecha del badge */
+      /* Mes en vertical — derecha del badge, se lee de abajo hacia arriba */
       .ag-day-mes {
         font-family: var(--mono);
         font-size: 9px;
-        color: rgba(255, 255, 255, 0.35);
+        font-weight: 700;
+        color: var(--vd);
+        background: var(--dc);
         writing-mode: vertical-rl;
+        transform: rotate(180deg);
         text-orientation: mixed;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         line-height: 1;
-        align-self: center;
+        align-self: stretch;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 3px;
+        border-radius: 6px;
       }
       .ag-body {
         grid-column: 1 / -1;
