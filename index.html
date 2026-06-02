@@ -9356,6 +9356,7 @@ document.addEventListener('visibilitychange', async () => {
         setVista,
         modalConfirmActivar,
         setModalConfirmActivar,
+        isLandscape,
       }) {
         const [showWeekend, setShowWeekend] = useState(false);
         const [sesiones, setSesiones] = useState([]);
@@ -10203,7 +10204,7 @@ document.addEventListener('visibilitychange', async () => {
             {/* El encabezado y botones se movieron al Topbar principal */}
 
             {/* ══ PANEL ACCESOS: OBJETIVOS + MÉTRICAS ══ */}
-            <PanelAccesos
+            {!isLandscape && <PanelAccesos
               objActual={objActual}
               objDraft={objDraft}
               setObjDraft={setObjDraft}
@@ -10239,11 +10240,11 @@ document.addEventListener('visibilitychange', async () => {
               setVista={setVista}
               eliminarCoordAuto={eliminarCoordAuto}
               eliminarCoordManual={eliminarCoordManual}
-            />
-                        <AgendaLeyenda weekLabel={weekLabel} TIPO_COLORS={TIPO_COLORS} />
+            />}
+            {!isLandscape && <AgendaLeyenda weekLabel={weekLabel} TIPO_COLORS={TIPO_COLORS} />}
 
             {/* PESTAÑAS FICHERO */}
-            <div style={{
+            {!isLandscape && <div style={{
               paddingLeft: "clamp(0px, 2vw, 8px)",
               paddingRight: "4px",
               marginBottom: "6px",
@@ -10304,7 +10305,7 @@ document.addEventListener('visibilitychange', async () => {
                   </>
                 );
               })()}
-            </div>
+            </div>}
 
             {/* GRILLA SEMANAL / HORARIO COMPLETO */}
             {(vista === "semanal" || vista === "horario_completo") && (
@@ -21520,9 +21521,23 @@ document.addEventListener('visibilitychange', async () => {
       }
 
       /* ═══════════════════════════════════════ */
+      /* Hook: detecta landscape con React state */
+      function useLandscape() {
+        const check = () => window.innerWidth > window.innerHeight && window.innerWidth < 1200;
+        const [landscape, setLandscape] = useState(check);
+        useEffect(() => {
+          const handler = () => setLandscape(check());
+          window.addEventListener("resize", handler);
+          window.addEventListener("orientationchange", () => setTimeout(handler, 200));
+          return () => window.removeEventListener("resize", handler);
+        }, []);
+        return landscape;
+      }
+
       /* COMPONENTE PRINCIPAL: App              */
       /* ═══════════════════════════════════════ */
       function App() {
+        const isLandscape = useLandscape();
         const [activeSection, setActiveSection] = useState("agenda");
         const [badgeCounts, setBadgeCounts] = useState({});
         const [modalTurno, setModalTurno] = useState(null);
@@ -21598,7 +21613,7 @@ document.addEventListener('visibilitychange', async () => {
         }, [activeSection]);
 
         function renderSection() {
-          const agendaProps = {
+          const agendaProps = { isLandscape,
             modalTurno,
             setModalTurno,
             modalReserva,
@@ -21670,7 +21685,7 @@ document.addEventListener('visibilitychange', async () => {
 
         return (
           <React.Fragment>
-            <Topbar
+            {!isLandscape && <Topbar
               activeSection={activeSection}
               onNavigate={setActiveSection}
               userAcceso={userAcceso}
@@ -21719,14 +21734,14 @@ document.addEventListener('visibilitychange', async () => {
               configBar={{
                 editMode: cfgEditMode,
               }}
-            />
-            <div className="app-layout">
-              <Sidebar
+            />}
+            <div className="app-layout" style={isLandscape ? { marginTop: 0 } : {}}>
+              {!isLandscape && <Sidebar
                 activeSection={activeSection}
                 onNavigate={setActiveSection}
                 badgeCounts={badgeCounts}
-              />
-              <div className="main-content">{renderSection()}</div>
+              />}
+              <div className="main-content" style={isLandscape ? { marginLeft: 0, padding: "4px 6px" } : {}}>{renderSection()}</div>
             </div>
 
             {/* ── MENÚ HAMBURGUESA LANDSCAPE ── */}
