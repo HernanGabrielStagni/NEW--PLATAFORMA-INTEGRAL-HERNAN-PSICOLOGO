@@ -2598,13 +2598,11 @@
          LANDSCAPE MOBILE — menú hamburguesa + layout full
          ══════════════════════════════════════════════════ */
 
-      /* Botón hamburguesa: siempre oculto por defecto */
-      .hamburger-btn {
-        display: none;
-      }
+      /* Botón hamburguesa: oculto por defecto, visible solo en landscape */
+      .hamburger-btn { display: none; }
       .hamburger-overlay { display: none; }
 
-      @media (orientation: landscape) and (max-width: 1024px) {
+      body.is-landscape {
 
         /* ── Ocultar topbar y sidebar normales ── */
         .topbar { display: none !important; }
@@ -2662,7 +2660,7 @@
 
         /* ── Botón hamburguesa flotante ── */
         .hamburger-btn {
-          display: flex !important;
+          display: flex;
           align-items: center;
           justify-content: center;
           position: fixed !important;
@@ -2683,7 +2681,7 @@
 
         /* ── Overlay menú ── */
         .hamburger-overlay {
-          display: flex !important;
+          display: flex;
           position: fixed !important;
           inset: 0 !important;
           background: rgba(0,0,0,.55) !important;
@@ -21800,6 +21798,15 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       /* RENDER                                 */
       /* ═══════════════════════════════════════ */
+      /* ── Detección de landscape por JS (más confiable que media query) ── */
+      function updateLandscape() {
+        const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth < 1200;
+        document.body.classList.toggle("is-landscape", isLandscape);
+      }
+      updateLandscape();
+      window.addEventListener("resize", updateLandscape);
+      window.addEventListener("orientationchange", () => setTimeout(updateLandscape, 150));
+
       const root = ReactDOM.createRoot(document.getElementById("root"));
       root.render(<App />);
     </script>
