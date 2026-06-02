@@ -6,6 +6,19 @@
     <title>Plataforma Clínica — Hernán Stagni</title>
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="favicon.png" />
+    <!-- Detección landscape SÍNCRONA — corre antes de renderizar nada -->
+    <script>
+      (function() {
+        function applyLandscape() {
+          var isL = window.innerWidth > window.innerHeight && window.innerWidth < 1200;
+          document.documentElement.classList.toggle("is-landscape", isL);
+          document.body && document.body.classList.toggle("is-landscape", isL);
+        }
+        applyLandscape();
+        window.addEventListener("resize", applyLandscape);
+        window.addEventListener("orientationchange", function() { setTimeout(applyLandscape, 200); });
+      })();
+    </script>
 
     <!-- ═══════════════════════════════════════ -->
     <!-- GOOGLE FONTS                           -->
@@ -2602,7 +2615,7 @@
       .hamburger-btn { display: none; }
       .hamburger-overlay { display: none; }
 
-      body.is-landscape {
+      body.is-landscape, html.is-landscape body {
 
         /* ── Ocultar topbar y sidebar normales ── */
         .topbar { display: none !important; }
