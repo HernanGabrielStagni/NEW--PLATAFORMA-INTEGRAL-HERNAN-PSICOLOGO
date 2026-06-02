@@ -2615,93 +2615,58 @@
       .hamburger-btn { display: none; }
       .hamburger-overlay { display: none; }
 
-      body.is-landscape, html.is-landscape body {
+      /* ═══ LANDSCAPE — selectores planos (sin anidamiento CSS) ═══ */
 
-        /* ── Ocultar topbar y sidebar normales ── */
-        .topbar { display: none !important; }
-        .sidebar { display: none !important; }
-
-        /* ── Layout sin sidebar: full width ── */
-        .app-layout {
-          margin-top: 0 !important;
-          min-height: 100vh !important;
-        }
-        .main-content {
-          margin-left: 0 !important;
-          margin-bottom: 0 !important;
-          padding: 6px 8px 8px !important;
-        }
-
-        /* ── Page header: mínimo, no sticky ── */
-        .page-header {
-          position: static !important;
-          padding: 4px 10px !important;
-          margin-bottom: 4px !important;
-          border-radius: var(--rsm) !important;
-          min-height: unset !important;
-        }
-        /* Ocultar subtítulo y descripción del page-header */
-        .page-header .page-subtitle,
-        .page-header p {
-          display: none !important;
-        }
-
-        /* ── Toolbar agenda: oculta en landscape, no hace falta ── */
-        .agenda-acciones,
-        .agenda-toolbar,
-        .agenda-primary-controls,
-        .agenda-legend-row,
-        .agenda-novedades-row {
-          display: none !important;
-        }
-
-        /* ── Agenda grid: casi pantalla completa ── */
-        .ag-wrap {
-          max-height: calc(100vh - 52px) !important;
-          overflow-y: auto !important;
-          overflow-x: auto !important;
-          border-radius: var(--rsm) !important;
-        }
-
-        /* ── Headers de días: sticky dentro del ag-wrap ── */
-        .ag-corner,
-        .ag-day-hd {
-          position: sticky !important;
-          top: 0 !important;
-          z-index: 25 !important;
-        }
-
-        /* ── Botón hamburguesa flotante ── */
-        .hamburger-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: fixed !important;
-          top: 8px !important;
-          right: 8px !important;
-          width: 36px !important;
-          height: 36px !important;
-          background: var(--vd) !important;
-          border: 1.5px solid var(--do) !important;
-          border-radius: 10px !important;
-          color: var(--do) !important;
-          font-size: 18px !important;
-          cursor: pointer !important;
-          z-index: 500 !important;
-          box-shadow: 0 4px 16px rgba(0,0,0,.4) !important;
-          line-height: 1 !important;
-        }
-
-        /* ── Overlay menú ── */
-        .hamburger-overlay {
-          display: flex;
-          position: fixed !important;
-          inset: 0 !important;
-          background: rgba(0,0,0,.55) !important;
-          z-index: 490 !important;
-          align-items: flex-start !important;
-          justify-content: flex-end !important;
-        }
+      .is-landscape .topbar          { display: none !important; }
+      .is-landscape .sidebar         { display: none !important; }
+      .is-landscape .app-layout      { margin-top: 0 !important; min-height: 100vh !important; }
+      .is-landscape .main-content    { margin-left: 0 !important; margin-bottom: 0 !important; padding: 4px 6px 6px !important; }
+      .is-landscape .page-header     { position: static !important; padding: 3px 8px !important; margin-bottom: 3px !important; min-height: unset !important; }
+      .is-landscape .page-header .page-subtitle { display: none !important; }
+      .is-landscape .agenda-acciones { display: none !important; }
+      .is-landscape .agenda-toolbar  { display: none !important; }
+      .is-landscape .agenda-primary-controls { display: none !important; }
+      .is-landscape .agenda-legend-row { display: none !important; }
+      .is-landscape .agenda-novedades-row { display: none !important; }
+      .is-landscape .ag-wrap {
+        max-height: calc(100vh - 46px) !important;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        border-radius: var(--rsm) !important;
+      }
+      .is-landscape .ag-corner,
+      .is-landscape .ag-day-hd {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 25 !important;
+      }
+      .is-landscape .hamburger-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: fixed !important;
+        top: 8px !important;
+        right: 8px !important;
+        width: 36px !important;
+        height: 36px !important;
+        background: var(--vd) !important;
+        border: 1.5px solid var(--do) !important;
+        border-radius: 10px !important;
+        color: var(--do) !important;
+        font-size: 18px !important;
+        cursor: pointer !important;
+        z-index: 500 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,.4) !important;
+        line-height: 1 !important;
+      }
+      .is-landscape .hamburger-overlay {
+        display: flex !important;
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0,0,0,.55) !important;
+        z-index: 490 !important;
+        align-items: flex-start !important;
+        justify-content: flex-end !important;
       }
 
       /* ── Drawer del menú hamburguesa ── */
