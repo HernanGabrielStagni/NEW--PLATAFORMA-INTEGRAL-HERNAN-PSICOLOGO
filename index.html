@@ -2614,34 +2614,39 @@
           top: 0 !important;
           bottom: 0 !important;
           right: auto !important;
-          width: 56px !important;
+          width: 52px !important;
           height: 100% !important;
           flex-direction: column !important;
           overflow-y: auto !important;
           overflow-x: hidden !important;
           justify-content: flex-start !important;
           align-items: center !important;
-          padding: 8px 0 !important;
+          padding: 4px 0 !important;
           border-top: none !important;
           border-right: 2px solid rgba(200, 146, 42, 0.4) !important;
           z-index: 150 !important;
+          scrollbar-width: none !important; /* Firefox */
+          -ms-overflow-style: none !important;
+        }
+        .sidebar::-webkit-scrollbar {
+          display: none !important; /* Chrome/Safari */
         }
 
-        /* Ítems del sidebar: solo ícono, sin texto */
+        /* Ítems del sidebar: solo ícono, sin texto — compactos para landscape */
         .sidebar-item {
           flex-direction: column !important;
-          padding: 8px 0 !important;
-          margin: 2px 4px !important;
+          padding: 4px 0 !important;
+          margin: 1px 4px !important;
           width: 44px !important;
-          border-radius: 10px !important;
+          border-radius: 8px !important;
           font-size: 0 !important; /* oculta el texto */
           min-width: unset !important;
           justify-content: center !important;
         }
         .sidebar-item-icon {
-          width: 32px !important;
-          height: 32px !important;
-          font-size: 16px !important;
+          width: 26px !important;
+          height: 26px !important;
+          font-size: 14px !important;
         }
         /* Badge visible pero pequeño */
         .sidebar-badge {
@@ -2657,7 +2662,7 @@
 
         /* main-content: margen izquierdo para el sidebar lateral */
         .main-content {
-          margin-left: 56px !important;
+          margin-left: 52px !important;
           padding: 10px 12px 12px !important;
         }
 
