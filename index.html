@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Plataforma Clínica — Hernán Stagni</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="favicon.png" />
 
     <!-- ═══════════════════════════════════════ -->
     <!-- GOOGLE FONTS                           -->
@@ -2619,17 +2621,32 @@
           padding: 6px 8px 8px !important;
         }
 
-        /* ── Page header: compacto, no sticky (scrollea con contenido) ── */
+        /* ── Page header: mínimo, no sticky ── */
         .page-header {
           position: static !important;
-          padding: 6px 12px !important;
-          margin-bottom: 6px !important;
+          padding: 4px 10px !important;
+          margin-bottom: 4px !important;
           border-radius: var(--rsm) !important;
+          min-height: unset !important;
+        }
+        /* Ocultar subtítulo y descripción del page-header */
+        .page-header .page-subtitle,
+        .page-header p {
+          display: none !important;
         }
 
-        /* ── Agenda grid: ocupa todo el alto disponible ── */
+        /* ── Toolbar agenda: oculta en landscape, no hace falta ── */
+        .agenda-acciones,
+        .agenda-toolbar,
+        .agenda-primary-controls,
+        .agenda-legend-row,
+        .agenda-novedades-row {
+          display: none !important;
+        }
+
+        /* ── Agenda grid: casi pantalla completa ── */
         .ag-wrap {
-          max-height: calc(100vh - 80px) !important;
+          max-height: calc(100vh - 52px) !important;
           overflow-y: auto !important;
           overflow-x: auto !important;
           border-radius: var(--rsm) !important;
