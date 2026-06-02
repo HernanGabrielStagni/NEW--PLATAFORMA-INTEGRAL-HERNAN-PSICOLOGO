@@ -2109,13 +2109,16 @@
         overflow-x: auto;
       }
       .ag-grid {
-        min-width: 680px;
+        min-width: 544px; /* 680 × 0.8 — columnas 20% más angostas */
         display: grid;
-        grid-template-columns: 56px repeat(5, 1fr); /* default L-V; overridden inline */
+        grid-template-columns: 44px repeat(5, 1fr); /* default L-V; overridden inline */
       }
       .ag-corner {
         background: var(--vd);
         border-radius: var(--r) 0 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 25;
       }
       @keyframes bell-ring {
         0%, 100% { transform: rotate(0deg); }
@@ -2129,49 +2132,58 @@
       }
       .ag-day-hd {
         background: var(--vd);
-        padding: 6px 4px 6px;
+        padding: 4px 3px;
         text-align: center;
         border-right: 1px solid rgba(255, 255, 255, 0.1);
-        position: relative;
+        position: sticky;
+        top: 0;
+        z-index: 25;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: flex-start;
+        justify-content: center;
       }
       .ag-day-hd:last-child {
         border-right: none;
         border-radius: 0 var(--r) 0 0;
       }
       .ag-day-hd.today {
-        /* Columna actual: tono dorado suave en todo el header */
         background: rgba(200, 146, 42, 0.18);
       }
       .ag-day-hd.feriado {
         background: rgba(45, 90, 61, 0.55);
       }
-      /* Badge: ocupa casi todo el ancho de la celda — imagen 2 */
+      /* Badge compacto: número grande a la izquierda, mes vertical a la derecha */
       .ag-feriado-badge,
       .ag-today-badge {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
+        justify-content: center;
         background: var(--vd);
-        border-radius: 10px;
-        padding: 8px 6px 7px;
+        border-radius: 8px;
+        padding: 3px 5px 3px 6px;
         border: 1.5px solid rgba(255,255,255,.15);
-        width: calc(100% - 10px);
+        width: calc(100% - 8px);
         box-sizing: border-box;
         margin: 0 auto;
-        gap: 0;
+        gap: 4px;
       }
       .ag-today-badge {
         border-color: var(--do);
-        box-shadow: 0 0 8px rgba(200,146,42,.2);
+        box-shadow: 0 0 6px rgba(200,146,42,.2);
+      }
+      /* Columna izquierda: abbr + número */
+      .ag-badge-left {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
       }
       .ag-feriado-badge .ag-day-abbr,
       .ag-today-badge .ag-day-abbr {
         color: rgba(255, 255, 255, 0.55);
-        font-size: 11px;
+        font-size: 9px;
         letter-spacing: .07em;
       }
       .ag-today-badge .ag-day-abbr {
@@ -2181,14 +2193,13 @@
       .ag-feriado-badge .ag-day-num,
       .ag-today-badge .ag-day-num {
         color: #fff;
-        font-size: 36px;
+        font-size: 20px;
         font-weight: 700;
         line-height: 1.05;
       }
       .ag-feriado-badge .feriado-star {
-        font-size: 12px;
+        font-size: 10px;
         line-height: 1;
-        margin-top: 1px;
         color: var(--do);
       }
       .ag-col.feriado-col {
@@ -2204,29 +2215,35 @@
       }
       .ag-day-num {
         font-family: var(--serif);
-        font-size: 38px;
+        font-size: 20px;
         font-weight: 700;
         color: rgba(255, 255, 255, 0.9);
         line-height: 1.05;
       }
-
       .ag-day-abbr {
         font-family: var(--mono);
-        font-size: 11px;
+        font-size: 9px;
         color: rgba(255, 255, 255, 0.45);
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
+      /* Mes en vertical — derecha del badge */
       .ag-day-mes {
         font-family: var(--mono);
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.3);
-        margin-top: 2px;
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.35);
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        line-height: 1;
+        align-self: center;
+        flex-shrink: 0;
       }
       .ag-body {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: 56px repeat(5, 1fr); /* default L-V; overridden inline */
+        grid-template-columns: 44px repeat(5, 1fr); /* default L-V; overridden inline */
         border: 2px solid #b8b0a0;
         border-top: none;
         border-radius: 0 0 var(--r) var(--r);
@@ -5656,7 +5673,7 @@ document.addEventListener('visibilitychange', async () => {
             <div
               className="ag-grid"
               style={{
-                gridTemplateColumns: `56px repeat(${weekDates.length}, 1fr) 38px`,
+                gridTemplateColumns: `44px repeat(${weekDates.length}, 1fr) 38px`,
               }}
             >
               {/* ── CABECERA ── */}
@@ -5689,22 +5706,28 @@ document.addEventListener('visibilitychange', async () => {
                   >
                     {isToday ? (
                       <div className="ag-today-badge">
-                        <div className="ag-day-abbr">{DIAS_HD[i]}</div>
-                        <div className="ag-day-num">{d.getDate()}</div>
-                        {fInfo && <div className="feriado-star">⭐</div>}
+                        <div className="ag-badge-left">
+                          <div className="ag-day-abbr">{DIAS_HD[i]}</div>
+                          <div className="ag-day-num">{d.getDate()}</div>
+                          {fInfo && <div className="feriado-star">⭐</div>}
+                        </div>
                         <div className="ag-day-mes">{MESES_CORTO[d.getMonth()]}</div>
                       </div>
                     ) : fInfo ? (
                       <div className="ag-feriado-badge">
-                        <div className="ag-day-abbr">{DIAS_HD[i]}</div>
-                        <div className="ag-day-num">{d.getDate()}</div>
-                        <div className="feriado-star" title={fInfo.nombre}>⭐</div>
+                        <div className="ag-badge-left">
+                          <div className="ag-day-abbr">{DIAS_HD[i]}</div>
+                          <div className="ag-day-num">{d.getDate()}</div>
+                          <div className="feriado-star" title={fInfo.nombre}>⭐</div>
+                        </div>
                         <div className="ag-day-mes">{MESES_CORTO[d.getMonth()]}</div>
                       </div>
                     ) : (
                       <div className="ag-feriado-badge" style={{ borderColor: "rgba(255,255,255,.10)" }}>
-                        <div className="ag-day-abbr">{DIAS_HD[i]}</div>
-                        <div className="ag-day-num">{d.getDate()}</div>
+                        <div className="ag-badge-left">
+                          <div className="ag-day-abbr">{DIAS_HD[i]}</div>
+                          <div className="ag-day-num">{d.getDate()}</div>
+                        </div>
                         <div className="ag-day-mes">{MESES_CORTO[d.getMonth()]}</div>
                       </div>
                     )}
@@ -5793,7 +5816,7 @@ document.addEventListener('visibilitychange', async () => {
               <div
                 className="ag-body"
                 style={{
-                  gridTemplateColumns: `56px repeat(${weekDates.length}, 1fr)`,
+                  gridTemplateColumns: `44px repeat(${weekDates.length}, 1fr)`,
                   gridColumn: `1 / -2`,
                 }}
               >
