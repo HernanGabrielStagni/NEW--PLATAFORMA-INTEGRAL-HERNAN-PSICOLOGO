@@ -2179,13 +2179,14 @@
         align-items: center;
         justify-content: center;
         background: var(--vd);
-        border-radius: 6px;
-        padding: 1px 3px 1px 4px;
+        border-radius: 5px;
+        padding: 2px 3px;
         border: 1.5px solid rgba(255,255,255,.15);
         width: calc(100% - 4px);
         box-sizing: border-box;
         margin: 0 auto;
         gap: 3px;
+        line-height: 1;
       }
       .ag-today-badge {
         border-color: var(--do);
@@ -2211,9 +2212,9 @@
       .ag-feriado-badge .ag-day-num,
       .ag-today-badge .ag-day-num {
         color: #fff;
-        font-size: 20px;
+        font-size: 16px;
         font-weight: 700;
-        line-height: 1.05;
+        line-height: 1;
       }
       .ag-feriado-badge .feriado-star {
         font-size: 10px;
@@ -2233,17 +2234,18 @@
       }
       .ag-day-num {
         font-family: var(--serif);
-        font-size: 20px;
+        font-size: 16px;
         font-weight: 700;
         color: rgba(255, 255, 255, 0.9);
-        line-height: 1.05;
+        line-height: 1;
       }
       .ag-day-abbr {
         font-family: var(--mono);
-        font-size: 9px;
+        font-size: 8px;
         color: rgba(255, 255, 255, 0.45);
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
+        line-height: 1;
       }
       /* Mes en vertical — derecha del badge, se lee de abajo hacia arriba */
       .ag-day-mes {
