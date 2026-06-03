@@ -2130,6 +2130,7 @@
         min-width: 462px; /* 544 × 0.85 — columnas 15% más angostas */
         display: grid;
         grid-template-columns: 38px repeat(5, 1fr); /* default L-V; overridden inline */
+        grid-template-rows: 46px auto; /* fila header fija → cuerpo toma el resto */
       }
       .ag-corner {
         background: var(--vd);
@@ -2137,7 +2138,6 @@
         position: sticky;
         top: 0;
         z-index: 25;
-        height: 46px;
         overflow: hidden;
       }
       @keyframes bell-ring {
@@ -2162,9 +2162,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 46px;       /* altura fija = todos los días idénticos */
-        overflow: hidden;   /* nada desborda */
-        box-sizing: border-box;
+        overflow: hidden;
       }
       .ag-day-hd:last-child {
         border-right: none;
@@ -5720,6 +5718,7 @@ document.addEventListener('visibilitychange', async () => {
               className="ag-grid"
               style={{
                 gridTemplateColumns: `38px repeat(${weekDates.length}, 1fr) 38px`,
+                gridTemplateRows: "46px auto",
               }}
             >
               {/* ── CABECERA ── */}
@@ -5980,7 +5979,7 @@ document.addEventListener('visibilitychange', async () => {
                                     className="ag-ses-hora"
                                     style={{ color: cols.text }}
                                   >
-                                    {s.horaInicio}–{s.horaFin}
+                                    {s.horaInicio}<br/>{s.horaFin}
                                   </div>
                                 )}
                               </>
@@ -6069,7 +6068,7 @@ document.addEventListener('visibilitychange', async () => {
                                     className="ag-ses-hora"
                                     style={{ color: cols.text }}
                                   >
-                                    {s.horaInicio}–{s.horaFin}
+                                    {s.horaInicio}<br/>{s.horaFin}
                                   </div>
                                 )}
                               </>
