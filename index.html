@@ -3299,12 +3299,6 @@ document.addEventListener('visibilitychange', async () => {
           emoji: "💰",
           group: "PRINCIPAL",
         },
-        {
-          id: "planillas_at",
-          label: "Planillas AT",
-          emoji: "📋",
-          group: "PRINCIPAL",
-        },
         { id: "gastos", label: "Gastos", emoji: "📊", group: "PRINCIPAL" },
         { id: "vida_hogar", label: "Vida y Hogar", emoji: "🌳", group: "VIDA" },
         { id: "eventos", label: "Notas y Pendientes", emoji: "📝", group: "PRINCIPAL", sub: "Ayuda-memoria con prioridades y seguimiento de vencimientos" },
@@ -3535,7 +3529,6 @@ document.addEventListener('visibilitychange', async () => {
         vista,
         onCargarTurnosFijos,
         pacientesBar,
-        planillasATBar,
         gastosBar,
         facturacionBar,
         eventosBar,
@@ -3977,70 +3970,6 @@ document.addEventListener('visibilitychange', async () => {
                 </div>
               )}
 
-              {/* ── Línea 2: controles Planillas AT ── */}
-              {activeSection === "planillas_at" && planillasATBar && planillasATBar.pacientes.length > 0 && (
-                <div className="topbar-row2-line2">
-                  <select
-                    style={{
-                      background: "rgba(255,255,255,.1)",
-                      border: "1.5px solid rgba(200,146,42,.5)",
-                      color: "#fff",
-                      borderRadius: "50px",
-                      padding: "6px 14px",
-                      fontFamily: "var(--sans)",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      minWidth: "160px",
-                      outline: "none",
-                    }}
-                    value={planillasATBar.pacId}
-                    onChange={(e) => planillasATBar.setPacId(e.target.value)}
-                  >
-                    {planillasATBar.pacientes.map((p) => (
-                      <option key={p.id} value={p.id} style={{ background: "var(--vd)" }}>
-                        {p.nombre} {p.apellido}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="topbar-nav-semana">
-                    <button
-                      onClick={() => planillasATBar.setMes((m) => m === 1 ? 12 : m - 1)}
-                      style={{ width: "36px", height: "34px", background: "transparent", border: "none", cursor: "pointer", fontSize: "18px", color: "var(--do)", lineHeight: 1 }}
-                      title="Mes anterior"
-                    >◀</button>
-                    <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: "12px", color: "rgba(255,255,255,.9)", padding: "0 10px", whiteSpace: "nowrap" }}>
-                      {MESES_FULL[planillasATBar.mes - 1]} {planillasATBar.anio}
-                    </span>
-                    <button
-                      onClick={() => planillasATBar.setMes((m) => m === 12 ? 1 : m + 1)}
-                      style={{ width: "36px", height: "34px", background: "transparent", border: "none", cursor: "pointer", fontSize: "18px", color: "var(--do)", lineHeight: 1 }}
-                      title="Mes siguiente"
-                    >▶</button>
-                  </div>
-                  <select
-                    style={{
-                      background: "rgba(255,255,255,.1)",
-                      border: "1.5px solid rgba(200,146,42,.5)",
-                      color: "#fff",
-                      borderRadius: "50px",
-                      padding: "6px 12px",
-                      fontFamily: "var(--mono)",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      width: "80px",
-                      outline: "none",
-                    }}
-                    value={planillasATBar.anio}
-                    onChange={(e) => planillasATBar.setAnio(Number(e.target.value))}
-                  >
-                    {[planillasATBar.anio - 1, planillasATBar.anio, planillasATBar.anio + 1].map((y) => (
-                      <option key={y} value={y} style={{ background: "var(--vd)" }}>{y}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               {/* ── Línea 2: controles Gastos ── */}
               {activeSection === "gastos" && gastosBar && (
                 <div className="topbar-row2-line2">
@@ -4323,7 +4252,6 @@ document.addEventListener('visibilitychange', async () => {
       /* Helper: detecta si un turno tiene pendientes de cobro/orden */
       /* hoy: string 'YYYY-MM-DD' — necesario para detectar pendientes con fecha pasada */
       function tienePendientePago(s, hoy) {
-        if (s.tipo === "AT") return false;
         if (s.tipo === "reserva_personal") return false;
         // Cobro por cancelación / reprogramación / inasistencia pendiente
         if (
@@ -4401,10 +4329,9 @@ document.addEventListener('visibilitychange', async () => {
             s.notasAlertas?.admin ||
             s.notasAlertas?.asistencia
           );
-          const sinCalificar = s.estado === "pendiente" && s.tipo !== "AT";
+          const sinCalificar = s.estado === "pendiente";
           const sinCobrar =
             !s.cobrado &&
-            s.tipo !== "AT" &&
             s.estado !== "cancelo" &&
             s.estado !== "reprogramo";
           if (tieneUrgente || tieneNotas || sinCalificar || sinCobrar) {
@@ -4419,7 +4346,7 @@ document.addEventListener('visibilitychange', async () => {
 
       /* Turno que ya pasó en hora pero sigue en estado "pendiente" (sin calificar) */
       function esTurnoPasadoSinCalificar(s) {
-        if (!s || s.tipo === "reserva_personal" || s.tipo === "AT")
+        if (!s || s.tipo === "reserva_personal")
           return false;
         if (s.estado !== "pendiente") return false;
         if (!s.fecha || !s.horaFin) return false;
@@ -5346,7 +5273,7 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       /* AgendaLeyenda                          */
       /* ═══════════════════════════════════════ */
-      function AgendaLeyenda({ weekLabel, TIPO_COLORS }) {
+      function AgendaLeyenda({ TIPO_COLORS }) {
         const [openTipos, setOpenTipos] = React.useState(false);
         const [openEstados, setOpenEstados] = React.useState(false);
         const refTipos = React.useRef(null);
@@ -5360,8 +5287,6 @@ document.addEventListener('visibilitychange', async () => {
           return () => document.removeEventListener("mousedown", handler);
         }, []);
         const btnBase = { display:"inline-flex", alignItems:"center", gap:"5px", padding:"4px 10px", borderRadius:"999px", border:"1.5px solid rgba(200,146,42,.35)", background:"var(--vd)", cursor:"pointer", fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.75)", whiteSpace:"nowrap", transition:"border-color .15s,background .15s", flexShrink:0 };
-        const mesesRx = /\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i;
-        const weekParts = weekLabel.split(mesesRx);
         return (
           <div style={{ display:"flex", alignItems:"center", gap:"6px", marginBottom:"12px", flexWrap:"wrap" }}>
             <div ref={refTipos} style={{ position:"relative" }}>
@@ -5391,10 +5316,6 @@ document.addEventListener('visibilitychange', async () => {
                 </div>
               )}
             </div>
-            <span style={{ width:"1px", height:"16px", background:"rgba(200,146,42,.25)", flexShrink:0 }} />
-            <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"var(--tx2)", whiteSpace:"nowrap" }}>
-              {weekParts.map((p, i) => mesesRx.test(p) ? <strong key={i} style={{ color:"var(--do)", fontWeight:800, textTransform:"uppercase" }}>{p}</strong> : p)}
-            </span>
           </div>
         );
       }
@@ -6800,9 +6721,8 @@ document.addEventListener('visibilitychange', async () => {
                       s.notasAlertas?.clinica ||
                       s.notasAlertas?.admin ||
                       s.notasAlertas?.asistencia ||
-                      (s.estado === "pendiente" && s.tipo !== "AT") ||
+                      s.estado === "pendiente" ||
                       (!s.cobrado &&
-                        s.tipo !== "AT" &&
                         s.estado !== "cancelo" &&
                         s.estado !== "reprogramo")),
                 )
@@ -7092,7 +7012,6 @@ document.addEventListener('visibilitychange', async () => {
         const estadoCompleto = !!(f.estado && f.estado !== "pendiente");
 
         const cobroCmpleto = (() => {
-          if (f.tipo === "AT") return true;
           if (
             f.estado === "cancelo" ||
             f.estado === "reprogramo" ||
@@ -7141,7 +7060,6 @@ document.addEventListener('visibilitychange', async () => {
         const tipoInfo = TIPOS.find((t) => t.v === f.tipo) || TIPOS[0];
 
         const cobroResumen = (() => {
-          if (f.tipo === "AT") return "AT — sin cobro directo";
           if (
             f.estado === "cancelo" ||
             f.estado === "reprogramo" ||
@@ -7671,10 +7589,7 @@ document.addEventListener('visibilitychange', async () => {
                 )}
 
                 {/* ─── 3. FORMA DE COBRO ─── */}
-                {(f.tipo !== "AT" ||
-                  f.estado === "cancelo" ||
-                  f.estado === "inasistencia") && (
-                  <div className="acc-row">
+                <div className="acc-row">
                     <div
                       className="acc-head"
                       onClick={() => toggleSec("cobro")}
@@ -8354,7 +8269,6 @@ document.addEventListener('visibilitychange', async () => {
                       </div>
                     )}
                   </div>
-                )}
 
                 {/* ─── 5. NOTAS Y COMENTARIOS ─── */}
                 <div className="acc-row">
@@ -9376,7 +9290,7 @@ document.addEventListener('visibilitychange', async () => {
 
         /* Cobrado real (nuevo sistema de pagos) */
         const cobradoSem = weekSes
-          .filter((s) => s.tipo !== "AT" && s.tipo !== "reserva_personal")
+          .filter((s) => s.tipo !== "reserva_personal")
           .reduce((sum, s) => {
             let t = 0;
             if (s.modalidadPago === "particular" && s.particularAbonado)
@@ -9410,7 +9324,7 @@ document.addEventListener('visibilitychange', async () => {
 
         /* Pendiente a cobrar en la semana */
         const pendienteSem = weekSes
-          .filter((s) => s.tipo !== "AT" && s.tipo !== "reserva_personal")
+          .filter((s) => s.tipo !== "reserva_personal")
           .reduce((sum, s) => {
             let t = 0;
             if (s.estado === "asistio") {
@@ -9496,8 +9410,7 @@ document.addEventListener('visibilitychange', async () => {
           const daySes = sesiones.filter(
             (s) =>
               s.fecha === ds &&
-              s.tipo !== "reserva_personal" &&
-              s.tipo !== "AT",
+              s.tipo !== "reserva_personal",
           );
           let efectivo = 0,
             transferencia = 0,
@@ -10181,7 +10094,7 @@ document.addEventListener('visibilitychange', async () => {
               eliminarCoordAuto={eliminarCoordAuto}
               eliminarCoordManual={eliminarCoordManual}
             />}
-            {!isLandscape && <AgendaLeyenda weekLabel={weekLabel} TIPO_COLORS={TIPO_COLORS} />}
+            {!isLandscape && <AgendaLeyenda TIPO_COLORS={TIPO_COLORS} />}
 
             {/* PESTAÑAS FICHERO */}
             {!isLandscape && <div style={{
@@ -21588,15 +21501,6 @@ document.addEventListener('visibilitychange', async () => {
                   anio={facAnio} setAnio={setFacAnio}
                 />
               );
-            case "planillas_at":
-              return (
-                <SeccionPlanillasAT
-                  mes={atMes} setMes={setAtMes}
-                  anio={atAnio} setAnio={setAtAnio}
-                  pacId={atPacId} setPacId={setAtPacId}
-                  onPacientesLoad={setAtPacientes}
-                />
-              );
             case "gastos":
               return (
                 <SeccionGastos
@@ -21652,12 +21556,6 @@ document.addEventListener('visibilitychange', async () => {
                 vistaCards: pacVistaCards,
                 setVistaCards: setPacVistaCards,
                 onNuevo: () => setPacOpenNuevo((c) => c + 1),
-              }}
-              planillasATBar={{
-                mes: atMes, setMes: setAtMes,
-                anio: atAnio, setAnio: setAtAnio,
-                pacId: atPacId, setPacId: setAtPacId,
-                pacientes: atPacientes,
               }}
               gastosBar={{
                 mes: gastosMes, setMes: setGastosMes,
