@@ -2150,7 +2150,7 @@
       }
       .ag-day-hd {
         background: var(--vd);
-        padding: 4px 3px;
+        padding: 2px;
         text-align: center;
         border-right: 1px solid rgba(255, 255, 255, 0.1);
         position: sticky;
@@ -2179,13 +2179,13 @@
         align-items: center;
         justify-content: center;
         background: var(--vd);
-        border-radius: 8px;
-        padding: 3px 5px 3px 6px;
+        border-radius: 6px;
+        padding: 1px 3px 1px 4px;
         border: 1.5px solid rgba(255,255,255,.15);
-        width: calc(100% - 8px);
+        width: calc(100% - 4px);
         box-sizing: border-box;
         margin: 0 auto;
-        gap: 4px;
+        gap: 3px;
       }
       .ag-today-badge {
         border-color: var(--do);
@@ -2270,8 +2270,8 @@
         grid-column: 1 / -1;
         display: grid;
         grid-template-columns: 44px repeat(5, 1fr); /* default L-V; overridden inline */
-        border: 2px solid #b8b0a0;
         border-top: none;
+        border-bottom: 2px solid #b8b0a0; /* sin bordes laterales — causaban desalineación */
         border-radius: 0 0 var(--r) var(--r);
         background: #faf7f2;
         overflow: hidden;
@@ -5908,8 +5908,8 @@ document.addEventListener('visibilitychange', async () => {
                             TIPO_COLORS.individual
                           : TIPO_COLORS[s.tipo] || TIPO_COLORS.individual;
                         const top = timeToPx(s.horaInicio, grStart);
-                        const h = Math.max(durPx(s.horaInicio, s.horaFin), 22);
-                        const short = h < 38;
+                        const h = Math.max(durPx(s.horaInicio, s.horaFin), 64);
+                        const short = h < 40;
                         // sub-columna: divide el ancho del día equitativamente
                         const GAP = 2;
                         const pct = 100 / s.ncols;
@@ -5980,94 +5980,33 @@ document.addEventListener('visibilitychange', async () => {
                                 )}
                               </>
                             ) : (
-                              <>
-                                {(tieneAlertaUrgente(s) ||
-                                  (pacPendMinMap.has(s.pacienteId) &&
-                                    pacPendMinMap.get(s.pacienteId) <
-                                      getWeekMon(s.fecha)) ||
-                                  tienePendientePago(s, hoyStr) ||
-                                  tieneNotasAlerta(s) ||
-                                  esTurnoPasadoSinCalificar(s)) && (
-                                  <div className="ag-badges-top">
-                                    {(tieneAlertaUrgente(s) ||
-                                      (pacPendMinMap.has(s.pacienteId) &&
-                                        pacPendMinMap.get(s.pacienteId) <
-                                          getWeekMon(s.fecha))) && (
-                                      <span
-                                        className="ag-urgente-badge"
-                                        title={
-                                          tieneAlertaUrgente(s)
-                                            ? "Alerta urgente — revisar antes del turno"
-                                            : "Pendientes sin resolver de semanas anteriores"
-                                        }
-                                      >
-                                        🚨
-                                      </span>
-                                    )}
-                                    {(tienePendientePago(s, hoyStr) ||
-                                      tieneNotasAlerta(s) ||
-                                      esTurnoPasadoSinCalificar(s)) && (
-                                      <div
-                                        className="ag-pago-alerta"
-                                        title="Turno requiere atención"
-                                      >
-                                        !
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      fontSize:
-                                        s.estado === "asistio" ||
-                                        s.estado === "pendiente" ||
-                                        !s.estado
-                                          ? "13px"
-                                          : "11px",
-                                      flexShrink: 0,
-                                      lineHeight: 1,
-                                    }}
-                                  >
+                              <div style={{ display:"flex", flexDirection:"column", gap:"1px", width:"100%", overflow:"hidden" }}>
+                                {/* Fila 1: estado + alertas */}
+                                <div style={{ display:"flex", alignItems:"center", gap:"3px", lineHeight:1 }}>
+                                  <span style={{ fontSize:"11px", flexShrink:0 }}>
                                     {ESTADO_ICONS[s.estado] || "⏳"}
                                   </span>
-                                  {s.superposicionConfirmada && (
-                                    <span
-                                      style={{
-                                        fontSize: "11px",
-                                        flexShrink: 0,
-                                        lineHeight: 1,
-                                      }}
-                                      title="Superposición confirmada"
-                                    >
-                                      ⚠️
-                                    </span>
+                                  {s.superposicionConfirmada && <span style={{ fontSize:"10px" }} title="Superposición">⚠️</span>}
+                                  {(tieneAlertaUrgente(s) || (pacPendMinMap.has(s.pacienteId) && pacPendMinMap.get(s.pacienteId) < getWeekMon(s.fecha))) && (
+                                    <span className="ag-urgente-badge" style={{ fontSize:"10px" }} title="Alerta urgente">🚨</span>
                                   )}
-                                  <span
-                                    className="ag-ses-nombre"
-                                    style={{ color: cols.text }}
-                                  >
-                                    {pac
-                                      ? `${pac.nombre} ${pac.apellido ? pac.apellido.charAt(0) + "." : ""}`.trim()
-                                      : "—"}
-                                  </span>
+                                  {(tienePendientePago(s, hoyStr) || tieneNotasAlerta(s) || esTurnoPasadoSinCalificar(s)) && (
+                                    <div className="ag-pago-alerta" title="Requiere atención">!</div>
+                                  )}
                                 </div>
-                                {!short && (
-                                  <div
-                                    className="ag-ses-hora"
-                                    style={{ color: cols.text }}
-                                  >
-                                    {s.horaInicio}–{s.horaFin}
-                                  </div>
-                                )}
-                              </>
+                                {/* Fila 2: nombre paciente */}
+                                <div className="ag-ses-nombre" style={{ color: cols.text, fontSize:"11px", lineHeight:1.1 }}>
+                                  {pac ? `${pac.nombre} ${pac.apellido ? pac.apellido.charAt(0)+"." : ""}`.trim() : "—"}
+                                </div>
+                                {/* Fila 3: hora inicio */}
+                                <div className="ag-ses-hora" style={{ color: cols.text, fontSize:"10px", lineHeight:1 }}>
+                                  {s.horaInicio}
+                                </div>
+                                {/* Fila 4: hora fin */}
+                                <div className="ag-ses-hora" style={{ color: cols.text, fontSize:"10px", lineHeight:1 }}>
+                                  {s.horaFin}
+                                </div>
+                              </div>
                             )}
                           </div>
                         );
