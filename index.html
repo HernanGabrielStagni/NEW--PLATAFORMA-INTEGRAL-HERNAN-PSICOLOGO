@@ -2267,14 +2267,19 @@
         border-radius: 6px;
       }
       .ag-body {
-        grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: 44px repeat(5, 1fr); /* default L-V; overridden inline */
-        border-top: none;
-        border-bottom: 2px solid #b8b0a0; /* sin bordes laterales — causaban desalineación */
-        border-radius: 0 0 var(--r) var(--r);
+        /* display:contents — los hijos pasan al ag-grid padre y comparten sus columnas exactas */
+        display: contents;
+      }
+      /* Fondo crema para las columnas de días */
+      .ag-col, .ag-time-col {
         background: #faf7f2;
-        overflow: hidden;
+      }
+      /* Borde inferior visual del área del grid — en ag-wrap */
+      .ag-wrap {
+        border-bottom: 2px solid #b8b0a0;
+        border-left: 2px solid #b8b0a0;
+        border-right: 2px solid #b8b0a0;
+        border-radius: 0 0 var(--r) var(--r);
       }
       .ag-time-col {
         border-right: 1px solid #ddd5c4;
@@ -5853,14 +5858,8 @@ document.addEventListener('visibilitychange', async () => {
                 </span>
               </div>
 
-              {/* ── CUERPO ── */}
-              <div
-                className="ag-body"
-                style={{
-                  gridTemplateColumns: `44px repeat(${weekDates.length}, 1fr)`,
-                  gridColumn: `1 / -2`,
-                }}
-              >
+              {/* ── CUERPO (display:contents → hijos van al ag-grid padre) ── */}
+              <div className="ag-body">
                 {/* columna de tiempo */}
                 <div className="ag-time-col">
                   {grSlots.map((t, i) => (
