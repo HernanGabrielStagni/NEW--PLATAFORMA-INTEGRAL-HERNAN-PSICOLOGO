@@ -10094,7 +10094,7 @@ document.addEventListener('visibilitychange', async () => {
               eliminarCoordAuto={eliminarCoordAuto}
               eliminarCoordManual={eliminarCoordManual}
             />}
-            {!isLandscape && <AgendaLeyenda TIPO_COLORS={TIPO_COLORS} />}
+            {/* Leyenda y colores → en Configuración */}
 
             {/* PESTAÑAS FICHERO */}
             {!isLandscape && <div style={{
@@ -17040,6 +17040,7 @@ document.addEventListener('visibilitychange', async () => {
         });
         // Secciones colapsables: todas cerradas por defecto
         const [open, setOpen] = useState({
+          agenda: false,
           prestador: false,
           economicos: false,
           os: false,
@@ -17047,6 +17048,28 @@ document.addEventListener('visibilitychange', async () => {
           backup: false,
           admin: false,
         });
+
+        /* ── Colores de agenda ── */
+        const COLORES_OPCIONES = [
+          { id:"verde_os",  label:"Verde OS",   bg:"#14532D", border:"#4ADE80" },
+          { id:"azul",      label:"Azul",       bg:"#1E3A5F", border:"#60A5FA" },
+          { id:"violeta",   label:"Violeta",    bg:"#4C1D95", border:"#A78BFA" },
+          { id:"naranja",   label:"Naranja",    bg:"#7C2D12", border:"#FB923C" },
+          { id:"rojo",      label:"Rojo",       bg:"#7F1D1D", border:"#F87171" },
+          { id:"gris",      label:"Gris",       bg:"#374151", border:"#9CA3AF" },
+          { id:"carbon",    label:"Carbón",     bg:"#1C1917", border:"#78716C" },
+          { id:"teal",      label:"Teal",       bg:"#134E4A", border:"#2DD4BF" },
+        ];
+        const [coloresAgenda, setColoresAgenda] = useState(() => {
+          const saved = getData("hgsp_colores_agenda");
+          return saved || { AT: "verde_os", reserva_personal: "gris" };
+        });
+        function saveColorAgenda(tipo, colorId) {
+          const next = { ...coloresAgenda, [tipo]: colorId };
+          setColoresAgenda(next);
+          setData("hgsp_colores_agenda", next);
+          showToast("🎨 Color guardado — recargá la agenda");
+        }
 
         /* ── Feriados locales ── */
         const [extraFeriados, setExtraFeriados] = useState(() =>
@@ -17384,6 +17407,85 @@ document.addEventListener('visibilitychange', async () => {
         return (
           <React.Fragment>
             <div>
+              {/* ── AGENDA: LEYENDA Y COLORES ── */}
+              <div style={cfgWrap}>
+                <div style={cfgBarStyle("agenda")} onClick={() => toggle("agenda")}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+                    <span style={{ fontSize:"20px" }}>🎨</span>
+                    <div>
+                      <div style={{ fontFamily:"var(--sans)", fontSize:"14px", fontWeight:700, color:"#fff" }}>Agenda — Colores y Leyenda</div>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.5)", marginTop:"2px" }}>Colores de turnos AT y reservas · Referencia de íconos</div>
+                    </div>
+                  </div>
+                  <span style={{ color:"var(--do)", fontSize:"18px", transition:"transform .2s", transform: open.agenda ? "rotate(90deg)" : "none" }}>▶</span>
+                </div>
+                {open.agenda && (
+                  <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:"20px" }}>
+
+                    {/* Selector color AT */}
+                    <div>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>Color — Acompañamiento Terapéutico (AT)</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+                        {COLORES_OPCIONES.map(c => (
+                          <button key={c.id} onClick={() => saveColorAgenda("AT", c.id)}
+                            style={{ display:"flex", alignItems:"center", gap:"7px", padding:"6px 12px", borderRadius:"8px", border: coloresAgenda.AT === c.id ? `2px solid var(--do)` : "1.5px solid rgba(255,255,255,.15)", background: c.bg, cursor:"pointer", fontFamily:"var(--sans)", fontSize:"12px", fontWeight:600, color:"#fff", boxShadow: coloresAgenda.AT === c.id ? "0 0 0 3px rgba(200,146,42,.4)" : "none", transition:"all .15s" }}>
+                            <span style={{ width:"10px", height:"10px", borderRadius:"50%", background:c.border, flexShrink:0 }} />
+                            {c.label}
+                            {coloresAgenda.AT === c.id && " ✓"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Selector color Reservas */}
+                    <div>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>Color — Reservas de horario</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+                        {COLORES_OPCIONES.map(c => (
+                          <button key={c.id} onClick={() => saveColorAgenda("reserva_personal", c.id)}
+                            style={{ display:"flex", alignItems:"center", gap:"7px", padding:"6px 12px", borderRadius:"8px", border: coloresAgenda.reserva_personal === c.id ? `2px solid var(--do)` : "1.5px solid rgba(255,255,255,.15)", background: c.bg, cursor:"pointer", fontFamily:"var(--sans)", fontSize:"12px", fontWeight:600, color:"#fff", boxShadow: coloresAgenda.reserva_personal === c.id ? "0 0 0 3px rgba(200,146,42,.4)" : "none", transition:"all .15s" }}>
+                            <span style={{ width:"10px", height:"10px", borderRadius:"50%", background:c.border, flexShrink:0 }} />
+                            {c.label}
+                            {coloresAgenda.reserva_personal === c.id && " ✓"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Leyenda de estados */}
+                    <div>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>Leyenda de estados de turno</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+                        {[["✅","Asistió"],["❌","Canceló"],["⏳","Pendiente"],["🔄","Reprogramó"],["⚠️","Superposición"],["🚨","Alerta urgente"],["!","Cobro / orden pendiente"]].map(([ico, lbl]) => (
+                          <span key={lbl} style={{ display:"inline-flex", alignItems:"center", gap:"6px", padding:"5px 10px", borderRadius:"8px", background:"rgba(255,255,255,.06)", border:"1px solid rgba(255,255,255,.12)", fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.8)" }}>
+                            <span style={{ fontSize:"14px" }}>{ico}</span>{lbl}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Leyenda de tipos */}
+                    <div>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>Tipos de sesión</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+                        {[["individual","Individual",["#1E3A5F","#60A5FA"]],["AT","AT — Acom. Terapéutico",null],["pareja","Pareja",["#4C1D95","#A78BFA"]],["grupo","Grupo",["#1C1917","#78716C"]],["reserva_personal","Reserva de horario",null]].map(([tipo, lbl, colFallback]) => {
+                          const colorId = coloresAgenda[tipo];
+                          const c = COLORES_OPCIONES.find(x => x.id === colorId);
+                          const bg = c ? c.bg : (colFallback ? colFallback[0] : "#1E3A5F");
+                          const border = c ? c.border : (colFallback ? colFallback[1] : "#60A5FA");
+                          return (
+                            <span key={tipo} style={{ display:"inline-flex", alignItems:"center", gap:"6px", padding:"5px 10px", borderRadius:"8px", background:bg, border:`1.5px solid ${border}`, fontFamily:"var(--sans)", fontSize:"12px", color:"#fff", fontWeight:600 }}>
+                              <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:border, flexShrink:0 }} />
+                              {lbl}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* ── DATOS DEL PRESTADOR ── */}
               <div style={cfgWrap}>
                 <div
