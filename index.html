@@ -5896,18 +5896,20 @@ document.addEventListener('visibilitychange', async () => {
                               </>
                             ) : (
                               <div style={{ display:"flex", flexDirection:"column", gap:"1px", width:"100%", overflow:"hidden" }}>
-                                {/* Fila 1: estado + alertas */}
-                                <div style={{ display:"flex", alignItems:"center", gap:"3px", lineHeight:1 }}>
+                                {/* Fila 1: estado (izq) + alertas (der) */}
+                                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", lineHeight:1, width:"100%" }}>
                                   <span style={{ fontSize:"11px", flexShrink:0 }}>
                                     {ESTADO_ICONS[s.estado] || "⏳"}
                                   </span>
-                                  {s.superposicionConfirmada && <span style={{ fontSize:"10px" }} title="Superposición">⚠️</span>}
-                                  {(tieneAlertaUrgente(s) || (pacPendMinMap.has(s.pacienteId) && pacPendMinMap.get(s.pacienteId) < getWeekMon(s.fecha))) && (
-                                    <span className="ag-urgente-badge" style={{ fontSize:"10px" }} title="Alerta urgente">🚨</span>
-                                  )}
-                                  {(tienePendientePago(s, hoyStr) || tieneNotasAlerta(s) || esTurnoPasadoSinCalificar(s)) && (
-                                    <div className="ag-pago-alerta" title="Requiere atención">!</div>
-                                  )}
+                                  <div style={{ display:"flex", alignItems:"center", gap:"2px" }}>
+                                    {s.superposicionConfirmada && <span style={{ fontSize:"10px" }} title="Superposición">⚠️</span>}
+                                    {(tieneAlertaUrgente(s) || (pacPendMinMap.has(s.pacienteId) && pacPendMinMap.get(s.pacienteId) < getWeekMon(s.fecha))) && (
+                                      <span className="ag-urgente-badge" style={{ fontSize:"10px" }} title="Alerta urgente">🚨</span>
+                                    )}
+                                    {(tienePendientePago(s, hoyStr) || tieneNotasAlerta(s) || esTurnoPasadoSinCalificar(s)) && (
+                                      <div className="ag-pago-alerta" title="Requiere atención">!</div>
+                                    )}
+                                  </div>
                                 </div>
                                 {/* Fila 2: nombre paciente */}
                                 <div className="ag-ses-nombre" style={{ color: cols.text, fontSize:"11px", lineHeight:1.1 }}>
