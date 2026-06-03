@@ -2127,9 +2127,9 @@
         border-radius: var(--r);
       }
       .ag-grid {
-        min-width: 544px; /* 680 × 0.8 — columnas 20% más angostas */
+        min-width: 462px; /* 544 × 0.85 — columnas 15% más angostas */
         display: grid;
-        grid-template-columns: 44px repeat(5, 1fr); /* default L-V; overridden inline */
+        grid-template-columns: 38px repeat(5, 1fr); /* default L-V; overridden inline */
       }
       .ag-corner {
         background: var(--vd);
@@ -2150,7 +2150,7 @@
       }
       .ag-day-hd {
         background: var(--vd);
-        padding: 4px 3px;
+        padding: 3px;
         text-align: center;
         border-right: 1px solid rgba(255, 255, 255, 0.1);
         position: sticky;
@@ -2179,13 +2179,13 @@
         align-items: center;
         justify-content: center;
         background: var(--vd);
-        border-radius: 8px;
-        padding: 3px 5px 3px 6px;
+        border-radius: 6px;
+        padding: 2px 4px 2px 5px;
         border: 1.5px solid rgba(255,255,255,.15);
-        width: calc(100% - 8px);
+        width: calc(100% - 6px);
         box-sizing: border-box;
         margin: 0 auto;
-        gap: 4px;
+        gap: 3px;
       }
       .ag-today-badge {
         border-color: var(--do);
@@ -2269,7 +2269,7 @@
       .ag-body {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: 44px repeat(5, 1fr); /* default L-V; overridden inline */
+        grid-template-columns: 38px repeat(5, 1fr); /* default L-V; overridden inline */
         border: 2px solid #b8b0a0;
         border-top: none;
         border-radius: 0 0 var(--r) var(--r);
@@ -5714,7 +5714,7 @@ document.addEventListener('visibilitychange', async () => {
             <div
               className="ag-grid"
               style={{
-                gridTemplateColumns: `44px repeat(${weekDates.length}, 1fr) 38px`,
+                gridTemplateColumns: `38px repeat(${weekDates.length}, 1fr) 38px`,
               }}
             >
               {/* ── CABECERA ── */}
@@ -5857,7 +5857,7 @@ document.addEventListener('visibilitychange', async () => {
               <div
                 className="ag-body"
                 style={{
-                  gridTemplateColumns: `44px repeat(${weekDates.length}, 1fr)`,
+                  gridTemplateColumns: `38px repeat(${weekDates.length}, 1fr)`,
                   gridColumn: `1 / -2`,
                 }}
               >
