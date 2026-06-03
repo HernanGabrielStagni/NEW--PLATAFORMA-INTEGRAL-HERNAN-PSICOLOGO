@@ -5759,22 +5759,15 @@ document.addEventListener('visibilitychange', async () => {
               >
                 <span
                   style={{
-                    writingMode: "vertical-rl",
-                    transform: "rotate(180deg)",
                     fontFamily: "var(--mono)",
-                    fontSize: "12px",
+                    fontSize: "14px",
                     fontWeight: 700,
-                    color: isWeekendShowing
-                      ? "rgba(200,146,42,.65)"
-                      : "var(--do)",
-                    letterSpacing: ".07em",
-                    whiteSpace: "nowrap",
-                    textTransform: "uppercase",
-                    padding: "6px 0",
+                    color: isWeekendShowing ? "rgba(200,146,42,.65)" : "var(--do)",
                     userSelect: "none",
+                    lineHeight: 1,
                   }}
                 >
-                  {isWeekendShowing ? "◂ cerrar" : "Sáb Dom ▸"}
+                  {isWeekendShowing ? "◂" : "▸"}
                 </span>
               </div>
 
