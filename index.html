@@ -17162,7 +17162,7 @@ document.addEventListener('visibilitychange', async () => {
                   </div>
 
                   {/* ── Contenido con SeccionColapsable — mismo componente que alertas semanales ── */}
-                  <div style={{ background:"rgba(30,61,43,.4)", border:"2px solid rgba(200,146,42,.2)", borderTop:"none", borderRadius:"0 0 var(--rsm) var(--rsm)", padding:"12px" }}>
+                  <div style={{ background:"var(--vd)", border:"2px solid var(--do)", borderTop:"none", borderRadius:"0 0 var(--rsm) var(--rsm)", padding:"12px" }}>
                     {novedades.length > 0 && (
                       <SeccionColapsable key={lk+"nov"} show={true} label="⚠️ Novedades de turnos" count={novedades.length} color="rgba(200,146,42,.7)"
                         render={() => novedades.map((n,i) => renderNovedad(n,i))} />
