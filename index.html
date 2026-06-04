@@ -5373,14 +5373,9 @@ document.addEventListener('visibilitychange', async () => {
           }}>
             {/* Barra de íconos */}
             <div style={{
-              position: panelAbierto ? "sticky" : "relative",
-              top: panelAbierto ? "var(--mobile-topbar-offset, 64px)" : "auto",
-              zIndex: panelAbierto ? 80 : 1,
               background: "var(--vd)",
               borderBottom: panelAbierto ? "1px solid rgba(200,146,42,.3)" : "none",
               padding: "8px 12px",
-              boxShadow: panelAbierto ? "0 4px 16px rgba(0,0,0,.3)" : "none",
-              transition: "box-shadow .2s",
             }}>
               <div style={{ display:"flex", gap:"6px", alignItems:"stretch" }}>
                 {accesos.map((acc) => { const { id, icon, label, color, glow } = acc;
