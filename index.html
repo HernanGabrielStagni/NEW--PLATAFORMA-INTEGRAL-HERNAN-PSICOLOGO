@@ -9675,6 +9675,28 @@ document.addEventListener('visibilitychange', async () => {
           if (idx >= 0) all[idx] = s;
           else all.push(s);
           setData("hgsp_sesiones", all);
+
+          /* ── Si es reserva personal, sincronizar con Notas y Pendientes ── */
+          if (s.tipo === "reserva_personal") {
+            const eventos = getData("hgsp_eventos");
+            const evIdx = eventos.findIndex(e => e.reservaId === s.id);
+            const estadoEvento = (!s.estado || s.estado === "pendiente") ? "pendiente"
+              : (s.estado === "asistio" ? "resuelto" : "pendiente");
+            const nuevoEv = {
+              id: evIdx >= 0 ? eventos[evIdx].id : genId(),
+              reservaId: s.id,
+              descripcion: s.titulo || "Reserva de horario",
+              fecha: s.fecha,
+              hora: s.horaInicio,
+              prioridad: "normal",
+              estado: estadoEvento,
+              comentario: evIdx >= 0 ? (eventos[evIdx].comentario || "") : "",
+            };
+            if (evIdx >= 0) eventos[evIdx] = nuevoEv;
+            else eventos.push(nuevoEv);
+            setData("hgsp_eventos", eventos);
+          }
+
           loadData();
         }
         /* Resuelve un ítem de novedad seteando su campo a true en la sesión */
@@ -9711,6 +9733,8 @@ document.addEventListener('visibilitychange', async () => {
           showToast("🗑️ Turno eliminado");
         }
         function deleteReserva(id) {
+          /* Eliminar también el evento vinculado en Notas y Pendientes */
+          setData("hgsp_eventos", getData("hgsp_eventos").filter(e => e.reservaId !== id));
           setData(
             "hgsp_sesiones",
             getData("hgsp_sesiones").filter((s) => s.id !== id),
@@ -16969,12 +16993,15 @@ document.addEventListener('visibilitychange', async () => {
                         {/* Título o input de edición */}
                         <div style={{ flex:1, minWidth:0 }}>
                           {!editing ? (
-                            <div style={{
-                              fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px",
-                              color: resuelto ? "var(--tx3)" : vencido ? "#C0392B" : enEsperaItem ? "#1E40AF" : "var(--vd)",
-                              textDecoration: resuelto ? "line-through" : "none",
-                              lineHeight:1.3,
-                            }}>{ev.descripcion}</div>
+                            <div style={{ display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap" }}>
+                              <span style={{
+                                fontFamily:"var(--serif2)", fontWeight:700, fontSize:"15px",
+                                color: resuelto ? "var(--tx3)" : vencido ? "#C0392B" : enEsperaItem ? "#1E40AF" : "var(--vd)",
+                                textDecoration: resuelto ? "line-through" : "none",
+                                lineHeight:1.3,
+                              }}>{ev.descripcion}</span>
+                              {ev.reservaId && <span style={{ fontFamily:"var(--mono)", fontSize:"9px", fontWeight:700, color:"#7C3AED", background:"#EDE9FE", borderRadius:"6px", padding:"1px 6px", border:"1px solid #C4B5FD" }}>🗓 Reserva</span>}
+                            </div>
                           ) : (
                             <input className="input-base" autoComplete="off"
                               value={editDraft.descripcion || ""}
@@ -17123,8 +17150,9 @@ document.addEventListener('visibilitychange', async () => {
           const dow = d.getDay(); d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
           const fin = new Date(anioHasta, mesHasta, 0);
           while (d <= fin) {
-            const lk = d.toISOString().slice(0,10);
-            const viernesStr = new Date(d.getTime() + 6*86400000).toISOString().slice(0,10);
+            const lk = dateStr(d);  /* usa hora local, igual que semanaKey en agenda */
+            const vier = new Date(d); vier.setDate(d.getDate() + 6);
+            const viernesStr = dateStr(vier);
             const weekSesArr = sesiones.filter(s => s.fecha >= lk && s.fecha <= viernesStr);
             const novedades = calcNovedadesArr(weekSesArr);
             const recs = (getData("hgsp_recordatorios_semana") || []).filter(r => r.semana === lk);
