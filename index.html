@@ -11167,8 +11167,8 @@ document.addEventListener('visibilitychange', async () => {
                 <div
                   style={{
                     position: "fixed",
-                    left: Math.min(cellMenu.x + 8, window.innerWidth - 228),
-                    top: Math.min(cellMenu.y + 8, window.innerHeight - 160),
+                    left: cellMenu.x + 8 + 220 > window.innerWidth  ? Math.max(4, cellMenu.x - 220) : cellMenu.x + 8,
+                    top:  cellMenu.y + 8 + 160 > window.innerHeight ? Math.max(4, cellMenu.y - 160) : cellMenu.y + 8,
                     background: "var(--vd, #1e3d2b)",
                     borderRadius: "var(--rsm, 12px)",
                     boxShadow: "0 12px 40px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2)",
