@@ -17347,18 +17347,22 @@ document.addEventListener('visibilitychange', async () => {
 
         /* ── Colores de agenda ── */
         const COLORES_OPCIONES = [
-          { id:"verde_os",  label:"Verde OS",   bg:"#14532D", border:"#4ADE80" },
-          { id:"azul",      label:"Azul",       bg:"#1E3A5F", border:"#60A5FA" },
-          { id:"violeta",   label:"Violeta",    bg:"#4C1D95", border:"#A78BFA" },
-          { id:"naranja",   label:"Naranja",    bg:"#7C2D12", border:"#FB923C" },
-          { id:"rojo",      label:"Rojo",       bg:"#7F1D1D", border:"#F87171" },
-          { id:"gris",      label:"Gris",       bg:"#374151", border:"#9CA3AF" },
-          { id:"carbon",    label:"Carbón",     bg:"#1C1917", border:"#78716C" },
-          { id:"teal",      label:"Teal",       bg:"#134E4A", border:"#2DD4BF" },
+          { id:"verde_os",    label:"Verde OS",     bg:"#14532D", border:"#4ADE80" },
+          { id:"azul",        label:"Azul oscuro",  bg:"#1E3A5F", border:"#60A5FA" },
+          { id:"violeta",     label:"Violeta",      bg:"#4C1D95", border:"#A78BFA" },
+          { id:"naranja",     label:"Naranja",      bg:"#7C2D12", border:"#FB923C" },
+          { id:"rojo",        label:"Rojo",         bg:"#7F1D1D", border:"#F87171" },
+          { id:"gris",        label:"Gris",         bg:"#374151", border:"#9CA3AF" },
+          { id:"carbon",      label:"Carbón",       bg:"#1C1917", border:"#78716C" },
+          { id:"teal",        label:"Teal",         bg:"#134E4A", border:"#2DD4BF" },
+          { id:"celeste",     label:"Celeste",      bg:"#0C4A6E", border:"#38BDF8" },
+          { id:"rosa",        label:"Rosa",         bg:"#831843", border:"#F472B6" },
+          { id:"amarillo",    label:"Amarillo",     bg:"#713F12", border:"#FBBF24" },
+          { id:"verde_claro", label:"Verde claro",  bg:"#14532D", border:"#86EFAC" },
         ];
         const [coloresAgenda, setColoresAgenda] = useState(() => {
           const saved = getData("hgsp_colores_agenda");
-          return saved || { AT: "verde_os", reserva_personal: "gris" };
+          return saved || { individual: "azul", AT: "verde_os", reserva_personal: "gris" };
         });
         function saveColorAgenda(tipo, colorId) {
           const next = { ...coloresAgenda, [tipo]: colorId };
@@ -17724,6 +17728,21 @@ document.addEventListener('visibilitychange', async () => {
                 </div>
                 {open.agenda && (
                   <div style={{ padding:"20px", display:"flex", flexDirection:"column", gap:"20px" }}>
+
+                    {/* Selector color Individual / Psicología */}
+                    <div>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>Color — Psicología / Individual</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+                        {COLORES_OPCIONES.map(c => (
+                          <button key={c.id} onClick={() => saveColorAgenda("individual", c.id)}
+                            style={{ display:"flex", alignItems:"center", gap:"7px", padding:"6px 12px", borderRadius:"8px", border: coloresAgenda.individual === c.id ? `2px solid var(--do)` : "1.5px solid rgba(255,255,255,.15)", background: c.bg, cursor:"pointer", fontFamily:"var(--sans)", fontSize:"12px", fontWeight:600, color:"#fff", boxShadow: coloresAgenda.individual === c.id ? "0 0 0 3px rgba(200,146,42,.4)" : "none", transition:"all .15s" }}>
+                            <span style={{ width:"10px", height:"10px", borderRadius:"50%", background:c.border, flexShrink:0 }} />
+                            {c.label}
+                            {coloresAgenda.individual === c.id && " ✓"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
                     {/* Selector color AT */}
                     <div>
