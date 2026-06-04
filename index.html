@@ -3618,14 +3618,51 @@ document.addEventListener('visibilitychange', async () => {
                     );
                   })()}
                   <div className="topbar-brand-copy">
-                    <div className="topbar-title">Plataforma Integral</div>
+                    {/* Título editable doble clic */}
+                    {(() => {
+                      const cfg = getData("hgsp_config") || {};
+                      const titulo = cfg.tituloApp || "Plataforma Integral";
+                      return (
+                        <div className="topbar-title" title="Doble clic para editar el título"
+                          style={{ cursor:"text" }}
+                          onDoubleClick={() => {
+                            const nuevo = prompt("Título de la aplicación:", titulo);
+                            if (nuevo !== null) {
+                              const c = getData("hgsp_config") || {};
+                              c.tituloApp = nuevo.trim() || "Plataforma Integral";
+                              setData("hgsp_config", c);
+                              showToast("✅ Título actualizado — recargá");
+                              window.location.reload();
+                            }
+                          }}
+                        >{titulo}</div>
+                      );
+                    })()}
                     <div className="topbar-subtitle" style={{display:"flex", alignItems:"center", gap:"7px", flexWrap:"wrap"}}>
                       {(() => {
                         const cfgLocal = getData("hgsp_config") || {};
+                        /* Prioridad: nombreEncabezado > prestador+mp > aviso */
+                        const custom = cfgLocal.nombreEncabezado || "";
                         const nombre = cfgLocal.prestador || "";
                         const mp     = cfgLocal.mp || "";
-                        if (!nombre && !mp) return <span>Plataforma · Configurar perfil en ⚙️</span>;
-                        return <span>{nombre}{mp ? " · MP " + mp : ""}</span>;
+                        const texto  = custom || (nombre ? nombre + (mp ? " · MP " + mp : "") : "");
+                        return (
+                          <span title="Doble clic para editar el nombre del encabezado"
+                            style={{ cursor:"text" }}
+                            onDoubleClick={() => {
+                              const nuevo = prompt("Nombre en el encabezado:", texto || "");
+                              if (nuevo !== null) {
+                                const c = getData("hgsp_config") || {};
+                                c.nombreEncabezado = nuevo.trim();
+                                setData("hgsp_config", c);
+                                showToast("✅ Nombre actualizado — recargá");
+                                window.location.reload();
+                              }
+                            }}
+                          >
+                            {texto || "Doble clic para poner tu nombre"}
+                          </span>
+                        );
                       })()}
                       {(() => {
                         const bdg = (bg, txt, ml) => (
