@@ -5349,44 +5349,61 @@ document.addEventListener('visibilitychange', async () => {
 
             function PanelAccesos({ objActual, objDraft, setObjDraft, editandoObj, setEditandoObj, guardarObjetivos, cobradoSem, pendienteSem, weekSes, pendSem, cancelSem, ordenesSem, valorOrdenesSem, showOrdenes, setShowOrdenes, pacientes, setModalTurno, novedadesItems, ordenesHistPendientes, recordatoriosActivos, coordSemana, coordManualesPendientes, totalPendientes, resolverItem, loadData, showToast, sesiones, deleteRecordatorio, setBaseDate, setVista, eliminarCoordAuto, eliminarCoordManual }) {
         const [panelAbierto, setPanelAbierto] = React.useState(null);
-        const tabStyle = { display:"flex", flexDirection:"column", alignItems:"center", gap:"3px", padding:"7px 12px", borderRadius:"10px", cursor:"pointer", transition:"all .2s", flex:"0 0 auto" };
+        /* Botón igual para todos: padding reducido 40%, misma anchura */
+        const tabStyle = {
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          gap:"2px", padding:"4px 8px", borderRadius:"8px",
+          cursor:"pointer", transition:"all .2s",
+          flex:"1 1 0",      /* misma anchura para todos */
+          minWidth:0,
+        };
         const accesos = [
           { id:"objetivos", icon:"🎯", label:"Objetivos", color:"#E8B84B", glow:"rgba(232,184,75,.45)" },
           { id:"metricas",  icon:"📊", label:"Métricas",  color:"#8AD2A0", glow:"rgba(138,210,160,.4)"  },
           { id:"alertas",   icon:"🔔", label:"Alertas",   color:"#F0A060", glow:"rgba(240,160,96,.4)",  badge: totalPendientes },
         ];
         return (
-          <div style={{ background:"var(--vd)", border:"2px solid var(--vm)", borderLeft:"5px solid var(--do)", borderRadius:"var(--r)", marginBottom:"18px", position:"relative" }}>
-            <div style={{ position:"absolute", top:0, left:0, right:0, height:"3px", background:"linear-gradient(90deg,var(--do),#E8B84B)", borderRadius:"var(--r) var(--r) 0 0", zIndex:2 }} />
-            {/* Barra de íconos — sticky cuando hay panel abierto */}
+          /* Contenedor limpio: un solo borde dorado uniforme, bordes redondeados, sin superposiciones */
+          <div style={{
+            background: "var(--vd)",
+            border: "2px solid var(--do)",
+            borderRadius: "var(--rsm)",
+            marginBottom: "14px",
+            overflow: "hidden",          /* clip limpio en las esquinas */
+          }}>
+            {/* Barra de íconos */}
             <div style={{
               position: panelAbierto ? "sticky" : "relative",
               top: panelAbierto ? "var(--mobile-topbar-offset, 64px)" : "auto",
               zIndex: panelAbierto ? 80 : 1,
               background: "var(--vd)",
-              borderRadius: panelAbierto ? "0" : "var(--r) var(--r) 0 0",
-              borderBottom: panelAbierto ? "1.5px solid rgba(200,146,42,.25)" : "none",
-              padding: "14px 20px 12px",
-              boxShadow: panelAbierto ? "0 4px 16px rgba(0,0,0,.35)" : "none",
+              borderBottom: panelAbierto ? "1px solid rgba(200,146,42,.3)" : "none",
+              padding: "8px 12px",
+              boxShadow: panelAbierto ? "0 4px 16px rgba(0,0,0,.3)" : "none",
               transition: "box-shadow .2s",
             }}>
-              <div style={{ display:"flex", gap:"8px", alignItems:"center", overflowX:"auto", overflowY:"visible", paddingBottom:"4px", scrollbarWidth:"none" }}>
+              <div style={{ display:"flex", gap:"6px", alignItems:"stretch" }}>
                 {accesos.map((acc) => { const { id, icon, label, color, glow } = acc;
                   const isOpen = panelAbierto === id;
                   return (
                     <button key={id} onClick={() => setPanelAbierto(isOpen ? null : id)} title={label}
-                      style={{ ...tabStyle, border:"2px solid "+(isOpen ? color : "rgba(200,146,42,.25)"), background:isOpen ? (id==="objetivos"?"rgba(232,184,75,.12)":"rgba(138,210,160,.12)") : "rgba(255,255,255,.04)", boxShadow:isOpen?"0 0 18px "+glow:"none" }}>
-                      <span style={{ fontSize:"17px", lineHeight:1, filter:isOpen?"drop-shadow(0 0 6px "+glow+")":"none", transition:"filter .2s" }}>{icon}</span>
-                      <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                        <span style={{ fontFamily:"var(--mono)", fontSize:"9px", fontWeight: isOpen ? 700 : 500, color: isOpen ? color : "#fff", letterSpacing:".05em", textTransform:"uppercase", textShadow: isOpen ? `0 0 8px ${glow}` : "none" }}>{label}</span>
-                        {acc.badge > 0 && <span style={{ background:"var(--do)", color:"var(--vd)", borderRadius:"10px", padding:"1px 5px", fontSize:"8px", fontWeight:800, fontFamily:"var(--mono)", lineHeight:1.4 }}>{acc.badge}</span>}
+                      style={{ ...tabStyle,
+                        border:"1.5px solid "+(isOpen ? color : "rgba(200,146,42,.2)"),
+                        background: isOpen ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.03)",
+                        boxShadow: isOpen ? "0 0 12px "+glow : "none",
+                      }}>
+                      <span style={{ fontSize:"10px", lineHeight:1, filter:isOpen?"drop-shadow(0 0 4px "+glow+")":"none" }}>{icon}</span>
+                      <div style={{ display:"flex", alignItems:"center", gap:"3px" }}>
+                        <span style={{ fontFamily:"var(--mono)", fontSize:"8px", fontWeight:700, color: isOpen ? color : "rgba(255,255,255,.7)", letterSpacing:".04em", textTransform:"uppercase" }}>{label}</span>
+                        {acc.badge > 0 && <span style={{ background:"var(--do)", color:"var(--vd)", borderRadius:"8px", padding:"0 4px", fontSize:"7px", fontWeight:800, fontFamily:"var(--mono)", lineHeight:1.5 }}>{acc.badge}</span>}
                       </div>
-                      <span style={{ fontFamily:"var(--mono)", fontSize:"8px", color: isOpen ? "rgba(200,146,42,.7)" : "rgba(255,255,255,.4)" }}>{isOpen?"▲":"▼"}</span>
+                      <span style={{ fontFamily:"var(--mono)", fontSize:"7px", color: isOpen ? "rgba(200,146,42,.7)" : "rgba(255,255,255,.3)" }}>{isOpen?"▲":"▼"}</span>
                     </button>
                   );
                 })}
                 {panelAbierto && (
-                  <button onClick={() => setPanelAbierto(null)} title="Cerrar" style={{ marginLeft:"auto", flexShrink:0, width:"26px", height:"26px", borderRadius:"50%", border:"1.5px solid rgba(255,255,255,.2)", background:"rgba(255,255,255,.07)", color:"rgba(255,255,255,.6)", fontFamily:"var(--mono)", fontSize:"14px", lineHeight:1, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .15s" }}>✕</button>
+                  <button onClick={() => setPanelAbierto(null)} title="Cerrar"
+                    style={{ flexShrink:0, width:"22px", height:"22px", alignSelf:"center", borderRadius:"50%", border:"1px solid rgba(255,255,255,.15)", background:"rgba(255,255,255,.06)", color:"rgba(255,255,255,.5)", fontFamily:"var(--mono)", fontSize:"12px", lineHeight:1, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
                 )}
               </div>
             </div>
