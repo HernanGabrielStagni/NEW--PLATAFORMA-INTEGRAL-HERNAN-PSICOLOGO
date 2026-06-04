@@ -5352,10 +5352,10 @@ document.addEventListener('visibilitychange', async () => {
         /* Botón igual para todos: padding reducido 40%, misma anchura */
         const tabStyle = {
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-          gap:"2px", padding:"5px 18px", borderRadius:"8px",
+          gap:"2px", padding:"0", borderRadius:"8px",
           cursor:"pointer", transition:"all .2s",
-          flex:"1 1 0",      /* misma anchura para todos */
-          minWidth:0,
+          flex:"0 0 auto",
+          width:"72px", height:"36px",   /* ancho ≈ 2× alto */
         };
         const accesos = [
           { id:"objetivos", icon:"🎯", label:"Objetivos", color:"#E8B84B", glow:"rgba(232,184,75,.45)" },
