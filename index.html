@@ -5583,23 +5583,39 @@ document.addEventListener('visibilitychange', async () => {
                           const pac = pacientes.find(p => p.id === coord.pacienteId);
                           const nombre = pac ? pac.nombre + " " + pac.apellido : "Paciente";
                           return (
-                            <div key={coord.id||i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(142,200,255,.2)", borderLeft:"3px solid #8EC8FF", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"10px" }}>
+                            <div key={coord.id||i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(142,200,255,.2)", borderLeft:"3px solid #8EC8FF", borderRadius:"10px", padding:"8px 12px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"10px" }}>
                               <div style={{ flex:1 }}>
                                 <span style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{nombre}</span>
                                 {coord.nota && <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.45)", marginLeft:"8px" }}>{coord.nota}</span>}
                                 {coord.semanaKey && <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"rgba(255,255,255,.25)", marginLeft:"8px" }}>· semana {coord.semanaKey}</span>}
                               </div>
-                              <button onClick={() => eliminarCoordAuto && eliminarCoordAuto(coord.id, nombre)} style={{ padding:"3px 8px", borderRadius:"6px", border:"1.5px solid rgba(239,68,68,.4)", background:"rgba(239,68,68,.1)", color:"#F87171", fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>🗑 Borrar</button>
+                              <label style={{ display:"flex", alignItems:"center", gap:"4px", cursor:"pointer", userSelect:"none" }}>
+                                <input type="checkbox" checked={!!coord.iniciado} onChange={() => toggleCoordField("auto", coord.id, "iniciado")} style={{ accentColor:"#60A5FA", width:"14px", height:"14px" }} />
+                                <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color: coord.iniciado ? "#60A5FA" : "rgba(255,255,255,.45)" }}>Iniciado</span>
+                              </label>
+                              <label style={{ display:"flex", alignItems:"center", gap:"4px", cursor:"pointer", userSelect:"none" }}>
+                                <input type="checkbox" checked={!!coord.resuelto} onChange={() => toggleCoordField("auto", coord.id, "resuelto")} style={{ accentColor:"#4ADE80", width:"14px", height:"14px" }} />
+                                <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color: coord.resuelto ? "#4ADE80" : "rgba(255,255,255,.45)" }}>Resuelto</span>
+                              </label>
+                              <button onClick={() => eliminarCoordAuto && eliminarCoordAuto(coord.id)} style={{ padding:"3px 8px", borderRadius:"6px", border:"1.5px solid rgba(239,68,68,.4)", background:"rgba(239,68,68,.1)", color:"#F87171", fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>🗑 Borrar</button>
                             </div>
                           );
                         })}
                         {coordManualesPendientes.map((coord, i) => (
-                          <div key={coord.id||i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(142,200,255,.2)", borderLeft:"3px solid #8EC8FF", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"10px" }}>
+                          <div key={coord.id||i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(142,200,255,.2)", borderLeft:"3px solid #8EC8FF", borderRadius:"10px", padding:"8px 12px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"10px" }}>
                             <div style={{ flex:1 }}>
                               <div style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{coord.titulo}</div>
                               {coord.descripcion && <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.45)", marginTop:"3px" }}>{coord.descripcion}</div>}
                             </div>
-                            <button onClick={() => eliminarCoordManual && eliminarCoordManual(coord.id, coord.titulo)} style={{ padding:"3px 8px", borderRadius:"6px", border:"1.5px solid rgba(239,68,68,.4)", background:"rgba(239,68,68,.1)", color:"#F87171", fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>🗑 Borrar</button>
+                            <label style={{ display:"flex", alignItems:"center", gap:"4px", cursor:"pointer", userSelect:"none" }}>
+                              <input type="checkbox" checked={!!coord.iniciado} onChange={() => toggleCoordField("manual", coord.id, "iniciado")} style={{ accentColor:"#60A5FA", width:"14px", height:"14px" }} />
+                              <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color: coord.iniciado ? "#60A5FA" : "rgba(255,255,255,.45)" }}>Iniciado</span>
+                            </label>
+                            <label style={{ display:"flex", alignItems:"center", gap:"4px", cursor:"pointer", userSelect:"none" }}>
+                              <input type="checkbox" checked={!!coord.resuelto} onChange={() => toggleCoordField("manual", coord.id, "resuelto")} style={{ accentColor:"#4ADE80", width:"14px", height:"14px" }} />
+                              <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color: coord.resuelto ? "#4ADE80" : "rgba(255,255,255,.45)" }}>Resuelto</span>
+                            </label>
+                            <button onClick={() => eliminarCoordManual && eliminarCoordManual(coord.id)} style={{ padding:"3px 8px", borderRadius:"6px", border:"1.5px solid rgba(239,68,68,.4)", background:"rgba(239,68,68,.1)", color:"#F87171", fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>🗑 Borrar</button>
                           </div>
                         ))}
                       </>
@@ -9837,33 +9853,32 @@ document.addEventListener('visibilitychange', async () => {
           showToast("✏️ Recordatorio actualizado");
         }
 
-        function eliminarCoordManual(id, titulo) {
-          setConfirmBorrar({
-            label: `¿Eliminar el ítem de coordinación "${titulo}"? Esta acción no se puede deshacer.`,
-            fn: () => {
-              const semKeyCoord = `hgsp_coord_manuales_${semanaKey}`;
-              const all = (getData(semKeyCoord) || []).filter(
-                (x) => x.id !== id,
-              );
-              setData(semKeyCoord, all);
-              setCoordManuales(all);
-              showToast("🗑️ Ítem eliminado");
-            },
-          });
+        function eliminarCoordManual(id) {
+          const semKeyCoord = `hgsp_coord_manuales_${semanaKey}`;
+          const all = (getData(semKeyCoord) || []).filter((x) => x.id !== id);
+          setData(semKeyCoord, all);
+          setCoordManuales(all);
+          showToast("🗑️ Ítem eliminado");
         }
 
-        function eliminarCoordAuto(id, nombre) {
-          setConfirmBorrar({
-            label: `¿Eliminar la coordinación pendiente de "${nombre}"? Esta acción no se puede deshacer.`,
-            fn: () => {
-              const all = (getData("hgsp_coord_pendientes") || []).filter(
-                (c) => c.id !== id,
-              );
-              setData("hgsp_coord_pendientes", all);
-              loadData();
-              showToast("🗑️ Coordinación eliminada");
-            },
-          });
+        function eliminarCoordAuto(id) {
+          const all = (getData("hgsp_coord_pendientes") || []).filter((c) => c.id !== id);
+          setData("hgsp_coord_pendientes", all);
+          loadData();
+          showToast("🗑️ Coordinación eliminada");
+        }
+
+        function toggleCoordField(tipo, id, campo) {
+          if (tipo === "auto") {
+            const all = getData("hgsp_coord_pendientes") || [];
+            const idx = all.findIndex(c => c.id === id);
+            if (idx >= 0) { all[idx] = { ...all[idx], [campo]: !all[idx][campo] }; setData("hgsp_coord_pendientes", all); loadData(); }
+          } else {
+            const key = `hgsp_coord_manuales_${semanaKey}`;
+            const all = getData(key) || [];
+            const idx = all.findIndex(c => c.id === id);
+            if (idx >= 0) { all[idx] = { ...all[idx], [campo]: !all[idx][campo] }; setData(key, all); setCoordManuales([...all]); }
+          }
         }
 
         function abrirEditCoord(m) {
