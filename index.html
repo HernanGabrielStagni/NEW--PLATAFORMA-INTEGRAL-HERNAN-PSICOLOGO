@@ -4237,14 +4237,21 @@ document.addEventListener('visibilitychange', async () => {
 
       /* Categorías de reservas personales */
       const RESERVA_CATS = [
-        { v: "dentista", l: "Dentista", icon: "🦷" },
-        { v: "medico", l: "Médico", icon: "🏥" },
-        { v: "gimnasio", l: "Gimnasio", icon: "🏋️" },
-        { v: "terapia", l: "Mi terapia", icon: "🧘" },
-        { v: "capacitacion", l: "Capacitación", icon: "📚" },
-        { v: "tramite", l: "Trámite", icon: "📋" },
-        { v: "personal", l: "Personal", icon: "📅" },
-        { v: "otro", l: "Otro", icon: "✏️" },
+        { v: "dentista",      l: "Dentista",       icon: "🦷" },
+        { v: "oculista",      l: "Oculista",        icon: "👁️" },
+        { v: "medico",        l: "Médico",          icon: "🏥" },
+        { v: "kinesiologo",   l: "Kinesiólogo",     icon: "🦴" },
+        { v: "fonoaudiologo", l: "Fonoaudiólogo",   icon: "🗣️" },
+        { v: "psicologo",     l: "Psicólogo",       icon: "🧠" },
+        { v: "nutricionista", l: "Nutricionista",   icon: "🥗" },
+        { v: "laboratorio",   l: "Laboratorio",     icon: "🧪" },
+        { v: "estudio",       l: "Estudio/imagen",  icon: "🩻" },
+        { v: "terapia",       l: "Mi terapia",      icon: "🧘" },
+        { v: "gimnasio",      l: "Gimnasio",        icon: "🏋️" },
+        { v: "capacitacion",  l: "Capacitación",    icon: "📚" },
+        { v: "tramite",       l: "Trámite",         icon: "📋" },
+        { v: "personal",      l: "Personal",        icon: "📅" },
+        { v: "otro",          l: "Otro",            icon: "✏️" },
       ];
       const ESTADO_ICONS = {
         asistio: "✅",
@@ -4351,9 +4358,8 @@ document.addEventListener('visibilitychange', async () => {
 
       /* Turno que ya pasó en hora pero sigue en estado "pendiente" (sin calificar) */
       function esTurnoPasadoSinCalificar(s) {
-        if (!s || s.tipo === "reserva_personal")
-          return false;
-        if (s.estado !== "pendiente") return false;
+        if (!s) return false;
+        if (s.estado !== "pendiente" && s.estado !== undefined && s.estado !== "") return false;
         if (!s.fecha || !s.horaFin) return false;
         return new Date(`${s.fecha}T${s.horaFin}`) < new Date();
       }
@@ -5915,51 +5921,30 @@ document.addEventListener('visibilitychange', async () => {
                             title={`${pac ? pac.nombre + " " + pac.apellido : "—"} · ${s.horaInicio}–${s.horaFin}`}
                           >
                             {s.tipo === "reserva_personal" ? (
-                              <>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      fontSize: "13px",
-                                      flexShrink: 0,
-                                      lineHeight: 1,
-                                    }}
-                                  >
-                                    {
-                                      (
-                                        RESERVA_CATS.find(
-                                          (c) => c.v === s.categoria,
-                                        ) || RESERVA_CATS[0]
-                                      ).icon
-                                    }
+                              /* Reserva personal — mismo layout 4 filas que los turnos */
+                              <div style={{ display:"flex", flexDirection:"column", gap:"1px", width:"100%", overflow:"hidden" }}>
+                                {/* Fila 1: estado (izq) + ícono categoría (der) */}
+                                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", lineHeight:1, width:"100%" }}>
+                                  <span style={{ fontSize:"11px", flexShrink:0 }}>
+                                    {ESTADO_ICONS[s.estado] || "⏳"}
                                   </span>
-                                  <span
-                                    className="ag-ses-nombre"
-                                    style={{ color: cols.text }}
-                                  >
-                                    {s.titulo ||
-                                      (
-                                        RESERVA_CATS.find(
-                                          (c) => c.v === s.categoria,
-                                        ) || RESERVA_CATS[0]
-                                      ).l}
+                                  <span style={{ fontSize:"11px", flexShrink:0 }}>
+                                    {(RESERVA_CATS.find(c => c.v === s.categoria) || RESERVA_CATS[0]).icon}
                                   </span>
                                 </div>
-                                {!short && (
-                                  <div
-                                    className="ag-ses-hora"
-                                    style={{ color: cols.text }}
-                                  >
-                                    {s.horaInicio}–{s.horaFin}
-                                  </div>
-                                )}
-                              </>
+                                {/* Fila 2: título */}
+                                <div className="ag-ses-nombre" style={{ color: cols.text, fontSize:"11px", lineHeight:1.1 }}>
+                                  {s.titulo || (RESERVA_CATS.find(c => c.v === s.categoria) || RESERVA_CATS[0]).l}
+                                </div>
+                                {/* Fila 3: hora inicio */}
+                                <div className="ag-ses-hora" style={{ color: cols.text, fontSize:"10px", lineHeight:1 }}>
+                                  {s.horaInicio}
+                                </div>
+                                {/* Fila 4: hora fin */}
+                                <div className="ag-ses-hora" style={{ color: cols.text, fontSize:"10px", lineHeight:1 }}>
+                                  {s.horaFin}
+                                </div>
+                              </div>
                             ) : (
                               <div style={{ display:"flex", flexDirection:"column", gap:"1px", width:"100%", overflow:"hidden" }}>
                                 {/* Fila 1: estado (izq) + alertas (der) */}
@@ -9258,17 +9243,21 @@ document.addEventListener('visibilitychange', async () => {
                 </div>
 
                 {/* NOTAS */}
-                <div className="modal-label">Notas</div>
+                <div className="modal-label">Notas y comentarios</div>
                 <textarea
                   className="modal-textarea"
-                  style={{
-                    minHeight: "52px",
-                    maxWidth: "100%",
-                    resize: "vertical",
-                  }}
+                  style={{ minHeight:"60px", maxWidth:"100%", resize:"vertical", marginBottom:"8px" }}
                   value={f.notas || ""}
                   onChange={(e) => upd("notas", e.target.value)}
-                  placeholder="Observaciones..."
+                  placeholder="Observaciones previas, indicaciones, recordatorios..."
+                />
+                <div className="modal-label">Seguimiento / resultado</div>
+                <textarea
+                  className="modal-textarea"
+                  style={{ minHeight:"52px", maxWidth:"100%", resize:"vertical" }}
+                  value={f.comentario || ""}
+                  onChange={(e) => upd("comentario", e.target.value)}
+                  placeholder="¿Qué pasó? Resultado, próximos pasos..."
                 />
               </div>
             </div>
