@@ -5352,7 +5352,7 @@ document.addEventListener('visibilitychange', async () => {
         );
       }
 
-            function PanelAccesos({ objActual, objDraft, setObjDraft, editandoObj, setEditandoObj, guardarObjetivos, cobradoSem, pendienteSem, weekSes, pendSem, cancelSem, ordenesSem, valorOrdenesSem, showOrdenes, setShowOrdenes, pacientes, setModalTurno, novedadesItems, ordenesHistPendientes, recordatoriosActivos, coordSemana, coordManualesPendientes, totalPendientes, resolverItem, loadData, showToast, sesiones, deleteRecordatorio, setBaseDate, setVista, eliminarCoordAuto, eliminarCoordManual }) {
+            function PanelAccesos({ objActual, objDraft, setObjDraft, editandoObj, setEditandoObj, guardarObjetivos, cobradoSem, pendienteSem, weekSes, pendSem, cancelSem, ordenesSem, valorOrdenesSem, showOrdenes, setShowOrdenes, pacientes, setModalTurno, novedadesItems, reservasSinCalificar, ordenesHistPendientes, recordatoriosActivos, coordSemana, coordManualesPendientes, totalPendientes, resolverItem, loadData, showToast, sesiones, deleteRecordatorio, setBaseDate, setVista, eliminarCoordAuto, eliminarCoordManual, setModalReserva }) {
         const [panelAbierto, setPanelAbierto] = React.useState(null);
         /* Botón igual para todos: padding reducido 40%, misma anchura */
         const tabStyle = {
@@ -5495,6 +5495,25 @@ document.addEventListener('visibilitychange', async () => {
 
                 {/* ── Sección colapsable genérica ── */}
                 {[
+                  {
+                    key: "reservas_sc",
+                    show: (reservasSinCalificar||[]).length > 0,
+                    label: "🗓️ Reservas sin calificar",
+                    count: (reservasSinCalificar||[]).length,
+                    color: "rgba(240,160,96,.8)",
+                    render: () => (reservasSinCalificar||[]).map((r, i) => (
+                      <div key={r.sesionId||i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(240,160,96,.25)", borderLeft:"3px solid #F0A060", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"10px" }}>
+                        <div style={{ flex:1 }}>
+                          <span style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{r.titulo}</span>
+                          <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"rgba(255,255,255,.35)", marginLeft:"8px" }}>{r.fecha} {r.hora}</span>
+                        </div>
+                        <button onClick={() => setModalReserva && setModalReserva({ reserva: sesiones?.find(s=>s.id===r.sesionId), fecha: r.fecha, hora: r.hora })}
+                          style={{ padding:"3px 8px", borderRadius:"6px", border:"1.5px solid rgba(240,160,96,.4)", background:"rgba(240,160,96,.1)", color:"#F0A060", fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+                          ✏️ Calificar
+                        </button>
+                      </div>
+                    )),
+                  },
                   {
                     key: "novedades",
                     show: novedadesItems.length > 0,
@@ -9218,6 +9237,26 @@ document.addEventListener('visibilitychange', async () => {
                   </div>
                 </div>
 
+                {/* ESTADO */}
+                <div className="modal-label">Estado</div>
+                <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"14px" }}>
+                  {[
+                    { v:"pendiente",    l:"⏳ Pendiente",    active:"rgba(200,146,42,.18)",  border:"rgba(200,146,42,.6)"  },
+                    { v:"asistio",      l:"✅ Asistió",      active:"rgba(74,222,128,.18)",  border:"rgba(74,222,128,.7)"  },
+                    { v:"cancelo",      l:"❌ Canceló",      active:"rgba(248,113,113,.18)", border:"rgba(248,113,113,.6)" },
+                    { v:"reprogramo",   l:"🔄 Reprogramó",   active:"rgba(96,165,250,.18)",  border:"rgba(96,165,250,.6)"  },
+                    { v:"inasistencia", l:"🚫 Inasistencia", active:"rgba(248,113,113,.18)", border:"rgba(248,113,113,.6)" },
+                  ].map(({ v, l, active, border }) => {
+                    const sel = (f.estado || "pendiente") === v;
+                    return (
+                      <button key={v} onClick={() => upd("estado", v)}
+                        style={{ padding:"5px 11px", borderRadius:"8px", border:`1.5px solid ${sel ? border : "rgba(255,255,255,.12)"}`, background: sel ? active : "rgba(255,255,255,.04)", color: sel ? "#fff" : "rgba(255,255,255,.55)", fontFamily:"var(--mono)", fontSize:"11px", fontWeight: sel ? 700 : 400, cursor:"pointer", transition:"all .15s" }}>
+                        {l}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* NOTAS */}
                 <div className="modal-label">Notas</div>
                 <textarea
@@ -9580,6 +9619,21 @@ document.addEventListener('visibilitychange', async () => {
               });
             return base;
           });
+
+        /* ── Reservas personales pasadas sin calificar ── */
+        const reservasSinCalificar = weekSes
+          .filter(s =>
+            s.tipo === "reserva_personal" &&
+            s.fecha < hoyStr &&
+            (!s.estado || s.estado === "pendiente")
+          )
+          .map(s => ({
+            sesionId: s.id,
+            titulo: s.titulo || "Reserva de horario",
+            categoria: s.categoria || "personal",
+            fecha: s.fecha,
+            hora: s.horaInicio,
+          }));
 
         /* Órdenes OS pendientes de emitir — históricas (all-time) */
         const ordenesHistPendientes = sesiones
@@ -10119,11 +10173,12 @@ document.addEventListener('visibilitychange', async () => {
               pacientes={pacientes}
               setModalTurno={setModalTurno}
               novedadesItems={novedadesItems}
+              reservasSinCalificar={reservasSinCalificar}
               ordenesHistPendientes={ordenesHistPendientes}
               recordatoriosActivos={recordatoriosActivos}
               coordSemana={coordSemana}
               coordManualesPendientes={coordManualesPendientes}
-              totalPendientes={totalPendientes}
+              totalPendientes={totalPendientes + reservasSinCalificar.length}
               resolverItem={resolverItem}
               sesiones={sesiones}
               deleteRecordatorio={(id) => {
@@ -10136,6 +10191,7 @@ document.addEventListener('visibilitychange', async () => {
               setVista={setVista}
               eliminarCoordAuto={eliminarCoordAuto}
               eliminarCoordManual={eliminarCoordManual}
+              setModalReserva={setModalReserva}
             />}
             {/* Leyenda y colores → en Configuración */}
 
