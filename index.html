@@ -3306,6 +3306,7 @@ document.addEventListener('visibilitychange', async () => {
         { id: "gastos", label: "Gastos", emoji: "📊", group: "PRINCIPAL" },
         { id: "vida_hogar", label: "Vida y Hogar", emoji: "🌳", group: "VIDA" },
         { id: "eventos", label: "Notas y Pendientes", emoji: "📝", group: "PRINCIPAL", sub: "Ayuda-memoria con prioridades y seguimiento de vencimientos" },
+        { id: "panel_alertas", label: "Panel de Alertas", emoji: "🚨", group: "PRINCIPAL" },
         { id: "config", label: "Configuración", emoji: "⚙️", group: "SISTEMA" },
       ];
 
@@ -5327,16 +5328,20 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       /* PanelAccesos                           */
       /* ═══════════════════════════════════════ */
-      function SeccionColapsable({ show, label, count, color, render }) {
+      function SeccionColapsable({ show, label, count, color, render, extra }) {
         const [open, setOpen] = React.useState(false);
         if (!show) return null;
         return (
           <div style={{ marginBottom:"8px" }}>
-            <div onClick={() => setOpen(v => !v)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 12px", borderRadius: open ? "10px 10px 0 0" : "10px", background: open ? "rgba(255,255,255,.07)" : "rgba(255,255,255,.04)", border:"1.5px solid rgba(255,255,255,.1)", borderBottom: open ? "none" : undefined, cursor:"pointer", userSelect:"none", transition:"all .18s" }}>
-              <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color, textTransform:"uppercase", letterSpacing:".07em", fontWeight:700, display:"flex", alignItems:"center", gap:"6px" }}>
+            <div style={{ display:"flex", alignItems:"center", padding:"8px 12px", borderRadius: open ? "10px 10px 0 0" : "10px", background: open ? "rgba(255,255,255,.07)" : "rgba(255,255,255,.04)", border:"1.5px solid rgba(255,255,255,.1)", borderBottom: open ? "none" : undefined, transition:"all .18s" }}>
+              <span onClick={() => setOpen(v => !v)} style={{ fontFamily:"var(--mono)", fontSize:"10px", color, textTransform:"uppercase", letterSpacing:".07em", fontWeight:700, display:"flex", alignItems:"center", gap:"6px", flex:1, cursor:"pointer", userSelect:"none" }}>
                 {open ? "▼" : "▶"} {label}
-                {count > 0 && <span style={{ background:"var(--do)", color:"var(--vd)", borderRadius:"10px", padding:"1px 6px", fontSize:"9px", fontWeight:700 }}>{count}</span>}
+                {count > 0
+                  ? <span style={{ background:"var(--do)", color:"var(--vd)", borderRadius:"10px", padding:"1px 6px", fontSize:"9px", fontWeight:700 }}>{count}</span>
+                  : <span style={{ fontFamily:"var(--mono)", fontSize:"9px", color:"rgba(255,255,255,.25)" }}>0</span>
+                }
               </span>
+              {extra && <span onClick={e => e.stopPropagation()}>{extra}</span>}
             </div>
             {open && (
               <div style={{ background:"rgba(30,55,40,.5)", border:"1.5px solid rgba(255,255,255,.1)", borderTop:"none", borderRadius:"0 0 10px 10px", padding:"10px 10px 4px" }}>
@@ -5557,11 +5562,14 @@ document.addEventListener('visibilitychange', async () => {
                   },
                   {
                     key: "recordatorios",
-                    show: recordatoriosActivos.length > 0,
+                    show: true,
                     label: "📌 Recordatorios",
                     count: recordatoriosActivos.length,
                     color: "rgba(200,165,240,.8)",
-                    render: () => recordatoriosActivos.map((r, i) => (
+                    extra: <button onClick={() => setModalNuevoRec && setModalNuevoRec(true)} style={{ padding:"2px 10px", borderRadius:"6px", border:"1.5px solid rgba(200,165,240,.4)", background:"rgba(200,165,240,.1)", color:"#C8A5F0", fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, cursor:"pointer" }}>+ Agregar</button>,
+                    render: () => recordatoriosActivos.length === 0
+                      ? <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.3)", padding:"6px 0" }}>— ninguno</div>
+                      : recordatoriosActivos.map((r, i) => (
                       <div key={r.id||i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(200,165,240,.2)", borderLeft:"3px solid #C8A5F0", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"10px" }}>
                         <div style={{ flex:1 }}>
                           <div style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{r.titulo}</div>
@@ -5573,7 +5581,7 @@ document.addEventListener('visibilitychange', async () => {
                   },
                   {
                     key: "coordinar",
-                    show: coordSemana.length > 0 || coordManualesPendientes.length > 0,
+                    show: true,
                     label: "📞 A coordinar",
                     count: coordSemana.length + coordManualesPendientes.length,
                     color: "rgba(142,200,255,.8)",
@@ -5620,9 +5628,10 @@ document.addEventListener('visibilitychange', async () => {
                         ))}
                       </>
                     ),
+                    extra: <button onClick={() => setShowSubCoordinar && setShowSubCoordinar(true)} style={{ padding:"2px 10px", borderRadius:"6px", border:"1.5px solid rgba(142,200,255,.4)", background:"rgba(142,200,255,.1)", color:"#8EC8FF", fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, cursor:"pointer" }}>+ Agregar</button>,
                   },
                 ].map(sec => (
-                  <SeccionColapsable key={sec.key} show={sec.show} label={sec.label} count={sec.count} color={sec.color} render={sec.render} />
+                  <SeccionColapsable key={sec.key} show={sec.show} label={sec.label} count={sec.count} color={sec.color} render={sec.render} extra={sec.extra} />
                 ))}
               </div>
             )}
@@ -17016,6 +17025,132 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       /* MÓDULO 7: CONFIGURACIÓN               */
       /* ═══════════════════════════════════════ */
+      /* ═══════════════════════════════════════ */
+      /* PANEL DE ALERTAS HISTÓRICO             */
+      /* ═══════════════════════════════════════ */
+      function SeccionPanelAlertas() {
+        const hoy = new Date();
+        const [mesDesde, setMesDesde] = useState(hoy.getMonth() + 1);
+        const [anioDesde, setAnioDesde] = useState(hoy.getFullYear());
+        const [mesHasta, setMesHasta] = useState(hoy.getMonth() + 1);
+        const [anioHasta, setAnioHasta] = useState(hoy.getFullYear());
+        const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+        const AÑOS = [hoy.getFullYear()-1, hoy.getFullYear(), hoy.getFullYear()+1];
+
+        /* ── Recolectar todas las semanas en el rango ── */
+        const semanas = React.useMemo(() => {
+          const resultado = [];
+          // Iterar semanas desde fecha inicio hasta fecha fin
+          const inicio = new Date(anioDesde, mesDesde-1, 1);
+          const fin = new Date(anioHasta, mesHasta, 0); // último día del mes hasta
+          // Buscar el lunes de la semana de inicio
+          let d = new Date(inicio);
+          const dow = d.getDay();
+          d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+          while (d <= fin) {
+            const lunes = new Date(d);
+            const lk = lunes.toISOString().slice(0,10);
+            // Novedades: sesiones de esa semana con alertas
+            const sesiones = getData("hgsp_sesiones") || [];
+            const coordPend = (getData("hgsp_coord_pendientes") || []).filter(c => c.semanaKey === lk && !c.resuelta);
+            const coordMan = (getData(`hgsp_coord_manuales_${lk}`) || []).filter(c => !c.coordinado && !c.resuelto);
+            const recs = (getData("hgsp_recordatorios_semana") || []).filter(r => r.semana === lk);
+            const sesionesConAlerta = sesiones.filter(s => {
+              const sl = s.fecha >= lk && s.fecha <= new Date(lunes.getTime() + 6*86400000).toISOString().slice(0,10);
+              return sl && (s.estado === "pendiente" || !s.estado);
+            });
+            if (coordPend.length > 0 || coordMan.length > 0 || recs.length > 0 || sesionesConAlerta.length > 0) {
+              resultado.push({ lk, coordPend, coordMan, recs, sesionesConAlerta });
+            }
+            d.setDate(d.getDate() + 7);
+          }
+          return resultado.reverse(); // más reciente primero
+        }, [mesDesde, anioDesde, mesHasta, anioHasta]);
+
+        const labelStyle = { fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em" };
+        const selStyle = { fontFamily:"var(--mono)", fontSize:"12px", background:"rgba(255,255,255,.07)", border:"1px solid rgba(200,146,42,.3)", borderRadius:"6px", color:"#fff", padding:"3px 6px", cursor:"pointer" };
+
+        return (
+          <div>
+            <div className="page-header">
+              <span className="page-header-icon">🚨</span>
+              <div><div className="page-header-title">Panel de Alertas</div></div>
+            </div>
+
+            {/* Filtro de rango */}
+            <div style={{ display:"flex", gap:"12px", alignItems:"center", flexWrap:"wrap", marginBottom:"18px", padding:"12px 16px", background:"var(--vd)", border:"1.5px solid rgba(200,146,42,.3)", borderRadius:"var(--rsm)" }}>
+              <span style={labelStyle}>Desde</span>
+              <select style={selStyle} value={mesDesde} onChange={e => setMesDesde(Number(e.target.value))}>
+                {MESES.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+              </select>
+              <select style={selStyle} value={anioDesde} onChange={e => setAnioDesde(Number(e.target.value))}>
+                {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <span style={labelStyle}>Hasta</span>
+              <select style={selStyle} value={mesHasta} onChange={e => setMesHasta(Number(e.target.value))}>
+                {MESES.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+              </select>
+              <select style={selStyle} value={anioHasta} onChange={e => setAnioHasta(Number(e.target.value))}>
+                {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.4)" }}>{semanas.length} semana{semanas.length!==1?"s":""} con alertas</span>
+            </div>
+
+            {/* Listado por semana */}
+            {semanas.length === 0 && (
+              <div style={{ textAlign:"center", padding:"40px", fontFamily:"var(--mono)", fontSize:"13px", color:"rgba(255,255,255,.3)" }}>✓ Sin alertas en el período seleccionado</div>
+            )}
+            {semanas.map(({ lk, coordPend, coordMan, recs, sesionesConAlerta }) => {
+              const [ay, am, ad] = lk.split("-").map(Number);
+              const lunes = new Date(ay, am-1, ad);
+              const viernes = new Date(lunes.getTime() + 4*86400000);
+              const fmt = d => `${d.getDate()}/${d.getMonth()+1}`;
+              return (
+                <div key={lk} style={{ marginBottom:"12px", border:"1.5px solid rgba(200,146,42,.2)", borderRadius:"var(--rsm)", overflow:"hidden" }}>
+                  {/* Cabecera semana */}
+                  <div style={{ background:"var(--vm)", padding:"8px 14px", display:"flex", alignItems:"center", gap:"10px" }}>
+                    <span style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)" }}>Semana {fmt(lunes)} – {fmt(viernes)}/{viernes.getFullYear()}</span>
+                    <span style={{ fontFamily:"var(--mono)", fontSize:"9px", color:"rgba(255,255,255,.35)" }}>{lk}</span>
+                    <div style={{ marginLeft:"auto", display:"flex", gap:"6px" }}>
+                      {sesionesConAlerta.length>0 && <span style={{ background:"rgba(200,146,42,.25)", color:"var(--do)", borderRadius:"8px", padding:"1px 7px", fontSize:"9px", fontWeight:700 }}>📅 {sesionesConAlerta.length} turno{sesionesConAlerta.length!==1?"s":""}</span>}
+                      {recs.length>0 && <span style={{ background:"rgba(200,165,240,.2)", color:"#C8A5F0", borderRadius:"8px", padding:"1px 7px", fontSize:"9px", fontWeight:700 }}>📌 {recs.length}</span>}
+                      {(coordPend.length+coordMan.length)>0 && <span style={{ background:"rgba(142,200,255,.2)", color:"#8EC8FF", borderRadius:"8px", padding:"1px 7px", fontSize:"9px", fontWeight:700 }}>📞 {coordPend.length+coordMan.length}</span>}
+                    </div>
+                  </div>
+                  {/* Ítems */}
+                  <div style={{ padding:"10px 14px", background:"rgba(255,255,255,.03)", display:"flex", flexDirection:"column", gap:"6px" }}>
+                    {sesionesConAlerta.map((s,i) => (
+                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
+                        <span style={{ color:"var(--do)" }}>📅</span>
+                        <span>{s.pacienteId} · {s.fecha} {s.horaInicio} — {s.estado||"pendiente"}</span>
+                      </div>
+                    ))}
+                    {recs.map((r,i) => (
+                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
+                        <span style={{ color:"#C8A5F0" }}>📌</span>
+                        <span>{r.titulo}{r.descripcion ? " — "+r.descripcion : ""}</span>
+                      </div>
+                    ))}
+                    {coordPend.map((c,i) => (
+                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
+                        <span style={{ color:"#8EC8FF" }}>📞</span>
+                        <span>Coordinar turno · {c.semanaKey}</span>
+                      </div>
+                    ))}
+                    {coordMan.map((c,i) => (
+                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
+                        <span style={{ color:"#8EC8FF" }}>📞</span>
+                        <span>{c.titulo}{c.descripcion ? " — "+c.descripcion : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
       function SeccionConfig({ onEditModeChange }) {
         const [cfg, setCfg] = useState(() => getData("hgsp_config") || {});
         const [editMode, setEditMode_] = useState(false);
@@ -21656,6 +21791,8 @@ document.addEventListener('visibilitychange', async () => {
                   onEditModeChange={setCfgEditMode}
                 />
               );
+            case "panel_alertas":
+              return <SeccionPanelAlertas />;
             case "vida_hogar":
               return <SeccionVidaHogar onNavigate={setActiveSection} />;
             default:
