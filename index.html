@@ -17030,119 +17030,173 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       function SeccionPanelAlertas() {
         const hoy = new Date();
-        const [mesDesde, setMesDesde] = useState(hoy.getMonth() + 1);
-        const [anioDesde, setAnioDesde] = useState(hoy.getFullYear());
+        const hoyStr = dateStr(hoy);
+        const [mesDesde, setMesDesde] = useState(hoy.getMonth() === 0 ? 12 : hoy.getMonth()); // mes anterior
+        const [anioDesde, setAnioDesde] = useState(hoy.getMonth() === 0 ? hoy.getFullYear()-1 : hoy.getFullYear());
         const [mesHasta, setMesHasta] = useState(hoy.getMonth() + 1);
         const [anioHasta, setAnioHasta] = useState(hoy.getFullYear());
-        const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-        const AÑOS = [hoy.getFullYear()-1, hoy.getFullYear(), hoy.getFullYear()+1];
+        const MESES_FULL2 = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+        const AÑOS = [hoy.getFullYear()-1, hoy.getFullYear()];
 
-        /* ── Recolectar todas las semanas en el rango ── */
+        const pacientes = React.useMemo(() => getData("hgsp_pacientes") || [], []);
+        const sesiones  = React.useMemo(() => getData("hgsp_sesiones")  || [], []);
+
+        const getNombre = id => { const p = pacientes.find(x => x.id === id); return p ? `${p.nombre} ${p.apellido}` : "Paciente"; };
+
+        /* ── Calcula novedades para un array de sesiones (igual lógica que la agenda) ── */
+        function calcNovedadesArr(weekSesArr) {
+          return weekSesArr
+            .filter(s => tienePendientePago(s, hoyStr) || tieneNotasAlerta(s) || tieneAlertaUrgente(s) || esTurnoPasadoSinCalificar(s))
+            .map(s => {
+              const nombre = getNombre(s.pacienteId);
+              const base = descPendiente(s, nombre, hoyStr);
+              const na = s.notasAlertas || {};
+              if (esTurnoPasadoSinCalificar(s)) base.items.push({ texto:"Turno ya pasó — calificar estado", campo:"estado" });
+              if (na.clinica)   base.items.push({ texto:"Notas pendientes en Clínica",    campo:"notasAlertas_clinica" });
+              if (na.admin)     base.items.push({ texto:"Notas pendientes en Administ.",   campo:"notasAlertas_admin" });
+              if (na.asistencia)base.items.push({ texto:"Notas pendientes en Asistencia",  campo:"notasAlertas_asistencia" });
+              if (s.alertaUrgente) base.items.push({ texto:"🚨 Alerta urgente", campo:"alertaUrgente" });
+              return base;
+            });
+        }
+
+        /* ── Iterar semanas del rango ── */
         const semanas = React.useMemo(() => {
           const resultado = [];
-          // Iterar semanas desde fecha inicio hasta fecha fin
-          const inicio = new Date(anioDesde, mesDesde-1, 1);
-          const fin = new Date(anioHasta, mesHasta, 0); // último día del mes hasta
-          // Buscar el lunes de la semana de inicio
-          let d = new Date(inicio);
-          const dow = d.getDay();
-          d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+          let d = new Date(anioDesde, mesDesde-1, 1);
+          const dow = d.getDay(); d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+          const fin = new Date(anioHasta, mesHasta, 0);
           while (d <= fin) {
-            const lunes = new Date(d);
-            const lk = lunes.toISOString().slice(0,10);
-            // Novedades: sesiones de esa semana con alertas
-            const sesiones = getData("hgsp_sesiones") || [];
-            const coordPend = (getData("hgsp_coord_pendientes") || []).filter(c => c.semanaKey === lk && !c.resuelta);
-            const coordMan = (getData(`hgsp_coord_manuales_${lk}`) || []).filter(c => !c.coordinado && !c.resuelto);
+            const lk = d.toISOString().slice(0,10);
+            const viernesStr = new Date(d.getTime() + 6*86400000).toISOString().slice(0,10);
+            const weekSesArr = sesiones.filter(s => s.fecha >= lk && s.fecha <= viernesStr);
+            const novedades = calcNovedadesArr(weekSesArr);
             const recs = (getData("hgsp_recordatorios_semana") || []).filter(r => r.semana === lk);
-            const sesionesConAlerta = sesiones.filter(s => {
-              const sl = s.fecha >= lk && s.fecha <= new Date(lunes.getTime() + 6*86400000).toISOString().slice(0,10);
-              return sl && (s.estado === "pendiente" || !s.estado);
-            });
-            if (coordPend.length > 0 || coordMan.length > 0 || recs.length > 0 || sesionesConAlerta.length > 0) {
-              resultado.push({ lk, coordPend, coordMan, recs, sesionesConAlerta });
+            const coordPend = (getData("hgsp_coord_pendientes") || []).filter(c => c.semanaKey === lk);
+            const coordMan  = (getData(`hgsp_coord_manuales_${lk}`) || []);
+            if (novedades.length > 0 || recs.length > 0 || coordPend.length > 0 || coordMan.length > 0) {
+              resultado.push({ lk, novedades, recs, coordPend, coordMan });
             }
             d.setDate(d.getDate() + 7);
           }
-          return resultado.reverse(); // más reciente primero
+          return resultado.reverse();
         }, [mesDesde, anioDesde, mesHasta, anioHasta]);
 
-        const labelStyle = { fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em" };
-        const selStyle = { fontFamily:"var(--mono)", fontSize:"12px", background:"rgba(255,255,255,.07)", border:"1px solid rgba(200,146,42,.3)", borderRadius:"6px", color:"#fff", padding:"3px 6px", cursor:"pointer" };
+        const selStyle = { fontFamily:"var(--mono)", fontSize:"12px", background:"rgba(255,255,255,.06)", border:"1.5px solid rgba(200,146,42,.3)", borderRadius:"8px", color:"#fff", padding:"4px 8px", cursor:"pointer", outline:"none" };
+        const labelSt = { fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em" };
+
+        /* Render de novedades — mismo que en el panel de alertas semanales */
+        function renderNovedad(n, i) {
+          const estadoIcon = n.estado==="cancelo"?"❌":n.estado==="inasistencia"?"🚫":n.estado==="reprogramo"?"🔄":n.estado==="pendiente"?"⏳":"✅";
+          return (
+            <div key={i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(200,146,42,.2)", borderLeft:"3px solid var(--do)", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px" }}>
+                <div style={{ flex:1 }}>
+                  <span style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{n.pacNombre}</span>
+                  <span style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"rgba(255,255,255,.35)", marginLeft:"8px" }}>{estadoIcon} {n.fecha} {n.hora}</span>
+                </div>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:"4px", paddingLeft:"4px" }}>
+                {n.items.map((it, j) => (
+                  <div key={j} style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                    <span style={{ fontSize:"11px", flexShrink:0 }}>⚠️</span>
+                    <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,200,80,.8)" }}>{it.texto}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
 
         return (
           <div>
             <div className="page-header">
               <span className="page-header-icon">🚨</span>
-              <div><div className="page-header-title">Panel de Alertas</div></div>
+              <div><div className="page-header-title">Panel de Alertas</div><div className="page-header-sub">Historial por semana</div></div>
             </div>
 
-            {/* Filtro de rango */}
-            <div style={{ display:"flex", gap:"12px", alignItems:"center", flexWrap:"wrap", marginBottom:"18px", padding:"12px 16px", background:"var(--vd)", border:"1.5px solid rgba(200,146,42,.3)", borderRadius:"var(--rsm)" }}>
-              <span style={labelStyle}>Desde</span>
+            {/* Filtro */}
+            <div style={{ display:"flex", gap:"10px", alignItems:"center", flexWrap:"wrap", marginBottom:"16px", padding:"10px 14px", background:"var(--vd)", border:"2px solid var(--do)", borderRadius:"var(--rsm)" }}>
+              <span style={labelSt}>Desde</span>
               <select style={selStyle} value={mesDesde} onChange={e => setMesDesde(Number(e.target.value))}>
-                {MESES.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+                {MESES_FULL2.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
               </select>
               <select style={selStyle} value={anioDesde} onChange={e => setAnioDesde(Number(e.target.value))}>
                 {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
-              <span style={labelStyle}>Hasta</span>
+              <span style={labelSt}>Hasta</span>
               <select style={selStyle} value={mesHasta} onChange={e => setMesHasta(Number(e.target.value))}>
-                {MESES.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
+                {MESES_FULL2.map((m,i) => <option key={i} value={i+1}>{m}</option>)}
               </select>
               <select style={selStyle} value={anioHasta} onChange={e => setAnioHasta(Number(e.target.value))}>
                 {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
-              <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.4)" }}>{semanas.length} semana{semanas.length!==1?"s":""} con alertas</span>
+              <span style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(200,146,42,.6)", marginLeft:"auto" }}>
+                {semanas.length} semana{semanas.length!==1?"s":""} con alertas
+              </span>
             </div>
 
-            {/* Listado por semana */}
             {semanas.length === 0 && (
-              <div style={{ textAlign:"center", padding:"40px", fontFamily:"var(--mono)", fontSize:"13px", color:"rgba(255,255,255,.3)" }}>✓ Sin alertas en el período seleccionado</div>
+              <div style={{ textAlign:"center", padding:"48px", fontFamily:"var(--mono)", fontSize:"13px", color:"rgba(255,255,255,.3)" }}>✓ Sin alertas en el período seleccionado</div>
             )}
-            {semanas.map(({ lk, coordPend, coordMan, recs, sesionesConAlerta }) => {
-              const [ay, am, ad] = lk.split("-").map(Number);
+
+            {semanas.map(({ lk, novedades, recs, coordPend, coordMan }) => {
+              const [ay,am,ad] = lk.split("-").map(Number);
               const lunes = new Date(ay, am-1, ad);
-              const viernes = new Date(lunes.getTime() + 4*86400000);
-              const fmt = d => `${d.getDate()}/${d.getMonth()+1}`;
+              const vier  = new Date(lunes.getTime() + 4*86400000);
+              const fmt = d => `${d.getDate()} ${MESES_FULL2[d.getMonth()].slice(0,3)}`;
+              const totalItems = novedades.length + recs.length + coordPend.length + coordMan.length;
               return (
-                <div key={lk} style={{ marginBottom:"12px", border:"1.5px solid rgba(200,146,42,.2)", borderRadius:"var(--rsm)", overflow:"hidden" }}>
-                  {/* Cabecera semana */}
-                  <div style={{ background:"var(--vm)", padding:"8px 14px", display:"flex", alignItems:"center", gap:"10px" }}>
-                    <span style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)" }}>Semana {fmt(lunes)} – {fmt(viernes)}/{viernes.getFullYear()}</span>
-                    <span style={{ fontFamily:"var(--mono)", fontSize:"9px", color:"rgba(255,255,255,.35)" }}>{lk}</span>
+                <div key={lk} style={{ marginBottom:"14px" }}>
+                  {/* ── Cabecera semana — igual estilo al panel de alertas del PanelAccesos ── */}
+                  <div style={{ background:"var(--vd)", border:"2px solid var(--do)", borderRadius:"var(--rsm) var(--rsm) 0 0", padding:"10px 16px", display:"flex", alignItems:"center", gap:"12px" }}>
+                    <span style={{ fontFamily:"var(--serif2)", fontSize:"15px", fontWeight:700, color:"#fff" }}>
+                      📋 {fmt(lunes)} – {fmt(vier)} {vier.getFullYear()}
+                    </span>
+                    <span style={{ background:"var(--do)", color:"var(--vd)", borderRadius:"10px", padding:"1px 8px", fontSize:"10px", fontWeight:800, fontFamily:"var(--mono)" }}>{totalItems}</span>
                     <div style={{ marginLeft:"auto", display:"flex", gap:"6px" }}>
-                      {sesionesConAlerta.length>0 && <span style={{ background:"rgba(200,146,42,.25)", color:"var(--do)", borderRadius:"8px", padding:"1px 7px", fontSize:"9px", fontWeight:700 }}>📅 {sesionesConAlerta.length} turno{sesionesConAlerta.length!==1?"s":""}</span>}
-                      {recs.length>0 && <span style={{ background:"rgba(200,165,240,.2)", color:"#C8A5F0", borderRadius:"8px", padding:"1px 7px", fontSize:"9px", fontWeight:700 }}>📌 {recs.length}</span>}
-                      {(coordPend.length+coordMan.length)>0 && <span style={{ background:"rgba(142,200,255,.2)", color:"#8EC8FF", borderRadius:"8px", padding:"1px 7px", fontSize:"9px", fontWeight:700 }}>📞 {coordPend.length+coordMan.length}</span>}
+                      {novedades.length>0 && <span style={{ background:"rgba(200,146,42,.2)", color:"var(--do)", borderRadius:"8px", padding:"1px 8px", fontSize:"9px", fontWeight:700 }}>⚠️ {novedades.length} novedad{novedades.length!==1?"es":""}</span>}
+                      {recs.length>0 && <span style={{ background:"rgba(200,165,240,.2)", color:"#C8A5F0", borderRadius:"8px", padding:"1px 8px", fontSize:"9px", fontWeight:700 }}>📌 {recs.length}</span>}
+                      {(coordPend.length+coordMan.length)>0 && <span style={{ background:"rgba(142,200,255,.2)", color:"#8EC8FF", borderRadius:"8px", padding:"1px 8px", fontSize:"9px", fontWeight:700 }}>📞 {coordPend.length+coordMan.length}</span>}
                     </div>
                   </div>
-                  {/* Ítems */}
-                  <div style={{ padding:"10px 14px", background:"rgba(255,255,255,.03)", display:"flex", flexDirection:"column", gap:"6px" }}>
-                    {sesionesConAlerta.map((s,i) => (
-                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
-                        <span style={{ color:"var(--do)" }}>📅</span>
-                        <span>{s.pacienteId} · {s.fecha} {s.horaInicio} — {s.estado||"pendiente"}</span>
-                      </div>
-                    ))}
-                    {recs.map((r,i) => (
-                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
-                        <span style={{ color:"#C8A5F0" }}>📌</span>
-                        <span>{r.titulo}{r.descripcion ? " — "+r.descripcion : ""}</span>
-                      </div>
-                    ))}
-                    {coordPend.map((c,i) => (
-                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
-                        <span style={{ color:"#8EC8FF" }}>📞</span>
-                        <span>Coordinar turno · {c.semanaKey}</span>
-                      </div>
-                    ))}
-                    {coordMan.map((c,i) => (
-                      <div key={i} style={{ fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.75)", display:"flex", gap:"8px" }}>
-                        <span style={{ color:"#8EC8FF" }}>📞</span>
-                        <span>{c.titulo}{c.descripcion ? " — "+c.descripcion : ""}</span>
-                      </div>
-                    ))}
+
+                  {/* ── Contenido con SeccionColapsable — mismo componente que alertas semanales ── */}
+                  <div style={{ background:"rgba(30,61,43,.4)", border:"2px solid rgba(200,146,42,.2)", borderTop:"none", borderRadius:"0 0 var(--rsm) var(--rsm)", padding:"12px" }}>
+                    {novedades.length > 0 && (
+                      <SeccionColapsable key={lk+"nov"} show={true} label="⚠️ Novedades de turnos" count={novedades.length} color="rgba(200,146,42,.7)"
+                        render={() => novedades.map((n,i) => renderNovedad(n,i))} />
+                    )}
+                    {recs.length > 0 && (
+                      <SeccionColapsable key={lk+"rec"} show={true} label="📌 Recordatorios" count={recs.length} color="rgba(200,165,240,.8)"
+                        render={() => recs.map((r,i) => (
+                          <div key={i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(200,165,240,.2)", borderLeft:"3px solid #C8A5F0", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px" }}>
+                            <div style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{r.titulo}</div>
+                            {r.descripcion && <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.45)", marginTop:"3px" }}>{r.descripcion}</div>}
+                          </div>
+                        ))} />
+                    )}
+                    {(coordPend.length + coordMan.length) > 0 && (
+                      <SeccionColapsable key={lk+"coord"} show={true} label="📞 A coordinar" count={coordPend.length+coordMan.length} color="rgba(142,200,255,.8)"
+                        render={() => (
+                          <>
+                            {coordPend.map((c,i) => (
+                              <div key={i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(142,200,255,.2)", borderLeft:"3px solid #8EC8FF", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px" }}>
+                                <div style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{getNombre(c.pacienteId)}</div>
+                                {c.nota && <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.45)", marginTop:"3px" }}>{c.nota}</div>}
+                                <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"rgba(255,255,255,.25)", marginTop:"2px" }}>semana {c.semanaKey} · {c.resuelta?"✅ resuelta":"pendiente"}</div>
+                              </div>
+                            ))}
+                            {coordMan.map((c,i) => (
+                              <div key={i} style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(142,200,255,.2)", borderLeft:"3px solid #8EC8FF", borderRadius:"10px", padding:"10px 14px", marginBottom:"8px" }}>
+                                <div style={{ fontFamily:"var(--sans)", fontSize:"13px", fontWeight:700, color:"rgba(255,255,255,.9)" }}>{c.titulo}</div>
+                                {c.descripcion && <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.45)", marginTop:"3px" }}>{c.descripcion}</div>}
+                                <div style={{ fontFamily:"var(--mono)", fontSize:"10px", color:"rgba(255,255,255,.25)", marginTop:"2px" }}>{c.resuelto?"✅ resuelto":c.iniciado?"🔵 iniciado":"pendiente"}</div>
+                              </div>
+                            ))}
+                          </>
+                        )} />
+                    )}
                   </div>
                 </div>
               );
