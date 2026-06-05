@@ -17996,7 +17996,7 @@ document.addEventListener('visibilitychange', async () => {
                       <div style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>Leyenda de estados de turno</div>
                       <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
                         {[["✅","Asistió"],["❌","Canceló"],["⏳","Pendiente"],["🔄","Reprogramó"],["⚠️","Superposición"],["🚨","Alerta urgente"],["!","Cobro / orden pendiente"]].map(([ico, lbl]) => (
-                          <span key={lbl} style={{ display:"inline-flex", alignItems:"center", gap:"6px", padding:"5px 10px", borderRadius:"8px", background:"rgba(255,255,255,.06)", border:"1px solid rgba(255,255,255,.12)", fontFamily:"var(--sans)", fontSize:"12px", color:"rgba(255,255,255,.8)" }}>
+                          <span key={lbl} style={{ display:"inline-flex", alignItems:"center", gap:"6px", padding:"5px 12px", borderRadius:"8px", background:"#C8922A", border:"2px solid #A07020", fontFamily:"var(--sans)", fontSize:"12px", fontWeight:700, color:"#1a2e22" }}>
                             <span style={{ fontSize:"14px" }}>{ico}</span>{lbl}
                           </span>
                         ))}
