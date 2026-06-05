@@ -4265,13 +4265,40 @@ document.addEventListener('visibilitychange', async () => {
       const AG_TOTAL      = (AG_END - AG_START)      * AG_PX_H; // 960px  8→24
       const AG_TOTAL_FULL = (AG_END - AG_START_FULL) * AG_PX_H; // 1440px 0→24
 
-      const TIPO_COLORS = {
-        individual: { bg: "#1E3A8A", text: "#FFFFFF", border: "#60A5FA" },
-        AT: { bg: "#14532D", text: "#FFFFFF", border: "#4ADE80" },
-        pareja: { bg: "#7C2D12", text: "#FFFFFF", border: "#FB923C" },
-        grupo: { bg: "#4C1D95", text: "#FFFFFF", border: "#A78BFA" },
-        reserva_personal: { bg: "#374151", text: "#F3F4F6", border: "#9CA3AF" },
+      /* Paleta completa — mismos valores que COLORES_OPCIONES en SeccionConfig */
+      const _COLOR_MAP = {
+        verde_os:    { bg:"#14532D", text:"#FFFFFF", border:"#4ADE80" },
+        azul:        { bg:"#1E3A5F", text:"#FFFFFF", border:"#60A5FA" },
+        violeta:     { bg:"#4C1D95", text:"#FFFFFF", border:"#A78BFA" },
+        naranja:     { bg:"#7C2D12", text:"#FFFFFF", border:"#FB923C" },
+        rojo:        { bg:"#7F1D1D", text:"#FFFFFF", border:"#F87171" },
+        gris:        { bg:"#374151", text:"#F3F4F6", border:"#9CA3AF" },
+        carbon:      { bg:"#1C1917", text:"#F5F5F4", border:"#78716C" },
+        teal:        { bg:"#134E4A", text:"#FFFFFF", border:"#2DD4BF" },
+        celeste:     { bg:"#0C4A6E", text:"#FFFFFF", border:"#38BDF8" },
+        rosa:        { bg:"#831843", text:"#FFFFFF", border:"#F472B6" },
+        amarillo:    { bg:"#713F12", text:"#FFFFFF", border:"#FBBF24" },
+        verde_claro: { bg:"#14532D", text:"#FFFFFF", border:"#86EFAC" },
       };
+
+      /* Lee la preferencia guardada en Config y construye TIPO_COLORS dinámico */
+      const TIPO_COLORS = (() => {
+        const base = {
+          individual:       { bg: "#1E3A8A", text: "#FFFFFF", border: "#60A5FA" },
+          AT:               { bg: "#14532D", text: "#FFFFFF", border: "#4ADE80" },
+          pareja:           { bg: "#7C2D12", text: "#FFFFFF", border: "#FB923C" },
+          grupo:            { bg: "#4C1D95", text: "#FFFFFF", border: "#A78BFA" },
+          reserva_personal: { bg: "#374151", text: "#F3F4F6", border: "#9CA3AF" },
+        };
+        try {
+          const saved = JSON.parse(localStorage.getItem("hgsp_colores_agenda") || "{}");
+          ["individual", "AT", "reserva_personal"].forEach(tipo => {
+            const c = _COLOR_MAP[saved[tipo]];
+            if (c) base[tipo] = c;
+          });
+        } catch(e) {}
+        return base;
+      })();
 
       /* Paleta de colores personalizables para etiquetas de turno */
       const PALETA_COLORES = [
