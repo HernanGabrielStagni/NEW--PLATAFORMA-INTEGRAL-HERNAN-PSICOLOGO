@@ -18124,23 +18124,26 @@ document.addEventListener('visibilitychange', async () => {
                       </div>
                     </div>
                     {/* ── Encabezado de la app ── */}
-                    <div style={{ marginBottom:"16px", padding:"12px 14px", background:"rgba(200,146,42,.08)", border:"1.5px solid rgba(200,146,42,.25)", borderRadius:"10px" }}>
-                      <div style={{ fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>
-                        🖊 Encabezado de la aplicación
+                    <div style={{ marginBottom:"18px", padding:"14px 16px", background:"var(--vd)", border:"2px solid var(--do)", borderRadius:"12px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"8px" }}>
+                        <span style={{ fontSize:"16px" }}>🖊</span>
+                        <span style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em" }}>Encabezado de la aplicación</span>
                       </div>
-                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.5)", marginBottom:"10px", lineHeight:1.5 }}>
-                        💡 También podés editar estos textos directamente desde la pantalla principal haciendo <strong style={{color:"rgba(255,255,255,.75)"}}>doble clic</strong> sobre el título o el nombre en el encabezado.
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.5)", marginBottom:"14px", lineHeight:1.6, background:"rgba(255,255,255,.04)", borderRadius:"8px", padding:"8px 10px", border:"1px solid rgba(255,255,255,.08)" }}>
+                        💡 También podés editar haciendo <strong style={{color:"var(--do)"}}>doble clic</strong> directamente sobre el título o el nombre en el encabezado de la app.
                       </div>
-                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
                         {[
                           { k:"tituloApp",        label:"Título de la app",     placeholder:"Plataforma Integral" },
                           { k:"nombreEncabezado", label:"Nombre en encabezado", placeholder:"Tu nombre o nombre fantasía" },
                         ].map(({ k, label, placeholder }) => (
                           <div key={k}>
-                            <div style={monoLabel}>{label}</div>
+                            <div style={{ fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, color:"rgba(200,146,42,.8)", textTransform:"uppercase", letterSpacing:".06em", marginBottom:"5px" }}>{label}</div>
                             {editMode
                               ? <input style={{ ...editInput }} value={draft[k] || ""} onChange={e => upd(k, e.target.value)} placeholder={placeholder} />
-                              : <div style={{ fontWeight:600, fontFamily:"var(--sans)", color: D[k] ? "inherit" : "rgba(255,255,255,.3)" }}>{D[k] || placeholder}</div>
+                              : <div style={{ fontFamily:"var(--sans)", fontWeight:600, fontSize:"13px", color: D[k] ? "#fff" : "rgba(255,255,255,.3)", background:"rgba(255,255,255,.06)", borderRadius:"8px", padding:"7px 10px", border:"1px solid rgba(255,255,255,.1)" }}>
+                                  {D[k] || <em style={{fontWeight:400}}>{placeholder}</em>}
+                                </div>
                             }
                           </div>
                         ))}
