@@ -3647,8 +3647,8 @@ document.addEventListener('visibilitychange', async () => {
                         const mp     = cfgLocal.mp || "";
                         const texto  = custom || (nombre ? nombre + (mp ? " · MP " + mp : "") : "");
                         return (
-                          <span title="Doble clic para editar el nombre del encabezado"
-                            style={{ cursor:"text" }}
+                          <span title="✏️ Doble clic para editar"
+                            style={{ cursor:"text", display:"flex", alignItems:"center", gap:"5px" }}
                             onDoubleClick={() => {
                               const nuevo = prompt("Nombre en el encabezado:", texto || "");
                               if (nuevo !== null) {
@@ -3661,6 +3661,7 @@ document.addEventListener('visibilitychange', async () => {
                             }}
                           >
                             {texto || "Doble clic para poner tu nombre"}
+                            <span style={{ fontSize:"9px", opacity:0.4, fontFamily:"var(--mono)" }}>✏️</span>
                           </span>
                         );
                       })()}
@@ -18122,6 +18123,30 @@ document.addEventListener('visibilitychange', async () => {
                         })()}
                       </div>
                     </div>
+                    {/* ── Encabezado de la app ── */}
+                    <div style={{ marginBottom:"16px", padding:"12px 14px", background:"rgba(200,146,42,.08)", border:"1.5px solid rgba(200,146,42,.25)", borderRadius:"10px" }}>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700, color:"var(--do)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:"10px" }}>
+                        🖊 Encabezado de la aplicación
+                      </div>
+                      <div style={{ fontFamily:"var(--mono)", fontSize:"11px", color:"rgba(255,255,255,.5)", marginBottom:"10px", lineHeight:1.5 }}>
+                        💡 También podés editar estos textos directamente desde la pantalla principal haciendo <strong style={{color:"rgba(255,255,255,.75)"}}>doble clic</strong> sobre el título o el nombre en el encabezado.
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
+                        {[
+                          { k:"tituloApp",        label:"Título de la app",     placeholder:"Plataforma Integral" },
+                          { k:"nombreEncabezado", label:"Nombre en encabezado", placeholder:"Tu nombre o nombre fantasía" },
+                        ].map(({ k, label, placeholder }) => (
+                          <div key={k}>
+                            <div style={monoLabel}>{label}</div>
+                            {editMode
+                              ? <input style={{ ...editInput }} value={draft[k] || ""} onChange={e => upd(k, e.target.value)} placeholder={placeholder} />
+                              : <div style={{ fontWeight:600, fontFamily:"var(--sans)", color: D[k] ? "inherit" : "rgba(255,255,255,.3)" }}>{D[k] || placeholder}</div>
+                            }
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                       {[
                         { k: "prestador",     label: "Nombre completo",          mono: false },
