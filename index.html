@@ -4325,21 +4325,32 @@ document.addEventListener('visibilitychange', async () => {
 
       /* Categorías de reservas personales */
       const RESERVA_CATS = [
-        { v: "dentista",      l: "Dentista",       icon: "🦷" },
-        { v: "oculista",      l: "Oculista",        icon: "👁️" },
-        { v: "medico",        l: "Médico",          icon: "🏥" },
-        { v: "kinesiologo",   l: "Kinesiólogo",     icon: "🦴" },
-        { v: "fonoaudiologo", l: "Fonoaudiólogo",   icon: "🗣️" },
-        { v: "psicologo",     l: "Psicólogo",       icon: "🧠" },
-        { v: "nutricionista", l: "Nutricionista",   icon: "🥗" },
-        { v: "laboratorio",   l: "Laboratorio",     icon: "🧪" },
-        { v: "estudio",       l: "Estudio/imagen",  icon: "🩻" },
-        { v: "terapia",       l: "Mi terapia",      icon: "🧘" },
-        { v: "gimnasio",      l: "Gimnasio",        icon: "🏋️" },
-        { v: "capacitacion",  l: "Capacitación",    icon: "📚" },
-        { v: "tramite",       l: "Trámite",         icon: "📋" },
-        { v: "personal",      l: "Personal",        icon: "📅" },
-        { v: "otro",          l: "Otro",            icon: "✏️" },
+        { v: "medico",       l: "Médico",       icon: "🏥" },
+        { v: "gimnasio",     l: "Gym",          icon: "🏋️" },
+        { v: "terapia",      l: "Terapia",      icon: "🧘" },
+        { v: "capacitacion", l: "Capacitación", icon: "📚" },
+        { v: "tramite",      l: "Trámite",      icon: "📋" },
+        { v: "personal",     l: "Personal",     icon: "📅" },
+        // Entradas legacy — solo para compatibilidad con datos guardados (no se muestran en UI)
+        { v: "dentista",      l: "Dentista",      icon: "🦷", hidden: true },
+        { v: "oculista",      l: "Oculista",      icon: "👁️", hidden: true },
+        { v: "kinesiologo",   l: "Kinesiólogo",   icon: "🦴", hidden: true },
+        { v: "fonoaudiologo", l: "Fonoaudiólogo", icon: "🗣️", hidden: true },
+        { v: "psicologo",     l: "Psicólogo",     icon: "🧠", hidden: true },
+        { v: "nutricionista", l: "Nutricionista", icon: "🥗", hidden: true },
+        { v: "laboratorio",   l: "Laboratorio",   icon: "🧪", hidden: true },
+        { v: "estudio",       l: "Estudio/imagen",icon: "🩻", hidden: true },
+        { v: "otro",          l: "Otro",          icon: "✏️", hidden: true },
+      ];
+
+      /* Paleta de íconos para reservas personales */
+      const ICONOS_PALETTE = [
+        { g: "Salud",             icons: ["🏥","🦷","👁️","🦴","🧠","🩺","💊","🩻","🧪","🩹","🫀","💉","🧬","🩸","🔬","🛌"] },
+        { g: "Bienestar",         icons: ["🧘","🏋️","🚴","🏊","🤸","🏃","💪","🌿","💆","🛁","🍎","🥗"] },
+        { g: "Trabajo y estudio", icons: ["📚","💼","🖥️","✏️","📝","📊","🎓","💡","🗂️","📌","⚙️","🔧"] },
+        { g: "Trámites",          icons: ["📋","📄","🏛️","💳","📬","🔑","📞","🚗","✈️","🛂","🖨️","📱"] },
+        { g: "Personal",          icons: ["📅","🎂","🎉","🏠","🛒","💇","🎵","🎬","🍽️","☕","🎁","🌟"] },
+        { g: "General",           icons: ["⭐","🔔","❗","✅","🔵","🟡","🟢","🔴","⚡","💫","🔖","🏷️"] },
       ];
       const ESTADO_ICONS = {
         asistio: "✅",
@@ -6017,7 +6028,7 @@ document.addEventListener('visibilitychange', async () => {
                                     {ESTADO_ICONS[s.estado] || "⏳"}
                                   </span>
                                   <span style={{ fontSize:"11px", flexShrink:0 }}>
-                                    {(RESERVA_CATS.find(c => c.v === s.categoria) || RESERVA_CATS[0]).icon}
+                                    {s.iconoCustom || (RESERVA_CATS.find(c => c.v === s.categoria) || RESERVA_CATS[0]).icon}
                                   </span>
                                 </div>
                                 {/* Fila 2: título */}
@@ -9049,6 +9060,7 @@ document.addEventListener('visibilitychange', async () => {
             id: genId(),
             tipo: "reserva_personal",
             categoria: "personal",
+            iconoCustom: "",
             titulo: "",
             fecha: defaultFecha || "",
             horaInicio: defaultHora || "10:00",
@@ -9082,9 +9094,12 @@ document.addEventListener('visibilitychange', async () => {
         const isEditar = !!reserva;
         const catActual =
           RESERVA_CATS.find((c) => c.v === f.categoria) || RESERVA_CATS[0];
+        const iconActual = f.iconoCustom || catActual.icon;
         const resOverlayMDRef = useRef(false);
         const [confirmCancel, setConfirmCancel] = useState(false);
         const [colorAbierto, setColorAbierto] = useState(false);
+        const [paletaIcono, setPaletaIcono] = useState(false);
+        const tituloRef = useRef(null);
         const initialF = useRef(JSON.stringify(f));
         function haycambios() {
           return JSON.stringify(f) !== initialF.current;
@@ -9234,37 +9249,96 @@ document.addEventListener('visibilitychange', async () => {
                   )}
                 </div>
 
-                {/* CATEGORÍA */}
-                <div className="modal-label">Categoría</div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "6px",
-                    flexWrap: "wrap",
-                    marginBottom: "14px",
-                  }}
-                >
-                  {RESERVA_CATS.map((cat) => (
+                {/* ACCESO RÁPIDO */}
+                <div className="modal-label">Acceso rápido</div>
+                <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"12px" }}>
+                  {RESERVA_CATS.filter(c => !c.hidden).map((cat) => (
                     <button
                       key={cat.v}
-                      className={`btn ${f.categoria === cat.v ? "btn-g" : "btn-sec"}`}
-                      style={{ fontSize: "12px", padding: "6px 12px" }}
-                      onClick={() => upd("categoria", cat.v)}
+                      className={`btn ${f.categoria === cat.v && f.iconoCustom === cat.icon ? "btn-g" : "btn-sec"}`}
+                      style={{ fontSize: "12px", padding: "5px 11px" }}
+                      onClick={() => {
+                        upd("categoria", cat.v);
+                        upd("iconoCustom", cat.icon);
+                        upd("titulo", cat.l);
+                        setPaletaIcono(false);
+                        setTimeout(() => tituloRef.current && tituloRef.current.focus(), 30);
+                      }}
                     >
                       {cat.icon} {cat.l}
                     </button>
                   ))}
                 </div>
 
-                {/* TÍTULO OPCIONAL */}
-                <div className="modal-label">Título (opcional)</div>
-                <input
-                  className="modal-input"
-                  style={{ marginBottom: "14px" }}
-                  placeholder={`${catActual.icon} ${catActual.l}...`}
-                  value={f.titulo}
-                  onChange={(e) => upd("titulo", e.target.value)}
-                />
+                {/* ÍCONO + NOMBRE */}
+                <div style={{ display:"flex", gap:"8px", alignItems:"flex-start", marginBottom: paletaIcono ? "8px" : "14px" }}>
+                  {/* Botón ícono — abre paleta */}
+                  <button
+                    onClick={() => setPaletaIcono(v => !v)}
+                    title="Elegir ícono"
+                    style={{
+                      width:"46px", height:"46px", borderRadius:"12px", flexShrink:0,
+                      border:`2px solid ${paletaIcono ? "var(--do)" : "rgba(255,255,255,.2)"}`,
+                      background: paletaIcono ? "rgba(200,146,42,.15)" : "rgba(255,255,255,.07)",
+                      cursor:"pointer", fontSize:"24px",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      transition:"all .15s", marginTop:"18px",
+                    }}
+                  >
+                    {iconActual}
+                  </button>
+                  {/* Campo nombre/detalle */}
+                  <div style={{ flex:1 }}>
+                    <div className="modal-label">Nombre / detalle</div>
+                    <input
+                      ref={tituloRef}
+                      className="modal-input"
+                      placeholder="ej: Turno con Dr. García..."
+                      value={f.titulo}
+                      onChange={(e) => upd("titulo", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* PALETA DE ÍCONOS */}
+                {paletaIcono && (
+                  <div style={{
+                    background:"rgba(0,0,0,.22)", borderRadius:"12px", padding:"10px 12px",
+                    marginBottom:"14px", maxHeight:"220px", overflowY:"auto",
+                    border:"1px solid rgba(255,255,255,.08)",
+                  }}>
+                    {ICONOS_PALETTE.map(grupo => (
+                      <div key={grupo.g} style={{ marginBottom:"10px" }}>
+                        <div style={{
+                          fontFamily:"var(--mono)", fontSize:"9px", color:"rgba(255,255,255,.38)",
+                          textTransform:"uppercase", letterSpacing:".07em", marginBottom:"5px",
+                        }}>
+                          {grupo.g}
+                        </div>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:"4px" }}>
+                          {grupo.icons.map(ico => {
+                            const sel = f.iconoCustom === ico;
+                            return (
+                              <button key={ico}
+                                onClick={() => { upd("iconoCustom", ico); setPaletaIcono(false); }}
+                                style={{
+                                  width:"32px", height:"32px", borderRadius:"8px", fontSize:"18px",
+                                  border: sel ? "2px solid var(--do)" : "2px solid transparent",
+                                  background: sel ? "rgba(200,146,42,.22)" : "rgba(255,255,255,.06)",
+                                  cursor:"pointer", display:"flex", alignItems:"center",
+                                  justifyContent:"center", transition:"all .1s",
+                                  transform: sel ? "scale(1.2)" : "scale(1)",
+                                }}
+                              >
+                                {ico}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* FECHA / HORA */}
                 <div
@@ -17789,16 +17863,27 @@ document.addEventListener('visibilitychange', async () => {
           setRegisteredUsers(prev => prev.map(u =>
             u.email === email ? { ...u, status: plan, trial_end: campos.trial_end !== undefined ? campos.trial_end : u.trial_end } : u
           ));
-          const { error } = await _sb.from('registered_users').update(campos).eq('email', email);
+          const { data: updated, error } = await _sb.from('registered_users').update(campos).eq('email', email).select();
           if (error) { showToast("❌ Error: " + error.message); fetchRegisteredUsers(); return; }
+          if (!updated || updated.length === 0) {
+            showToast("❌ Sin permisos para guardar. Falta política RLS en Supabase (ver consola).");
+            console.error("SUPABASE RLS: La tabla 'registered_users' no tiene política UPDATE para admins. Ejecutar en Supabase SQL Editor:\nCREATE POLICY \"Admin update registered_users\" ON registered_users FOR UPDATE USING (EXISTS (SELECT 1 FROM admin_emails WHERE email = auth.email()));\nCREATE POLICY \"Admin update registered_users_with_check\" ON registered_users FOR UPDATE WITH CHECK (EXISTS (SELECT 1 FROM admin_emails WHERE email = auth.email()));");
+            fetchRegisteredUsers();
+            return;
+          }
           const labels = { trial: "☀️ Trial (7d)", pro: "🌞 Pro", vip: "✅ VIP ilimitado" };
-          showToast("Plan actualizado: " + (labels[plan] || plan));
+          showToast("✅ Plan actualizado: " + (labels[plan] || plan));
         }
 
         async function actualizarTrialEnd(email, nuevaFecha) {
           if (!nuevaFecha) return;
-          const { error } = await _sb.from('registered_users').update({ trial_end: nuevaFecha, status: 'trial' }).eq('email', email);
+          const { data: updated, error } = await _sb.from('registered_users').update({ trial_end: nuevaFecha, status: 'trial' }).eq('email', email).select();
           if (error) { showToast("❌ Error: " + error.message); return; }
+          if (!updated || updated.length === 0) {
+            showToast("❌ Sin permisos para guardar. Falta política RLS en Supabase.");
+            fetchRegisteredUsers();
+            return;
+          }
           showToast("📅 Fecha de vencimiento actualizada");
           fetchRegisteredUsers();
         }
