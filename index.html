@@ -5988,11 +5988,14 @@ document.addEventListener('visibilitychange', async () => {
                       {/* bloques de sesión — con layout de superposición */}
                       {layoutSessions(daySes).map((s) => {
                         const pac = getPac(s.pacienteId);
-                        const cols = s.colorLabel
-                          ? PALETA_COLORES.find((c) => c.id === s.colorLabel) ||
-                            TIPO_COLORS[s.tipo] ||
-                            TIPO_COLORS.individual
-                          : TIPO_COLORS[s.tipo] || TIPO_COLORS.individual;
+                        const _ESTADO_ROJO = ["cancelo", "reprogramo", "inasistencia"].includes(s.estado);
+                        const cols = _ESTADO_ROJO
+                          ? { bg: "#7f1d1d", text: "#FECACA", border: "#ef4444" }
+                          : s.colorLabel
+                            ? PALETA_COLORES.find((c) => c.id === s.colorLabel) ||
+                              TIPO_COLORS[s.tipo] ||
+                              TIPO_COLORS.individual
+                            : TIPO_COLORS[s.tipo] || TIPO_COLORS.individual;
                         const top = timeToPx(s.horaInicio, grStart);
                         const h = Math.max(durPx(s.horaInicio, s.horaFin), 64);
                         const short = h < 40;
