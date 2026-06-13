@@ -6976,9 +6976,8 @@ document.addEventListener('visibilitychange', async () => {
           const m = pacientes
             .filter(
               (p) =>
-                p.activo &&
-                (`${p.nombre} ${p.apellido}`.toLowerCase().includes(low) ||
-                p.dni.includes(q)),
+                `${p.nombre} ${p.apellido}`.toLowerCase().includes(low) ||
+                p.dni.includes(q),
             )
             .slice(0, 5);
           setSugs(m);
@@ -9519,7 +9518,7 @@ document.addEventListener('visibilitychange', async () => {
 
         function loadData() {
           setSesiones(getData("hgsp_sesiones"));
-          setPacientes(getData("hgsp_pacientes"));
+          setPacientes(getData("hgsp_pacientes").filter((p) => p.activo));
           setExtraFeriados(getData("hgsp_feriados_extra"));
           setCoordPendientes(getData("hgsp_coord_pendientes") || []);
           setObjetivosSemana(getData("hgsp_objetivos_semana") || []);
