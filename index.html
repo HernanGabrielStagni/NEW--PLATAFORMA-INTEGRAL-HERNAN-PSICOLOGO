@@ -3264,6 +3264,27 @@ document.addEventListener('visibilitychange', async () => {
           }
         }
 
+        // Migración: eliminar auto-notas "Posee novedades de semanas anteriores" generadas automáticamente
+        if (!localStorage.getItem("hgsp_migr_clearPrevPend")) {
+          const allSes = getData("hgsp_sesiones");
+          if (allSes && allSes.length > 0) {
+            let changed = false;
+            const cleaned = allSes.map(s => {
+              if (s.notasAdmin && s.notasAdmin.startsWith("Posee novedades de semanas anteriores")) {
+                changed = true;
+                return {
+                  ...s,
+                  notasAdmin: "",
+                  notasAlertas: { ...(s.notasAlertas || {}), admin: false },
+                };
+              }
+              return s;
+            });
+            if (changed) setData("hgsp_sesiones", cleaned);
+          }
+          localStorage.setItem("hgsp_migr_clearPrevPend", "1");
+        }
+
         // Aseguramos que haya arrays vacíos al inicio si no hay datos
         if (!localStorage.getItem("hgsp_pacientes")) {
           setData("hgsp_pacientes", []);
@@ -6847,69 +6868,6 @@ document.addEventListener('visibilitychange', async () => {
             const tienePagoNuevo = sesion.modalidadPago != null;
             const datosPago = tienePagoNuevo ? pagoF(sesion) : pagoDesde(pac);
             initialState = { ...sesion, ...datosPago };
-            /* auto-nota admin si paciente tiene pendientes de semanas anteriores */
-            if (pac && !initialState.notasAdmin) {
-              const hoyPN = new Date();
-              const dowPN = hoyPN.getDay();
-              const diffLPN = dowPN === 0 ? -6 : 1 - dowPN;
-              const lunesPN = new Date(hoyPN);
-              lunesPN.setDate(hoyPN.getDate() + diffLPN);
-              lunesPN.setHours(0, 0, 0, 0);
-              const lunesStrPN = lunesPN.toISOString().slice(0, 10);
-              const MESES_PN = [
-                "ene",
-                "feb",
-                "mar",
-                "abr",
-                "may",
-                "jun",
-                "jul",
-                "ago",
-                "sep",
-                "oct",
-                "nov",
-                "dic",
-              ];
-              const prevPend = (allSesiones || [])
-                .filter(
-                  (s) =>
-                    s.pacienteId === pac.id &&
-                    s.id !== sesion.id &&
-                    s.fecha < lunesStrPN &&
-                    s.tipo !== "reserva_personal" &&
-                    (s.alertaUrgente ||
-                      s.notasAlertas?.clinica ||
-                      s.notasAlertas?.admin ||
-                      s.notasAlertas?.asistencia ||
-                      s.estado === "pendiente" ||
-                      (!s.cobrado &&
-                        s.estado !== "cancelo" &&
-                        s.estado !== "reprogramo")),
-                )
-                .sort((a, b) => b.fecha.localeCompare(a.fecha));
-              if (prevPend.length > 0) {
-                const fechas = prevPend.slice(0, 3).map((s) => {
-                  const p = s.fecha.split("-");
-                  return parseInt(p[2]) + " de " + MESES_PN[parseInt(p[1]) - 1];
-                });
-                const fechaTxt =
-                  fechas.length === 1
-                    ? "Turno del " + fechas[0]
-                    : "Turnos del " +
-                      fechas.slice(0, -1).join(", ") +
-                      " y " +
-                      fechas[fechas.length - 1];
-                initialState = {
-                  ...initialState,
-                  notasAdmin:
-                    "Posee novedades de semanas anteriores · " + fechaTxt,
-                  notasAlertas: {
-                    ...(initialState.notasAlertas || {}),
-                    admin: true,
-                  },
-                };
-              }
-            }
             setF(initialState);
             if (pac) {
               setPacSel(pac);
