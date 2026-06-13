@@ -6750,6 +6750,7 @@ document.addEventListener('visibilitychange', async () => {
         defaultFecha,
         defaultHora,
         pacientes,
+        pacientesActivos,
         allSesiones,
         onClose,
         onSave,
@@ -6758,6 +6759,7 @@ document.addEventListener('visibilitychange', async () => {
         onUpdateSesion,
         todosObjetivos,
       }) {
+        const _pacActivos = pacientesActivos || pacientes.filter(p => p.activo);
         const [f, setF] = useState({});
         const [busq, setBusq] = useState("");
         const [sugs, setSugs] = useState([]);
@@ -6973,11 +6975,11 @@ document.addEventListener('visibilitychange', async () => {
             return;
           }
           const low = q.toLowerCase();
-          const m = pacientes
+          const m = _pacActivos
             .filter(
               (p) =>
                 `${p.nombre} ${p.apellido}`.toLowerCase().includes(low) ||
-                p.dni.includes(q),
+                (p.dni || "").includes(q),
             )
             .slice(0, 5);
           setSugs(m);
@@ -9467,6 +9469,7 @@ document.addEventListener('visibilitychange', async () => {
         const [showWeekend, setShowWeekend] = useState(false);
         const [sesiones, setSesiones] = useState([]);
         const [pacientes, setPacientes] = useState([]);
+        const [todosLosPacientes, setTodosLosPacientes] = useState([]);
         const [modalEliminar, setModalEliminar] = useState(null);
         const [extraFeriados, setExtraFeriados] = useState([]);
         const [showOrdenes, setShowOrdenes] = useState(false);
@@ -9518,7 +9521,9 @@ document.addEventListener('visibilitychange', async () => {
 
         function loadData() {
           setSesiones(getData("hgsp_sesiones"));
-          setPacientes(getData("hgsp_pacientes").filter((p) => p.activo));
+          const allPacs = getData("hgsp_pacientes");
+          setPacientes(allPacs.filter((p) => p.activo));
+          setTodosLosPacientes(allPacs);
           setExtraFeriados(getData("hgsp_feriados_extra"));
           setCoordPendientes(getData("hgsp_coord_pendientes") || []);
           setObjetivosSemana(getData("hgsp_objetivos_semana") || []);
@@ -9617,7 +9622,7 @@ document.addEventListener('visibilitychange', async () => {
 
         /* helper: valor de orden para una sesión */
         function valorOrdenDe(s) {
-          const pac = pacientes.find((p) => p.id === s.pacienteId);
+          const pac = todosLosPacientes.find((p) => p.id === s.pacienteId);
           const osConf = pac?.obraSocial
             ? (config.obrasSociales || []).find(
                 (o) => o.nombre === pac.obraSocial,
@@ -9757,7 +9762,7 @@ document.addEventListener('visibilitychange', async () => {
               esTurnoPasadoSinCalificar(s),
           )
           .map((s) => {
-            const pac = pacientes.find((p) => p.id === s.pacienteId);
+            const pac = todosLosPacientes.find((p) => p.id === s.pacienteId);
             const nombre = pac ? `${pac.nombre} ${pac.apellido}` : "Paciente";
             const base = descPendiente(s, nombre, hoyStr);
             const na = s.notasAlertas || {};
@@ -9816,7 +9821,7 @@ document.addEventListener('visibilitychange', async () => {
                 s.estado === "inasistencia"),
           )
           .map((s) => {
-            const pac = pacientes.find((p) => p.id === s.pacienteId);
+            const pac = todosLosPacientes.find((p) => p.id === s.pacienteId);
             return {
               sesionId: s.id,
               pacNombre: pac ? `${pac.nombre} ${pac.apellido}` : "Paciente",
@@ -10363,7 +10368,7 @@ document.addEventListener('visibilitychange', async () => {
               valorOrdenesSem={valorOrdenesSem}
               showOrdenes={showOrdenes}
               setShowOrdenes={setShowOrdenes}
-              pacientes={pacientes}
+              pacientes={todosLosPacientes}
               setModalTurno={setModalTurno}
               novedadesItems={novedadesItems}
               reservasSinCalificar={reservasSinCalificar}
@@ -10458,7 +10463,7 @@ document.addEventListener('visibilitychange', async () => {
                 weekDates={weekDates.slice(0, showWeekend ? 7 : 5)}
                 dailyTotals={dailyTotals}
                 sesiones={sesiones}
-                pacientes={pacientes}
+                pacientes={todosLosPacientes}
                 hoyStr={hoyStr}
                 feriadoMap={feriadoMap}
                 onCellClick={(fecha, hora, evt) => {
@@ -10495,7 +10500,7 @@ document.addEventListener('visibilitychange', async () => {
                 sesiones={sesiones}
                 feriadoMap={feriadoMap}
                 novedadesItems={novedadesItems}
-                pacientes={pacientes}
+                pacientes={todosLosPacientes}
                 onDayClick={(d) => {
                   setBaseDate(d);
                   setVista("semanal");
@@ -10642,7 +10647,7 @@ document.addEventListener('visibilitychange', async () => {
               <PanelDia
                 fecha={diaPanel}
                 sesiones={sesiones}
-                pacientes={pacientes}
+                pacientes={todosLosPacientes}
                 onClose={() => setDiaPanel(null)}
                 onEditar={(s) => {
                   setModalTurno({
@@ -10660,7 +10665,7 @@ document.addEventListener('visibilitychange', async () => {
               <PanelAnomalias
                 fecha={anomaliaPanel}
                 sesiones={sesiones}
-                pacientes={pacientes}
+                pacientes={todosLosPacientes}
                 onClose={() => setAnomaliaPanel(null)}
                 onEditar={(s) => {
                   setModalTurno({
@@ -10689,7 +10694,8 @@ document.addEventListener('visibilitychange', async () => {
                 sesion={modalTurno.sesion}
                 defaultFecha={modalTurno.fecha}
                 defaultHora={modalTurno.hora}
-                pacientes={pacientes}
+                pacientes={todosLosPacientes}
+                pacientesActivos={pacientes}
                 allSesiones={sesiones}
                 todosObjetivos={objetivosSemana}
                 onClose={() => setModalTurno(null)}
@@ -10708,7 +10714,7 @@ document.addEventListener('visibilitychange', async () => {
             {modalEliminar && (
               <ModalConfirmarEliminar
                 sesion={modalEliminar}
-                pacientes={pacientes}
+                pacientes={todosLosPacientes}
                 onClose={() => setModalEliminar(null)}
                 onConfirm={() => deleteSesion(modalEliminar.id)}
               />
