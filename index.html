@@ -5631,7 +5631,7 @@ document.addEventListener('visibilitychange', async () => {
                 {[
                   {
                     key: "reservas_sc",
-                    show: (reservasSinCalificar||[]).length > 0,
+                    show: true,
                     label: "🗓️ Reservas sin calificar",
                     count: (reservasSinCalificar||[]).length,
                     color: "rgba(240,160,96,.8)",
@@ -5688,7 +5688,7 @@ document.addEventListener('visibilitychange', async () => {
                   },
                   {
                     key: "ordenes",
-                    show: ordenesHistPendientes.length > 0,
+                    show: true,
                     label: "🏥 Órdenes OS pendientes",
                     count: ordenesHistPendientes.length,
                     color: "rgba(122,184,224,.8)",
@@ -6093,7 +6093,7 @@ document.addEventListener('visibilitychange', async () => {
                                   </span>
                                   <div style={{ display:"flex", alignItems:"center", gap:"2px" }}>
                                     {s.superposicionConfirmada && <span style={{ fontSize:"10px" }} title="Superposición">⚠️</span>}
-                                    {(tieneAlertaUrgente(s) || (pacPendMinMap.has(s.pacienteId) && pacPendMinMap.get(s.pacienteId) < getWeekMon(s.fecha))) && (
+                                    {tieneAlertaUrgente(s) && (
                                       <span className="ag-urgente-badge" style={{ fontSize:"10px" }} title="Alerta urgente">🚨</span>
                                     )}
                                     {(tienePendientePago(s, hoyStr) || tieneNotasAlerta(s) || esTurnoPasadoSinCalificar(s)) && (
