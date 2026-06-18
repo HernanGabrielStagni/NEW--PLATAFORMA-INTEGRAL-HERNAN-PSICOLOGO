@@ -42,7 +42,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.1"></script>
 
     <!-- ═══════════════════════════════════════ -->
     <!-- VARIABLES CSS + ESTILOS BASE           -->
@@ -2835,18 +2835,20 @@ async function checkUserAccess(email) {
 }
 
 async function registrarOActualizarUsuario(email) {
-  const { data: existing } = await _sb.from('registered_users')
-    .select('status').eq('email', email).maybeSingle();
-  if (!existing) {
-    const now = new Date();
-    const trialEnd = new Date(now.getTime() + 7*24*60*60*1000);
-    await _sb.from('registered_users').insert({
-      email, ultimo_login: now.toISOString(),
-      status: 'trial', trial_start: now.toISOString(), trial_end: trialEnd.toISOString()
-    });
-  } else {
-    await _sb.from('registered_users').update({ ultimo_login: new Date().toISOString() }).eq('email', email);
-  }
+  try {
+    const { data: existing } = await _sb.from('registered_users')
+      .select('status').eq('email', email).maybeSingle();
+    if (!existing) {
+      const now = new Date();
+      const trialEnd = new Date(now.getTime() + 7*24*60*60*1000);
+      await _sb.from('registered_users').insert({
+        email, ultimo_login: now.toISOString(),
+        status: 'trial', trial_start: now.toISOString(), trial_end: trialEnd.toISOString()
+      });
+    } else {
+      await _sb.from('registered_users').update({ ultimo_login: new Date().toISOString() }).eq('email', email);
+    }
+  } catch(e) { console.warn('Error registrando usuario:', e); }
 }
 
 function mostrarAccesoVencido(email) {
@@ -2856,30 +2858,36 @@ function mostrarAccesoVencido(email) {
 }
 
 async function authInit() {
-  // Si hay token de recovery en el hash, establecer sesión manualmente
-  const h = window.location.hash.slice(1);
-  if (h.includes('type=recovery') && h.includes('access_token=')) {
-    try {
-      const params = new URLSearchParams(h);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token') || '';
-      if (accessToken) await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-    } catch(e) { console.warn('Error estableciendo sesión de recovery:', e); }
-    document.getElementById('login-screen').classList.add('visible');
-    document.getElementById('root').style.display = 'none';
-    authShowNewPassword();
-    return;
-  }
-  const { data: { session } } = await _sb.auth.getSession();
-  if (session) {
-    await loadFromSupabase();
-    await checkIsAdmin();
-    await registrarOActualizarUsuario(session.user.email);
-    const access = await checkUserAccess(session.user.email);
-    if (access === 'expired') { mostrarAccesoVencido(session.user.email); return; }
-    document.getElementById('login-screen').classList.remove('visible');
-    document.getElementById('root').style.display = '';
-  } else {
+  try {
+    // Si hay token de recovery en el hash, establecer sesión manualmente
+    const h = window.location.hash.slice(1);
+    if (h.includes('type=recovery') && h.includes('access_token=')) {
+      try {
+        const params = new URLSearchParams(h);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token') || '';
+        if (accessToken) await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      } catch(e) { console.warn('Error estableciendo sesión de recovery:', e); }
+      document.getElementById('login-screen').classList.add('visible');
+      document.getElementById('root').style.display = 'none';
+      authShowNewPassword();
+      return;
+    }
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) {
+      await loadFromSupabase();
+      await checkIsAdmin();
+      await registrarOActualizarUsuario(session.user.email);
+      const access = await checkUserAccess(session.user.email);
+      if (access === 'expired') { mostrarAccesoVencido(session.user.email); return; }
+      document.getElementById('login-screen').classList.remove('visible');
+      document.getElementById('root').style.display = '';
+    } else {
+      document.getElementById('login-screen').classList.add('visible');
+      document.getElementById('root').style.display = 'none';
+    }
+  } catch(e) {
+    console.error('Error en authInit:', e);
     document.getElementById('login-screen').classList.add('visible');
     document.getElementById('root').style.display = 'none';
   }
