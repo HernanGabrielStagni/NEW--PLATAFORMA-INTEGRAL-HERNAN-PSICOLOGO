@@ -2876,6 +2876,7 @@ async function authInit() {
     const { data: { session } } = await _sb.auth.getSession();
     if (session) {
       await loadFromSupabase();
+      if (typeof window._loadData === 'function') window._loadData();
       await checkIsAdmin();
       await registrarOActualizarUsuario(session.user.email);
       const access = await checkUserAccess(session.user.email);
@@ -9497,7 +9498,9 @@ document.addEventListener('visibilitychange', async () => {
           setConfig(getData("hgsp_config") || {});
         }
         useEffect(() => {
+          window._loadData = loadData;
           loadData();
+          return () => { delete window._loadData; };
         }, []);
 
         /* ── feriados ── */
