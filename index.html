@@ -5033,7 +5033,9 @@ document.addEventListener('visibilitychange', async () => {
                             montoCalc = Number(s.coseguroMonto) || 0;
                             pagadoCalc = s.coseguroAbonado ?? s.cobrado;
                           } else {
-                            montoCalc = Number(s.montoParticular) || Number(config?.valorSesionParticular) || 0;
+                            montoCalc = (s.montoParticular !== undefined && s.montoParticular !== null && s.montoParticular !== "")
+                              ? Number(s.montoParticular) || 0
+                              : Number(config?.valorSesionParticular) || 0;
                             pagadoCalc = s.particularAbonado ?? s.cobrado;
                           }
                         } else if (s.cobroCancel) {
@@ -9632,13 +9634,14 @@ document.addEventListener('visibilitychange', async () => {
 
         /* helper: valor efectivo/particular para una sesión */
         function valorParticularDe(s) {
-          // El turno ya guardado conserva su montoParticular (histórico).
-          // Si no tiene, usa config como fuente de verdad.
-          return (
-            Number(s.montoParticular) ||
-            Number(config.valorSesionParticular) ||
-            0
-          );
+          // El turno ya guardado conserva su montoParticular (histórico),
+          // incluso si es 0 explícito (ej: obra social con honorarios fijos
+          // mensuales, sin cobro particular en ese turno puntual).
+          // Solo cae al valor de config si el campo nunca fue definido.
+          if (s.montoParticular !== undefined && s.montoParticular !== null && s.montoParticular !== "") {
+            return Number(s.montoParticular) || 0;
+          }
+          return Number(config.valorSesionParticular) || 0;
         }
 
         /* Valor total aprox de órdenes emitidas */
@@ -9705,8 +9708,8 @@ document.addEventListener('visibilitychange', async () => {
                 if (coseg > 0)
                   addCobro(coseg, s.metodoPagoOS || s.metodoPago || "efectivo", s.coseguroAbonado ?? s.cobrado);
               } else {
-                /* Particular: usa el valor del turno */
-                const monto = Number(s.montoParticular) || valorParticularDe(s);
+                /* Particular: usa el valor del turno (respeta 0 explícito) */
+                const monto = valorParticularDe(s);
                 addCobro(monto, s.metodoPagoParticular || s.metodoPago || "efectivo", s.particularAbonado ?? s.cobrado);
               }
             } else if (s.cobroCancel) {
