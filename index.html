@@ -4883,7 +4883,7 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       /* PANEL DÍA — vista condensada del día   */
       /* ═══════════════════════════════════════ */
-      function PanelDia({ fecha, sesiones, pacientes, onClose, onEditar }) {
+      function PanelDia({ fecha, sesiones, pacientes, config, onClose, onEditar }) {
         const ESTADOS_LABEL = {
           pendiente: { label: "Pendiente", bg: "#7A5200", color: "#FDEAAA" },
           asistio: { label: "Asistió", bg: "#1E3D2B", color: "#A8DDB8" },
@@ -5018,11 +5018,41 @@ document.addEventListener('visibilitychange', async () => {
                           : "—";
                         const est =
                           ESTADOS_LABEL[s.estado] || ESTADOS_LABEL.pendiente;
-                        const monto = s.montoCobrado
-                          ? `$${Number(s.montoCobrado).toLocaleString("es-AR")}`
-                          : s.montoParticular
-                            ? `$${Number(s.montoParticular).toLocaleString("es-AR")}`
-                            : "—";
+
+                        /* Monto real cobrado/a cobrar — misma lógica que el total semanal:
+                           OS → coseguro (la orden se cuenta aparte, no acá);
+                           Particular → montoParticular o tarifa por defecto.
+                           En cancelaciones, usa el cobro de cancelación si existe. */
+                        const modalidadTurno = s.modalidadPago ||
+                          (pac?.obraSocial && pac.obraSocial !== "" && pac.obraSocial.toLowerCase() !== "ninguna"
+                            ? "obra_social" : "particular");
+                        const esOSPanel = modalidadTurno === "obra_social";
+                        let montoCalc = 0, pagadoCalc = true;
+                        if (s.estado === "asistio") {
+                          if (esOSPanel) {
+                            montoCalc = Number(s.coseguroMonto) || 0;
+                            pagadoCalc = s.coseguroAbonado ?? s.cobrado;
+                          } else {
+                            montoCalc = Number(s.montoParticular) || Number(config?.valorSesionParticular) || 0;
+                            pagadoCalc = s.particularAbonado ?? s.cobrado;
+                          }
+                        } else if (s.cobroCancel) {
+                          if (esOSPanel) {
+                            if (s.cancelCoseguro && (s.cancelCoseguroMonto || 0) > 0) {
+                              montoCalc = Number(s.cancelCoseguroMonto) || 0;
+                              pagadoCalc = s.cancelCoseguroPagado;
+                            }
+                          } else if ((s.cancelParticularMonto || 0) > 0) {
+                            montoCalc = Number(s.cancelParticularMonto) || 0;
+                            pagadoCalc = s.cancelParticularAbonado;
+                          } else if ((s.montoCancel || 0) > 0) {
+                            montoCalc = Number(s.montoCancel) || 0;
+                            pagadoCalc = s.cancelAbonado;
+                          }
+                        }
+                        const monto = montoCalc > 0
+                          ? `$${montoCalc.toLocaleString("es-AR")}${pagadoCalc ? "" : " ⏳"}`
+                          : "—";
                         return (
                           <tr
                             key={s.id}
@@ -10617,6 +10647,7 @@ document.addEventListener('visibilitychange', async () => {
                 fecha={diaPanel}
                 sesiones={sesiones}
                 pacientes={todosLosPacientes}
+                config={config}
                 onClose={() => setDiaPanel(null)}
                 onEditar={(s) => {
                   setModalTurno({
