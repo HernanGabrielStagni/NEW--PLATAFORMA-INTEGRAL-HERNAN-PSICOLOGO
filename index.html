@@ -2016,11 +2016,40 @@
           width: 100%;
         }
         #resumen-semanal-print {
-          background: var(--vd);
+          background: #fff;
           padding: 16px;
-          print-color-adjust: exact;
-          -webkit-print-color-adjust: exact;
         }
+        /* Sin fondos de color al imprimir — solo texto, para no gastar tinta */
+        #resumen-semanal-print .rs-badge,
+        #resumen-semanal-print .rs-row {
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+        #resumen-semanal-print .rs-badge {
+          border: 1px solid currentColor !important;
+        }
+        /* Texto neutro (fechas, horas, tipo, líneas de cobro) → gris oscuro legible en blanco */
+        #resumen-semanal-print .rs-muted {
+          color: #555 !important;
+        }
+        /* Línea divisoria entre turnos, para que no se vean mezclados */
+        #resumen-semanal-print .rs-row {
+          border-bottom: 1px solid #bbb !important;
+          border-radius: 0 !important;
+        }
+        #resumen-semanal-print .rs-row:last-child {
+          border-bottom: none !important;
+        }
+        /* Color de texto por estado — mismo significado que en pantalla, en tono legible sobre blanco */
+        #resumen-semanal-print [data-estado="asistio"]      { color: #1B5E20 !important; }
+        #resumen-semanal-print [data-estado="cancelo"]      { color: #B71C1C !important; }
+        #resumen-semanal-print [data-estado="inasistencia"] { color: #7B1818 !important; }
+        #resumen-semanal-print [data-estado="reprogramo"]   { color: #1A3D8F !important; }
+        #resumen-semanal-print [data-estado="pendiente"]    { color: #8C5A00 !important; }
+        #resumen-semanal-print [data-money="efectivo"]      { color: #1B5E20 !important; }
+        #resumen-semanal-print [data-money="transferencia"] { color: #1A3D8F !important; }
+        #resumen-semanal-print [data-money="ordenes"]       { color: #8C5A00 !important; }
+        #resumen-semanal-print [data-money="total"]         { color: #111 !important; }
         .no-print {
           display: none !important;
         }
@@ -5431,7 +5460,7 @@ document.addEventListener('visibilitychange', async () => {
                 <div style={{ fontFamily: "var(--serif)", fontSize: "18px", color: "var(--do)", fontWeight: 700 }}>
                   📅 Resumen semanal
                 </div>
-                <div style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.55)", marginTop: "2px" }}>
+                <div className="rs-muted" style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.55)", marginTop: "2px" }}>
                   {fmtCorta(desde)} al {fmtCorta(hasta)}
                 </div>
               </div>
@@ -5444,40 +5473,40 @@ document.addEventListener('visibilitychange', async () => {
 
                 {/* estadísticas de asistencia */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", margin: "12px 0" }}>
-                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(255,255,255,.08)", color: "rgba(255,255,255,.75)" }}>
+                  <span className="rs-badge rs-muted" style={{ ...badgeStyle, background: "rgba(255,255,255,.08)", color: "rgba(255,255,255,.75)" }}>
                     Total turnos: {totalTurnos}
                   </span>
                   {["asistio", "cancelo", "inasistencia", "reprogramo"].map((k) => (
                     conteoEstados[k] > 0 && (
-                      <span key={k} className="rs-badge" style={{ ...badgeStyle, background: RESUMEN_ESTADOS[k].bg, color: RESUMEN_ESTADOS[k].color }}>
+                      <span key={k} className="rs-badge" data-estado={k} style={{ ...badgeStyle, background: RESUMEN_ESTADOS[k].bg, color: RESUMEN_ESTADOS[k].color }}>
                         {RESUMEN_ESTADOS[k].icon} {RESUMEN_ESTADOS[k].label}: {conteoEstados[k]} ({pct(conteoEstados[k])}%)
                       </span>
                     )
                   ))}
-                  <span className="rs-badge" style={{ ...badgeStyle, background: "#6B1515", color: "#FFD0D0" }}>
+                  <span className="rs-badge" data-estado="cancelo" style={{ ...badgeStyle, background: "#6B1515", color: "#FFD0D0" }}>
                     ⚠️ Tasa de inasistencia: {tasaInasistencia}%
                   </span>
                 </div>
 
                 {/* totales de cobro */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
-                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(74,222,128,.15)", color: "#A8DDB8", border: "1px solid rgba(74,222,128,.4)" }}>
+                  <span className="rs-badge" data-money="efectivo" style={{ ...badgeStyle, background: "rgba(74,222,128,.15)", color: "#A8DDB8", border: "1px solid rgba(74,222,128,.4)" }}>
                     💵 Efectivo: ${totEfectivo.toLocaleString("es-AR")}
                   </span>
-                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(96,165,250,.15)", color: "#BFDBFE", border: "1px solid rgba(96,165,250,.4)" }}>
+                  <span className="rs-badge" data-money="transferencia" style={{ ...badgeStyle, background: "rgba(96,165,250,.15)", color: "#BFDBFE", border: "1px solid rgba(96,165,250,.4)" }}>
                     🏦 Transferencia: ${totTransferencia.toLocaleString("es-AR")}
                   </span>
-                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(200,146,42,.15)", color: "var(--do)", border: "1px solid rgba(200,146,42,.4)" }}>
+                  <span className="rs-badge" data-money="ordenes" style={{ ...badgeStyle, background: "rgba(200,146,42,.15)", color: "var(--do)", border: "1px solid rgba(200,146,42,.4)" }}>
                     📋 Órdenes: ${totOrdenes.toLocaleString("es-AR")}
                   </span>
-                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(255,255,255,.1)", color: "#fff", fontWeight: 800 }}>
+                  <span className="rs-badge" data-money="total" style={{ ...badgeStyle, background: "rgba(255,255,255,.1)", color: "#fff", fontWeight: 800 }}>
                     Σ Total: ${totalGeneral.toLocaleString("es-AR")}
                   </span>
                 </div>
 
                 {/* tabla apilada por turno */}
                 {filas.length === 0 ? (
-                  <div style={{ color: "rgba(255,255,255,.5)", fontFamily: "var(--sans)", fontSize: "14px", padding: "20px 0", textAlign: "center" }}>
+                  <div className="rs-muted" style={{ color: "rgba(255,255,255,.5)", fontFamily: "var(--sans)", fontSize: "14px", padding: "20px 0", textAlign: "center" }}>
                     Sin turnos registrados esta semana.
                   </div>
                 ) : (
@@ -5485,28 +5514,29 @@ document.addEventListener('visibilitychange', async () => {
                     const nombre = pac ? `${pac.nombre} ${pac.apellido}` : "—";
                     const est = RESUMEN_ESTADOS[s.estado] || RESUMEN_ESTADOS.pendiente;
                     return (
-                      <div key={s.id} style={{
+                      <div key={s.id} className="rs-row" style={{
                         padding: "9px 10px", marginBottom: "4px", borderRadius: "8px",
                         background: i % 2 === 0 ? "rgba(255,255,255,.03)" : "rgba(255,255,255,.06)",
+                        borderBottom: "1px solid rgba(255,255,255,.08)",
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                          <span style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.6)", whiteSpace: "nowrap" }}>
+                          <span className="rs-muted" style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.6)", whiteSpace: "nowrap" }}>
                             {fmtCorta(s.fecha)} · {s.horaInicio || "?"}–{s.horaFin || "?"}
                           </span>
                           <span style={{ fontFamily: "var(--sans)", fontSize: "13px", color: "var(--do)", fontWeight: 600 }}>
                             {nombre}
                           </span>
-                          <span style={{ fontFamily: "var(--sans)", fontSize: "11px", color: "rgba(255,255,255,.5)", textTransform: "capitalize" }}>
+                          <span className="rs-muted" style={{ fontFamily: "var(--sans)", fontSize: "11px", color: "rgba(255,255,255,.5)", textTransform: "capitalize" }}>
                             {s.tipo || "—"}
                           </span>
-                          <span className="rs-badge" style={{ ...badgeStyle, background: est.bg, color: est.color }}>
+                          <span className="rs-badge" data-estado={s.estado || "pendiente"} style={{ ...badgeStyle, background: est.bg, color: est.color }}>
                             {est.icon} {est.label}
                           </span>
                         </div>
                         {lineas.length > 0 && (
                           <div style={{ marginTop: "5px", paddingLeft: "4px", display: "flex", flexDirection: "column", gap: "2px" }}>
                             {lineas.map((l, j) => (
-                              <div key={j} style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.7)" }}>
+                              <div key={j} className="rs-muted" style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.7)" }}>
                                 {l.icon} ${l.monto.toLocaleString("es-AR")} — {l.label}
                                 {l.metodo && ` · ${l.metodo === "transferencia" ? "Transferencia" : "Efectivo"}`}
                                 {!l.abonado && " · ⏳ pendiente"}
