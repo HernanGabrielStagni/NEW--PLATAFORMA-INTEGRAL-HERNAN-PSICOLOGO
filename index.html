@@ -2003,14 +2003,31 @@
           visibility: hidden;
         }
         #planilla-at-print,
-        #planilla-at-print * {
+        #planilla-at-print *,
+        #resumen-semanal-print,
+        #resumen-semanal-print * {
           visibility: visible;
         }
-        #planilla-at-print {
+        #planilla-at-print,
+        #resumen-semanal-print {
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
+        }
+        #resumen-semanal-print {
+          background: #fff !important;
+          color: #000 !important;
+          padding: 16px;
+        }
+        #resumen-semanal-print * {
+          color: #000 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border-color: #999 !important;
+        }
+        #resumen-semanal-print .rs-badge {
+          border: 1px solid #999 !important;
         }
         .no-print {
           display: none !important;
@@ -5184,6 +5201,359 @@ document.addEventListener('visibilitychange', async () => {
       }
 
       /* ═══════════════════════════════════════════ */
+      /* RESUMEN SEMANAL — helper de cobro por turno */
+      /* ═══════════════════════════════════════════ */
+      /* Misma lógica que dailyTotals/PanelDia, reescrita como líneas
+         independientes (particular/coseguro/orden) para poder apilarlas
+         en pantalla/impresión y volcarlas en columnas separadas en Excel. */
+      function lineasCobroDeTurno(s, pac, config) {
+        const modalidadTurno =
+          s.modalidadPago ||
+          (pac?.obraSocial && pac.obraSocial !== "" && pac.obraSocial.toLowerCase() !== "ninguna"
+            ? "obra_social"
+            : "particular");
+        const esOS = modalidadTurno === "obra_social";
+
+        function valorOrdenDe() {
+          const osConf = pac?.obraSocial
+            ? (config.obrasSociales || []).find((o) => o.nombre === pac.obraSocial)
+            : null;
+          return Number(pac?.valorOrden) || Number(osConf?.valorOrden) || 0;
+        }
+        function valorParticularDe() {
+          if (s.montoParticular !== undefined && s.montoParticular !== null && s.montoParticular !== "") {
+            return Number(s.montoParticular) || 0;
+          }
+          return Number(config.valorSesionParticular) || 0;
+        }
+
+        const lineas = [];
+        if (s.estado === "asistio") {
+          if (esOS) {
+            const coseg = Number(s.coseguroMonto) || 0;
+            if (coseg > 0) {
+              lineas.push({
+                tipo: "coseguro", icon: "🏥", label: "Coseguro", monto: coseg,
+                metodo: s.metodoPagoOS || s.metodoPago || "efectivo",
+                abonado: s.coseguroAbonado ?? s.cobrado,
+              });
+            }
+            if (s.ordenEmitida) {
+              const ord = valorOrdenDe();
+              if (ord > 0) lineas.push({ tipo: "orden", icon: "📋", label: "Orden", monto: ord, metodo: null, abonado: true });
+            }
+          } else {
+            const monto = valorParticularDe();
+            if (monto > 0) {
+              lineas.push({
+                tipo: "particular", icon: "💵", label: "Particular", monto,
+                metodo: s.metodoPagoParticular || s.metodoPago || "efectivo",
+                abonado: s.particularAbonado ?? s.cobrado,
+              });
+            }
+          }
+        } else if (s.cobroCancel) {
+          if (esOS) {
+            if (s.cancelCoseguro && (s.cancelCoseguroMonto || 0) > 0) {
+              lineas.push({
+                tipo: "coseguro", icon: "🏥", label: "Coseguro (cancel.)",
+                monto: Number(s.cancelCoseguroMonto) || 0,
+                metodo: s.cancelCoseguroMetodo || "efectivo",
+                abonado: s.cancelCoseguroPagado,
+              });
+            }
+            if (s.cancelOrdenOS && s.cancelOrdenEmitida) {
+              const ord = valorOrdenDe();
+              if (ord > 0) lineas.push({ tipo: "orden", icon: "📋", label: "Orden (cancel.)", monto: ord, metodo: null, abonado: true });
+            }
+          } else if ((s.cancelParticularMonto || 0) > 0) {
+            lineas.push({
+              tipo: "particular", icon: "💵", label: "Seña (cancel.)",
+              monto: Number(s.cancelParticularMonto) || 0,
+              metodo: s.cancelParticularMetodo || "efectivo",
+              abonado: s.cancelParticularAbonado,
+            });
+          } else if ((s.montoCancel || 0) > 0) {
+            lineas.push({
+              tipo: "particular", icon: "💵", label: "Seña (cancel.)",
+              monto: Number(s.montoCancel) || 0,
+              metodo: "efectivo",
+              abonado: s.cancelAbonado,
+            });
+          }
+        }
+        return lineas;
+      }
+
+      const RESUMEN_ESTADOS = {
+        asistio:      { label: "Asistió",      icon: "✅", bg: "#1E3D2B", color: "#A8DDB8" },
+        cancelo:      { label: "Canceló",      icon: "❌", bg: "#7A2800", color: "#FFD0B8" },
+        inasistencia: { label: "Inasistencia", icon: "🚫", bg: "#6B1515", color: "#FFD0D0" },
+        reprogramo:   { label: "Reprogramó",   icon: "🔄", bg: "#3A4A7A", color: "#C8D8FF" },
+        pendiente:    { label: "Pendiente",    icon: "⏳", bg: "#7A5200", color: "#FDEAAA" },
+      };
+
+      /* ═══════════════════════════════════════════ */
+      /* MODAL RESUMEN SEMANAL                      */
+      /* ═══════════════════════════════════════════ */
+      function ModalResumenSemanal({ weekDates, sesiones, pacientes, config, onClose }) {
+        const fechas = weekDates.map((d) => dateStr(d));
+        const desde = fechas[0];
+        const hasta = fechas[fechas.length - 1];
+        const fmtCorta = (ds) => {
+          const d = new Date(ds + "T12:00");
+          return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+        };
+
+        const turnos = sesiones
+          .filter((s) => fechas.includes(s.fecha) && s.tipo !== "reserva_personal")
+          .sort((a, b) => (a.fecha + (a.horaInicio || "")).localeCompare(b.fecha + (b.horaInicio || "")));
+
+        let totEfectivo = 0, totTransferencia = 0, totOrdenes = 0;
+        const conteoEstados = { asistio: 0, cancelo: 0, inasistencia: 0, reprogramo: 0, pendiente: 0 };
+
+        const filas = turnos.map((s) => {
+          const pac = pacientes.find((p) => p.id === s.pacienteId);
+          const lineas = lineasCobroDeTurno(s, pac, config || {});
+          lineas.forEach((l) => {
+            if (l.tipo === "orden") { totOrdenes += l.monto; return; }
+            if (!l.abonado) return;
+            if (l.metodo === "transferencia") totTransferencia += l.monto;
+            else totEfectivo += l.monto;
+          });
+          const estKey = conteoEstados[s.estado] !== undefined ? s.estado : "pendiente";
+          conteoEstados[estKey]++;
+          return { sesion: s, paciente: pac, lineas };
+        });
+
+        const totalTurnos = turnos.length;
+        const pct = (n) => (totalTurnos > 0 ? Math.round((n / totalTurnos) * 1000) / 10 : 0);
+        const tasaInasistencia = pct(conteoEstados.cancelo + conteoEstados.inasistencia);
+        const totalGeneral = totEfectivo + totTransferencia + totOrdenes;
+
+        function imprimir() {
+          window.print();
+        }
+
+        async function exportarExcel() {
+          if (typeof ExcelJS === "undefined") {
+            showToast("❌ ExcelJS no cargado. Verificá conexión.");
+            return;
+          }
+          const wb = new ExcelJS.Workbook();
+          wb.creator = "Plataforma Clínica";
+          const ws = wb.addWorksheet("Resumen semanal");
+
+          ws.mergeCells("A1:J1");
+          ws.getCell("A1").value = `Resumen semanal — ${fmtCorta(desde)} al ${fmtCorta(hasta)}`;
+          ws.getCell("A1").font = { bold: true, size: 13 };
+          ws.getRow(1).height = 22;
+
+          const headerRow = ws.addRow([
+            "Fecha", "Hora", "Paciente", "Tipo", "Estado",
+            "Particular $", "Coseguro $", "Orden $", "Método", "Abonado",
+          ]);
+          headerRow.eachCell((c) => {
+            c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+            c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3D2B" } };
+          });
+
+          filas.forEach(({ sesion: s, paciente: pac, lineas }) => {
+            const nombre = pac ? `${pac.nombre} ${pac.apellido}` : "—";
+            const estLabel = (RESUMEN_ESTADOS[s.estado] || RESUMEN_ESTADOS.pendiente).label;
+            if (lineas.length === 0) {
+              ws.addRow([fmtCorta(s.fecha), `${s.horaInicio || "?"}–${s.horaFin || "?"}`, nombre, s.tipo || "—", estLabel, "", "", "", "", ""]);
+              return;
+            }
+            let particular = "", coseguro = "", orden = "", metodo = "", abonado = "";
+            lineas.forEach((l) => {
+              if (l.tipo === "particular") particular = l.monto;
+              if (l.tipo === "coseguro") coseguro = l.monto;
+              if (l.tipo === "orden") orden = l.monto;
+              if (l.metodo) metodo = l.metodo === "transferencia" ? "Transferencia" : "Efectivo";
+              abonado = l.abonado ? "Sí" : "No";
+            });
+            ws.addRow([fmtCorta(s.fecha), `${s.horaInicio || "?"}–${s.horaFin || "?"}`, nombre, s.tipo || "—", estLabel, particular, coseguro, orden, metodo, abonado]);
+          });
+
+          ws.addRow([]);
+          const rCobros = ws.addRow(["RESUMEN DE COBROS"]);
+          rCobros.getCell(1).font = { bold: true, size: 12 };
+          ws.addRow(["Total Efectivo", totEfectivo]);
+          ws.addRow(["Total Transferencia", totTransferencia]);
+          ws.addRow(["Total Órdenes", totOrdenes]);
+          ws.addRow(["Total general", totalGeneral]);
+
+          ws.addRow([]);
+          const rAsist = ws.addRow(["ESTADÍSTICAS DE ASISTENCIA"]);
+          rAsist.getCell(1).font = { bold: true, size: 12 };
+          ws.addRow(["Total turnos", totalTurnos]);
+          ws.addRow(["Asistió", conteoEstados.asistio, `${pct(conteoEstados.asistio)}%`]);
+          ws.addRow(["Canceló", conteoEstados.cancelo, `${pct(conteoEstados.cancelo)}%`]);
+          ws.addRow(["Inasistencia", conteoEstados.inasistencia, `${pct(conteoEstados.inasistencia)}%`]);
+          ws.addRow(["Reprogramó", conteoEstados.reprogramo, `${pct(conteoEstados.reprogramo)}%`]);
+          ws.addRow(["Tasa de inasistencia (canceló + inasistencia)", `${tasaInasistencia}%`]);
+
+          ws.columns.forEach((col, i) => {
+            col.width = [12, 14, 24, 12, 16, 13, 13, 11, 14, 10][i] || 14;
+          });
+
+          const buffer = await wb.xlsx.writeBuffer();
+          const blob = new Blob([buffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Resumen_semanal_${desde}_a_${hasta}.xlsx`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast("📊 Resumen semanal exportado");
+        }
+
+        const badgeStyle = {
+          display: "inline-flex", alignItems: "center", gap: "4px",
+          fontFamily: "var(--mono)", fontSize: "10px", fontWeight: 700,
+          borderRadius: "50px", padding: "3px 9px", whiteSpace: "nowrap",
+        };
+
+        return ReactDOM.createPortal(
+          <div
+            style={{
+              position: "fixed", inset: 0, background: "rgba(30,61,43,.6)",
+              display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200,
+            }}
+            onClick={onClose}
+          >
+            <div
+              style={{
+                background: "var(--vd)", border: "2px solid var(--vm)", borderRadius: "var(--r)",
+                width: "min(820px,95vw)", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ height: "4px", background: "linear-gradient(90deg,var(--do),#E8B84B)", flexShrink: 0 }} className="no-print" />
+
+              {/* header */}
+              <div style={{ padding: "18px 22px 12px", borderBottom: "1px solid rgba(200,146,42,.2)", flexShrink: 0 }} className="no-print">
+                <div style={{ fontFamily: "var(--serif)", fontSize: "18px", color: "var(--do)", fontWeight: 700 }}>
+                  📅 Resumen semanal
+                </div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.55)", marginTop: "2px" }}>
+                  {fmtCorta(desde)} al {fmtCorta(hasta)}
+                </div>
+              </div>
+
+              {/* cuerpo imprimible */}
+              <div id="resumen-semanal-print" style={{ overflowY: "auto", padding: "16px 22px", flex: 1 }}>
+                <div style={{ fontFamily: "var(--serif)", fontSize: "16px", color: "var(--do)", fontWeight: 700, marginBottom: "2px" }}>
+                  Resumen semanal — {fmtCorta(desde)} al {fmtCorta(hasta)}
+                </div>
+
+                {/* estadísticas de asistencia */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", margin: "12px 0" }}>
+                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(255,255,255,.08)", color: "rgba(255,255,255,.75)" }}>
+                    Total turnos: {totalTurnos}
+                  </span>
+                  {["asistio", "cancelo", "inasistencia", "reprogramo"].map((k) => (
+                    conteoEstados[k] > 0 && (
+                      <span key={k} className="rs-badge" style={{ ...badgeStyle, background: RESUMEN_ESTADOS[k].bg, color: RESUMEN_ESTADOS[k].color }}>
+                        {RESUMEN_ESTADOS[k].icon} {RESUMEN_ESTADOS[k].label}: {conteoEstados[k]} ({pct(conteoEstados[k])}%)
+                      </span>
+                    )
+                  ))}
+                  <span className="rs-badge" style={{ ...badgeStyle, background: "#6B1515", color: "#FFD0D0" }}>
+                    ⚠️ Tasa de inasistencia: {tasaInasistencia}%
+                  </span>
+                </div>
+
+                {/* totales de cobro */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
+                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(74,222,128,.15)", color: "#A8DDB8", border: "1px solid rgba(74,222,128,.4)" }}>
+                    💵 Efectivo: ${totEfectivo.toLocaleString("es-AR")}
+                  </span>
+                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(96,165,250,.15)", color: "#BFDBFE", border: "1px solid rgba(96,165,250,.4)" }}>
+                    🏦 Transferencia: ${totTransferencia.toLocaleString("es-AR")}
+                  </span>
+                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(200,146,42,.15)", color: "var(--do)", border: "1px solid rgba(200,146,42,.4)" }}>
+                    📋 Órdenes: ${totOrdenes.toLocaleString("es-AR")}
+                  </span>
+                  <span className="rs-badge" style={{ ...badgeStyle, background: "rgba(255,255,255,.1)", color: "#fff", fontWeight: 800 }}>
+                    Σ Total: ${totalGeneral.toLocaleString("es-AR")}
+                  </span>
+                </div>
+
+                {/* tabla apilada por turno */}
+                {filas.length === 0 ? (
+                  <div style={{ color: "rgba(255,255,255,.5)", fontFamily: "var(--sans)", fontSize: "14px", padding: "20px 0", textAlign: "center" }}>
+                    Sin turnos registrados esta semana.
+                  </div>
+                ) : (
+                  filas.map(({ sesion: s, paciente: pac, lineas }, i) => {
+                    const nombre = pac ? `${pac.nombre} ${pac.apellido}` : "—";
+                    const est = RESUMEN_ESTADOS[s.estado] || RESUMEN_ESTADOS.pendiente;
+                    return (
+                      <div key={s.id} style={{
+                        padding: "9px 10px", marginBottom: "4px", borderRadius: "8px",
+                        background: i % 2 === 0 ? "rgba(255,255,255,.03)" : "rgba(255,255,255,.06)",
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <span style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.6)", whiteSpace: "nowrap" }}>
+                            {fmtCorta(s.fecha)} · {s.horaInicio || "?"}–{s.horaFin || "?"}
+                          </span>
+                          <span style={{ fontFamily: "var(--sans)", fontSize: "13px", color: "var(--do)", fontWeight: 600 }}>
+                            {nombre}
+                          </span>
+                          <span style={{ fontFamily: "var(--sans)", fontSize: "11px", color: "rgba(255,255,255,.5)", textTransform: "capitalize" }}>
+                            {s.tipo || "—"}
+                          </span>
+                          <span className="rs-badge" style={{ ...badgeStyle, background: est.bg, color: est.color }}>
+                            {est.icon} {est.label}
+                          </span>
+                        </div>
+                        {lineas.length > 0 && (
+                          <div style={{ marginTop: "5px", paddingLeft: "4px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                            {lineas.map((l, j) => (
+                              <div key={j} style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.7)" }}>
+                                {l.icon} ${l.monto.toLocaleString("es-AR")} — {l.label}
+                                {l.metodo && ` · ${l.metodo === "transferencia" ? "Transferencia" : "Efectivo"}`}
+                                {!l.abonado && " · ⏳ pendiente"}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* pie */}
+              <div style={{ padding: "12px 22px", borderTop: "1px solid rgba(200,146,42,.2)", display: "flex", justifyContent: "flex-end", gap: "8px", flexShrink: 0 }} className="no-print">
+                <button onClick={exportarExcel} className="btn btn-sec" style={{ fontSize: "13px" }}>
+                  📊 Exportar Excel
+                </button>
+                <button onClick={imprimir} className="btn btn-sec" style={{ fontSize: "13px" }}>
+                  🖨️ Imprimir
+                </button>
+                <button
+                  onClick={onClose}
+                  style={{
+                    background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.15)",
+                    borderRadius: "50px", color: "rgba(255,255,255,.8)", fontSize: "13px",
+                    padding: "7px 20px", cursor: "pointer", fontFamily: "var(--sans)", fontWeight: 600,
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        );
+      }
+
+      /* ═══════════════════════════════════════════ */
       /* PANEL ANOMALÍAS — turnos fuera de rango    */
       /* ═══════════════════════════════════════════ */
       function PanelAnomalias({
@@ -5519,7 +5889,7 @@ document.addEventListener('visibilitychange', async () => {
         );
       }
 
-            function PanelAccesos({ objActual, objDraft, setObjDraft, editandoObj, setEditandoObj, guardarObjetivos, cobradoSem, pendienteSem, weekSes, pendSem, cancelSem, ordenesSem, valorOrdenesSem, showOrdenes, setShowOrdenes, pacientes, setModalTurno, novedadesItems, reservasSinCalificar, ordenesHistPendientes, recordatoriosActivos, coordSemana, coordManualesPendientes, totalPendientes, resolverItem, loadData, showToast, sesiones, deleteRecordatorio, setBaseDate, setVista, eliminarCoordAuto, eliminarCoordManual, setModalReserva }) {
+            function PanelAccesos({ objActual, objDraft, setObjDraft, editandoObj, setEditandoObj, guardarObjetivos, cobradoSem, pendienteSem, weekSes, pendSem, cancelSem, ordenesSem, valorOrdenesSem, showOrdenes, setShowOrdenes, pacientes, setModalTurno, novedadesItems, reservasSinCalificar, ordenesHistPendientes, recordatoriosActivos, coordSemana, coordManualesPendientes, totalPendientes, resolverItem, loadData, showToast, sesiones, deleteRecordatorio, setBaseDate, setVista, eliminarCoordAuto, eliminarCoordManual, setModalReserva, onAbrirResumen }) {
         const [panelAbierto, setPanelAbierto] = React.useState(null);
         /* Botón igual para todos: padding reducido 40%, misma anchura */
         const tabStyle = {
@@ -5533,6 +5903,7 @@ document.addEventListener('visibilitychange', async () => {
           { id:"objetivos", icon:"🎯", label:"Objetivos", color:"#E8B84B", glow:"rgba(232,184,75,.45)" },
           { id:"metricas",  icon:"📊", label:"Métricas",  color:"#8AD2A0", glow:"rgba(138,210,160,.4)"  },
           { id:"alertas",   icon:"🔔", label:"Alertas",   color:"#F0A060", glow:"rgba(240,160,96,.4)",  badge: totalPendientes },
+          { id:"resumen",   icon:"📅", label:"Resumen",   color:"#6AAFD8", glow:"rgba(106,175,216,.4)"  },
         ];
         return (
           /* Contenedor limpio: un solo borde dorado uniforme, bordes redondeados, sin superposiciones */
@@ -5553,7 +5924,7 @@ document.addEventListener('visibilitychange', async () => {
                 {accesos.map((acc) => { const { id, icon, label, color, glow } = acc;
                   const isOpen = panelAbierto === id;
                   return (
-                    <button key={id} onClick={() => setPanelAbierto(isOpen ? null : id)} title={label}
+                    <button key={id} onClick={() => id === "resumen" ? (onAbrirResumen && onAbrirResumen()) : setPanelAbierto(isOpen ? null : id)} title={label}
                       style={{ ...tabStyle,
                         border:"1.5px solid "+(isOpen ? color : "rgba(200,146,42,.2)"),
                         background: isOpen ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.03)",
@@ -9516,6 +9887,7 @@ document.addEventListener('visibilitychange', async () => {
           () => getData("hgsp_config") || {},
         );
         const [diaPanel, setDiaPanel] = useState(null); // fecha "YYYY-MM-DD" del PanelDia abierto
+        const [modalResumen, setModalResumen] = useState(false); // Resumen semanal
         const [anomaliaPanel, setAnomaliaPanel] = useState(null); // fecha "YYYY-MM-DD" del PanelAnomalias
 
         function loadData() {
@@ -10392,6 +10764,7 @@ document.addEventListener('visibilitychange', async () => {
               eliminarCoordAuto={eliminarCoordAuto}
               eliminarCoordManual={eliminarCoordManual}
               setModalReserva={setModalReserva}
+              onAbrirResumen={() => setModalResumen(true)}
             />}
             {/* Leyenda y colores → en Configuración */}
 
@@ -10660,6 +11033,17 @@ document.addEventListener('visibilitychange', async () => {
                     hora: s.horaInicio,
                   });
                 }}
+              />
+            )}
+
+            {/* RESUMEN SEMANAL */}
+            {modalResumen && (
+              <ModalResumenSemanal
+                weekDates={weekDates}
+                sesiones={sesiones}
+                pacientes={todosLosPacientes}
+                config={config}
+                onClose={() => setModalResumen(false)}
               />
             )}
 
