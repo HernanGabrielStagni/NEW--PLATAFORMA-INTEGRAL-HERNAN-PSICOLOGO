@@ -2016,18 +2016,10 @@
           width: 100%;
         }
         #resumen-semanal-print {
-          background: #fff !important;
-          color: #000 !important;
+          background: var(--vd);
           padding: 16px;
-        }
-        #resumen-semanal-print * {
-          color: #000 !important;
-          background: transparent !important;
-          box-shadow: none !important;
-          border-color: #999 !important;
-        }
-        #resumen-semanal-print .rs-badge {
-          border: 1px solid #999 !important;
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
         }
         .no-print {
           display: none !important;
