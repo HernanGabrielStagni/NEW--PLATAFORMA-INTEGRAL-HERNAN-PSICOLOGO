@@ -3218,6 +3218,7 @@ document.addEventListener('visibilitychange', async () => {
       function setData(key, data) {
         try {
           localStorage.setItem(key, JSON.stringify(data));
+          if (key === "hgsp_pacientes") _pacFijoCache = null;
           syncToSupabase(key, data);
         } catch (e) {
           console.error(e);
@@ -3225,6 +3226,19 @@ document.addEventListener('visibilitychange', async () => {
             "❌ Error: No se pudo guardar. Verifique el espacio disponible.",
           );
         }
+      }
+
+      /* Cache: pacientes con abono mensual (modalidadCobro fijo).
+         Sus turnos no generan cobro individual, salvo cobro por evento. */
+      let _pacFijoCache = null;
+      function esPacienteFijo(pacienteId) {
+        if (!_pacFijoCache) {
+          _pacFijoCache = {};
+          (getData("hgsp_pacientes") || []).forEach((p) => {
+            _pacFijoCache[p.id] = p.modalidadCobro === "fijo";
+          });
+        }
+        return !!_pacFijoCache[pacienteId];
       }
       function genId() {
         return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -4152,6 +4166,7 @@ document.addEventListener('visibilitychange', async () => {
                   {[
                     { id: "liquidaciones", icon: "🏥", label: "OS" },
                     { id: "cobros",        icon: "💳", label: "Cobros" },
+                    { id: "mensuales",     icon: "🗓️", label: "Mensuales" },
                     { id: "dashboard",     icon: "📊", label: "Dashboard" },
                   ].map(({ id, icon, label }) => {
                     const active = facturacionBar.tab === id;
@@ -4432,6 +4447,15 @@ document.addEventListener('visibilitychange', async () => {
       /* hoy: string 'YYYY-MM-DD' — necesario para detectar pendientes con fecha pasada */
       function tienePendientePago(s, hoy) {
         if (s.tipo === "reserva_personal") return false;
+        if (esPacienteFijo(s.pacienteId)) {
+          /* Abono mensual: el turno no genera cobro propio.
+             Solo un cobro por evento puede quedar pendiente. */
+          return !!(
+            s.cobroEvento &&
+            (Number(s.cobroEventoMonto) || 0) > 0 &&
+            !s.cobroEventoAbonado
+          );
+        }
         // Cobro por cancelación / reprogramación / inasistencia pendiente
         if (
           (s.estado === "cancelo" ||
@@ -5057,42 +5081,18 @@ document.addEventListener('visibilitychange', async () => {
                         const est =
                           ESTADOS_LABEL[s.estado] || ESTADOS_LABEL.pendiente;
 
-                        /* Monto real cobrado/a cobrar — misma lógica que el total semanal:
-                           OS → coseguro (la orden se cuenta aparte, no acá);
-                           Particular → montoParticular o tarifa por defecto.
-                           En cancelaciones, usa el cobro de cancelación si existe. */
-                        const modalidadTurno = s.modalidadPago ||
-                          (pac?.obraSocial && pac.obraSocial !== "" && pac.obraSocial.toLowerCase() !== "ninguna"
-                            ? "obra_social" : "particular");
-                        const esOSPanel = modalidadTurno === "obra_social";
-                        let montoCalc = 0, pagadoCalc = true;
-                        if (s.estado === "asistio") {
-                          if (esOSPanel) {
-                            montoCalc = Number(s.coseguroMonto) || 0;
-                            pagadoCalc = s.coseguroAbonado ?? s.cobrado;
-                          } else {
-                            montoCalc = (s.montoParticular !== undefined && s.montoParticular !== null && s.montoParticular !== "")
-                              ? Number(s.montoParticular) || 0
-                              : Number(config?.valorSesionParticular) || 0;
-                            pagadoCalc = s.particularAbonado ?? s.cobrado;
-                          }
-                        } else if (s.cobroCancel) {
-                          if (esOSPanel) {
-                            if (s.cancelCoseguro && (s.cancelCoseguroMonto || 0) > 0) {
-                              montoCalc = Number(s.cancelCoseguroMonto) || 0;
-                              pagadoCalc = s.cancelCoseguroPagado;
-                            }
-                          } else if ((s.cancelParticularMonto || 0) > 0) {
-                            montoCalc = Number(s.cancelParticularMonto) || 0;
-                            pagadoCalc = s.cancelParticularAbonado;
-                          } else if ((s.montoCancel || 0) > 0) {
-                            montoCalc = Number(s.montoCancel) || 0;
-                            pagadoCalc = s.cancelAbonado;
-                          }
-                        }
+                        /* Monto real cobrado/a cobrar — derivado del helper único.
+                           La orden OS se cuenta aparte, no acá: se excluye del total. */
+                        const esAbono = esPacienteFijo(s.pacienteId);
+                        const bPanel = bucketsDeTurno(s, pac, config);
+                        const montoCalc =
+                          bPanel.efectivo + bPanel.transferencia + bPanel.pendiente;
+                        const pagadoCalc = bPanel.pendiente === 0;
                         const monto = montoCalc > 0
                           ? `$${montoCalc.toLocaleString("es-AR")}${pagadoCalc ? "" : " ⏳"}`
-                          : "—";
+                          : esAbono
+                            ? "🗓️ abono"
+                            : "—";
                         return (
                           <tr
                             key={s.id}
@@ -5249,6 +5249,17 @@ document.addEventListener('visibilitychange', async () => {
         }
 
         const lineas = [];
+        /* Cobro por evento: se cobra aparte del abono (ej: encuentro con abuelos) */
+        if (s.cobroEvento && (Number(s.cobroEventoMonto) || 0) > 0) {
+          lineas.push({
+            tipo: "evento", icon: "🎟️", label: s.cobroEventoDetalle || "Evento",
+            monto: Number(s.cobroEventoMonto) || 0,
+            metodo: s.cobroEventoMetodo || "efectivo",
+            abonado: !!s.cobroEventoAbonado,
+          });
+        }
+        /* Paciente con abono mensual: sin cobros por turno (el abono va por Mensuales) */
+        if (esPacienteFijo(s.pacienteId)) return lineas;
         if (s.estado === "asistio") {
           if (esOS) {
             const coseg = Number(s.coseguroMonto) || 0;
@@ -5306,6 +5317,22 @@ document.addEventListener('visibilitychange', async () => {
         return lineas;
       }
 
+      /* Fuente única de verdad para el dinero de un turno: reduce las líneas de
+         cobro a los cuatro cubos que usan la agenda y los reportes.
+         Órdenes OS = por cobrar (a liquidar); no abonado = pendiente. */
+      function bucketsDeTurno(s, pac, config) {
+        const b = { efectivo: 0, transferencia: 0, ordenes: 0, pendiente: 0 };
+        lineasCobroDeTurno(s, pac, config || {}).forEach((l) => {
+          const n = Number(l.monto) || 0;
+          if (n <= 0) return;
+          if (l.tipo === "orden") { b.ordenes += n; return; }
+          if (!l.abonado) { b.pendiente += n; return; }
+          if (l.metodo === "transferencia") b.transferencia += n;
+          else b.efectivo += n;
+        });
+        return b;
+      }
+
       const RESUMEN_ESTADOS = {
         asistio:      { label: "Asistió",      icon: "✅", bg: "#1E3D2B", color: "#A8DDB8" },
         cancelo:      { label: "Canceló",      icon: "❌", bg: "#7A2800", color: "#FFD0B8" },
@@ -5347,10 +5374,23 @@ document.addEventListener('visibilitychange', async () => {
           return { sesion: s, paciente: pac, lineas };
         });
 
+        /* Abonos mensuales acreditados esta semana (viven en hgsp_cobros, sin turno) */
+        const abonosSemana = getData("hgsp_cobros")
+          .filter((c) => c.concepto === "abono_mensual" && c.cobrado && fechas.includes(c.fecha))
+          .sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""));
+        const totAbonos = abonosSemana.reduce((s, c) => s + (Number(c.monto) || 0), 0);
+        abonosSemana.forEach((c) => {
+          if (c.metodoPago === "transferencia") totTransferencia += Number(c.monto) || 0;
+          else totEfectivo += Number(c.monto) || 0;
+        });
+
         const totalTurnos = turnos.length;
         const pct = (n) => (totalTurnos > 0 ? Math.round((n / totalTurnos) * 1000) / 10 : 0);
         const tasaInasistencia = pct(conteoEstados.cancelo + conteoEstados.inasistencia);
-        const totalGeneral = totEfectivo + totTransferencia + totOrdenes;
+        /* Percibido = plata que entró (efectivo + transferencia, incluye abonos).
+           Las órdenes OS se liquidan después: son por cobrar, no percibido. */
+        const totPercibido = totEfectivo + totTransferencia;
+        const totalGeneral = totPercibido + totOrdenes;
 
         function imprimir() {
           window.print();
@@ -5372,7 +5412,7 @@ document.addEventListener('visibilitychange', async () => {
 
           const headerRow = ws.addRow([
             "Fecha", "Hora", "Paciente", "Tipo", "Estado",
-            "Particular $", "Coseguro $", "Orden $", "Método", "Abonado",
+            "Particular/Evento $", "Coseguro $", "Orden $", "Método", "Abonado",
           ]);
           headerRow.eachCell((c) => {
             c.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -5388,7 +5428,7 @@ document.addEventListener('visibilitychange', async () => {
             }
             let particular = "", coseguro = "", orden = "", metodo = "", abonado = "";
             lineas.forEach((l) => {
-              if (l.tipo === "particular") particular = l.monto;
+              if (l.tipo === "particular" || l.tipo === "evento") particular = l.monto;
               if (l.tipo === "coseguro") coseguro = l.monto;
               if (l.tipo === "orden") orden = l.monto;
               if (l.metodo) metodo = l.metodo === "transferencia" ? "Transferencia" : "Efectivo";
@@ -5397,13 +5437,31 @@ document.addEventListener('visibilitychange', async () => {
             ws.addRow([fmtCorta(s.fecha), `${s.horaInicio || "?"}–${s.horaFin || "?"}`, nombre, s.tipo || "—", estLabel, particular, coseguro, orden, metodo, abonado]);
           });
 
+          if (abonosSemana.length > 0) {
+            ws.addRow([]);
+            const rAb = ws.addRow(["ABONOS MENSUALES ACREDITADOS"]);
+            rAb.getCell(1).font = { bold: true, size: 12 };
+            abonosSemana.forEach((c) => {
+              const pac = pacientes.find((p) => p.id === c.pacienteId);
+              ws.addRow([
+                fmtCorta(c.fecha),
+                pac ? `${pac.nombre} ${pac.apellido}` : "—",
+                "Abono mensual",
+                c.metodoPago === "transferencia" ? "Transferencia" : "Efectivo",
+                Number(c.monto) || 0,
+              ]);
+            });
+          }
+
           ws.addRow([]);
           const rCobros = ws.addRow(["RESUMEN DE COBROS"]);
           rCobros.getCell(1).font = { bold: true, size: 12 };
           ws.addRow(["Total Efectivo", totEfectivo]);
           ws.addRow(["Total Transferencia", totTransferencia]);
-          ws.addRow(["Total Órdenes", totOrdenes]);
-          ws.addRow(["Total general", totalGeneral]);
+          ws.addRow(["Total Abonos mensuales (incluidos arriba)", totAbonos]);
+          ws.addRow(["Total percibido", totPercibido]);
+          ws.addRow(["Total Órdenes OS (a liquidar)", totOrdenes]);
+          ws.addRow(["Total general (percibido + órdenes)", totalGeneral]);
 
           ws.addRow([]);
           const rAsist = ws.addRow(["ESTADÍSTICAS DE ASISTENCIA"]);
@@ -5502,11 +5560,19 @@ document.addEventListener('visibilitychange', async () => {
                   <span className="rs-badge" data-money="transferencia" style={{ ...badgeStyle, background: "rgba(96,165,250,.15)", color: "#BFDBFE", border: "1px solid rgba(96,165,250,.4)" }}>
                     🏦 Transferencia: ${totTransferencia.toLocaleString("es-AR")}
                   </span>
+                  {totAbonos > 0 && (
+                    <span className="rs-badge" data-money="abonos" style={{ ...badgeStyle, background: "rgba(167,139,250,.15)", color: "#DDD6FE", border: "1px solid rgba(167,139,250,.4)" }}>
+                      🗓️ Abonos mensuales: ${totAbonos.toLocaleString("es-AR")}
+                    </span>
+                  )}
+                  <span className="rs-badge" data-money="percibido" style={{ ...badgeStyle, background: "rgba(74,222,128,.22)", color: "#A8DDB8", border: "1px solid rgba(74,222,128,.5)", fontWeight: 800 }}>
+                    ✅ Percibido: ${totPercibido.toLocaleString("es-AR")}
+                  </span>
                   <span className="rs-badge" data-money="ordenes" style={{ ...badgeStyle, background: "rgba(200,146,42,.15)", color: "var(--do)", border: "1px solid rgba(200,146,42,.4)" }}>
-                    📋 Órdenes: ${totOrdenes.toLocaleString("es-AR")}
+                    📋 Órdenes OS (a liquidar): ${totOrdenes.toLocaleString("es-AR")}
                   </span>
                   <span className="rs-badge" data-money="total" style={{ ...badgeStyle, background: "rgba(255,255,255,.1)", color: "#fff", fontWeight: 800 }}>
-                    Σ Total: ${totalGeneral.toLocaleString("es-AR")}
+                    Σ Total (percibido + órdenes): ${totalGeneral.toLocaleString("es-AR")}
                   </span>
                 </div>
 
@@ -5546,6 +5612,7 @@ document.addEventListener('visibilitychange', async () => {
                             </span>
                             <span className="rs-muted" style={{ fontFamily: "var(--sans)", fontSize: "11px", color: "rgba(255,255,255,.5)", textTransform: "capitalize" }}>
                               {s.tipo || "—"}
+                              {pac?.modalidadCobro === "fijo" ? " · abono" : ""}
                             </span>
                             <span className="rs-badge" data-estado={s.estado || "pendiente"} style={{ ...badgeStyle, background: est.bg, color: est.color, justifySelf: "end" }}>
                               {est.icon} {est.label}
@@ -5566,6 +5633,39 @@ document.addEventListener('visibilitychange', async () => {
                       );
                     })}
                   </>
+                )}
+
+                {/* abonos mensuales acreditados en la semana */}
+                {abonosSemana.length > 0 && (
+                  <div style={{ marginTop: "18px" }}>
+                    <div style={{ fontFamily: "var(--serif)", fontSize: "14px", color: "var(--do)", fontWeight: 700, marginBottom: "6px" }}>
+                      🗓️ Abonos mensuales acreditados
+                    </div>
+                    {abonosSemana.map((c, i) => {
+                      const pac = pacientes.find((p) => p.id === c.pacienteId);
+                      return (
+                        <div key={c.id} className="rs-row" style={{
+                          padding: "9px 10px", marginBottom: "4px", borderRadius: "8px",
+                          background: i % 2 === 0 ? "rgba(255,255,255,.03)" : "rgba(255,255,255,.06)",
+                          borderBottom: "1px solid rgba(255,255,255,.08)",
+                          display: "grid", gridTemplateColumns: ROW_GRID_COLS, gap: "8px", alignItems: "center",
+                        }}>
+                          <span className="rs-muted" style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.6)" }}>
+                            {fmtCortaSinAnio(c.fecha)}
+                          </span>
+                          <span style={{ fontFamily: "var(--sans)", fontSize: "13px", color: "var(--do)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {pac ? `${pac.nombre} ${pac.apellido}` : "—"}
+                          </span>
+                          <span className="rs-muted" style={{ fontFamily: "var(--sans)", fontSize: "11px", color: "rgba(255,255,255,.5)" }}>
+                            Abono
+                          </span>
+                          <span className="rs-muted" style={{ fontFamily: "var(--mono)", fontSize: "11px", color: "rgba(255,255,255,.7)", justifySelf: "end" }}>
+                            ${(Number(c.monto) || 0).toLocaleString("es-AR")} · {c.metodoPago === "transferencia" ? "Transferencia" : "Efectivo"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
@@ -7442,16 +7542,21 @@ document.addEventListener('visibilitychange', async () => {
         }
 
         function buildSesionFinal(extras = {}) {
+          const esFijo = pacSel?.modalidadCobro === "fijo";
+          const cobradoEvento =
+            esFijo && !!(f.cobroEvento && f.cobroEventoAbonado);
           const cobradoPart =
-            f.modalidadPago === "particular" && f.particularAbonado;
+            !esFijo && f.modalidadPago === "particular" && f.particularAbonado;
           const cobradoOS =
-            f.modalidadPago === "obra_social" && f.coseguroAbonado;
-          const cobrado = cobradoPart || cobradoOS;
-          const montoCobrado = cobradoPart
-            ? Number(f.montoParticular) || 0
-            : cobradoOS
-              ? Number(f.coseguroMonto) || 0
-              : 0;
+            !esFijo && f.modalidadPago === "obra_social" && f.coseguroAbonado;
+          const cobrado = cobradoPart || cobradoOS || cobradoEvento;
+          const montoCobrado = cobradoEvento
+            ? Number(f.cobroEventoMonto) || 0
+            : cobradoPart
+              ? Number(f.montoParticular) || 0
+              : cobradoOS
+                ? Number(f.coseguroMonto) || 0
+                : 0;
 
           /* Normalizar campos de cancelación según tipo de paciente.
              Evita artifacts de migración v1→v2: un paciente PARTICULAR que
@@ -7500,35 +7605,59 @@ document.addEventListener('visibilitychange', async () => {
             return;
           }
           const ses = buildSesionFinal();
-          // Crear cobro en hgsp_cobros si corresponde y no existe aún
-          if (ses.cobrado && onSaveCobro) {
-            const yaExiste = getData("hgsp_cobros").some(
-              (c) => c.sesionId === ses.id,
-            );
-            if (!yaExiste) {
+          syncCobroDeSesion(ses);
+          onSave(ses);
+        }
+
+        /* Mantiene hgsp_cobros alineado con el turno: crea, actualiza o retira
+           el cobro asociado según el estado real del turno (hallazgos H2/H5). */
+        function syncCobroDeSesion(ses) {
+          const esFijo = pacSel?.modalidadCobro === "fijo";
+          const concepto = esFijo
+            ? "evento"
+            : ses.modalidadPago === "particular"
+              ? "particular"
+              : "coseguro";
+          const metodo = esFijo
+            ? ses.cobroEventoMetodo || "efectivo"
+            : ses.modalidadPago === "particular"
+              ? ses.metodoPagoParticular
+              : ses.metodoPagoOS;
+          const all = getData("hgsp_cobros");
+          const idx = all.findIndex((c) => c.sesionId === ses.id);
+          if (ses.cobrado && (Number(ses.montoCobrado) || 0) > 0) {
+            if (idx >= 0) {
+              all[idx] = {
+                ...all[idx],
+                fecha: ses.fecha,
+                concepto,
+                monto: ses.montoCobrado,
+                cobrado: true,
+                metodoPago: metodo,
+              };
+              setData("hgsp_cobros", all);
+            } else if (onSaveCobro) {
               onSaveCobro({
                 id: genId(),
                 pacienteId: ses.pacienteId,
                 sesionId: ses.id,
                 fecha: ses.fecha,
-                concepto:
-                  ses.modalidadPago === "particular"
-                    ? "particular"
-                    : "coseguro",
+                concepto,
                 monto: ses.montoCobrado,
                 cobrado: true,
-                metodoPago:
-                  ses.modalidadPago === "particular"
-                    ? ses.metodoPagoParticular
-                    : ses.metodoPagoOS,
+                metodoPago: metodo,
               });
             }
+          } else if (idx >= 0) {
+            /* El turno dejó de estar cobrado: retirar el cobro asociado */
+            all.splice(idx, 1);
+            setData("hgsp_cobros", all);
           }
-          onSave(ses);
         }
 
         function handleSaveForzado() {
           const ses = buildSesionFinal({ superposicionConfirmada: true });
+          syncCobroDeSesion(ses);
           onSave(ses);
         }
 
@@ -7585,6 +7714,8 @@ document.addEventListener('visibilitychange', async () => {
         const estadoCompleto = !!(f.estado && f.estado !== "pendiente");
 
         const cobroCmpleto = (() => {
+          if (pacSel?.modalidadCobro === "fijo")
+            return !f.cobroEvento || !!f.cobroEventoAbonado;
           if (
             f.estado === "cancelo" ||
             f.estado === "reprogramo" ||
@@ -7633,6 +7764,16 @@ document.addEventListener('visibilitychange', async () => {
         const tipoInfo = TIPOS.find((t) => t.v === f.tipo) || TIPOS[0];
 
         const cobroResumen = (() => {
+          if (pacSel?.modalidadCobro === "fijo") {
+            if (f.cobroEvento) {
+              const m = Number(f.cobroEventoMonto) || 0;
+              return (
+                `Evento · $${m.toLocaleString("es-AR")}` +
+                (f.cobroEventoAbonado ? " ✓" : " ⏳")
+              );
+            }
+            return "Incluido en abono mensual";
+          }
           if (
             f.estado === "cancelo" ||
             f.estado === "reprogramo" ||
@@ -8183,7 +8324,130 @@ document.addEventListener('visibilitychange', async () => {
                     </div>
                     {openSection === "cobro" && (
                       <div className="acc-body">
-                        {isEditar &&
+                        {pacSel?.modalidadCobro === "fijo" ? (
+                          <div
+                            className="cobro-panel"
+                            style={{
+                              borderLeft: "5px solid rgba(167,139,250,.5)",
+                            }}
+                          >
+                            <div className="cobro-panel-title">
+                              🗓️ Abono mensual
+                            </div>
+                            <div
+                              className="alert-info"
+                              style={{ marginBottom: "12px", gap: "8px" }}
+                            >
+                              💰 Este turno está incluido en el abono mensual.
+                              No genera cobro individual: el abono se acredita
+                              en Facturación → Mensuales.
+                            </div>
+                            <div
+                              className={`cobro-chk-row ${f.cobroEvento ? "chk-activo" : ""}`}
+                              style={{
+                                marginBottom: f.cobroEvento ? "12px" : 0,
+                              }}
+                              onClick={() => upd("cobroEvento", !f.cobroEvento)}
+                            >
+                              <div
+                                className={`cobro-chk-box ${f.cobroEvento ? "on" : ""}`}
+                              >
+                                {f.cobroEvento ? "✓" : ""}
+                              </div>
+                              <span
+                                className={`cobro-chk-label ${f.cobroEvento ? "on" : ""}`}
+                              >
+                                🎟️ Cobro por evento (aparte del abono)
+                              </span>
+                            </div>
+                            {f.cobroEvento && (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "8px",
+                                }}
+                              >
+                                <div>
+                                  <div className="modal-label">
+                                    Detalle del evento
+                                  </div>
+                                  <input
+                                    className="modal-input"
+                                    value={f.cobroEventoDetalle || ""}
+                                    onChange={(e) =>
+                                      upd("cobroEventoDetalle", e.target.value)
+                                    }
+                                    placeholder="Ej: Encuentro con abuelos"
+                                  />
+                                </div>
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: "8px",
+                                    alignItems: "end",
+                                  }}
+                                >
+                                  <div>
+                                    <div className="modal-label">Monto $</div>
+                                    <input
+                                      className="modal-input"
+                                      type="number"
+                                      style={{ fontFamily: "var(--mono)" }}
+                                      value={f.cobroEventoMonto || ""}
+                                      onChange={(e) =>
+                                        upd(
+                                          "cobroEventoMonto",
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                  <div>
+                                    <div className="modal-label">Método</div>
+                                    <select
+                                      className="modal-select"
+                                      value={f.cobroEventoMetodo || "efectivo"}
+                                      onChange={(e) =>
+                                        upd("cobroEventoMetodo", e.target.value)
+                                      }
+                                    >
+                                      <option value="efectivo">
+                                        💵 Efectivo
+                                      </option>
+                                      <option value="transferencia">
+                                        📱 Transfer.
+                                      </option>
+                                    </select>
+                                  </div>
+                                </div>
+                                <div
+                                  className={`cobro-chk-row ${f.cobroEventoAbonado ? "chk-activo" : ""}`}
+                                  onClick={() =>
+                                    upd(
+                                      "cobroEventoAbonado",
+                                      !f.cobroEventoAbonado,
+                                    )
+                                  }
+                                >
+                                  <div
+                                    className={`cobro-chk-box ${f.cobroEventoAbonado ? "on" : ""}`}
+                                  >
+                                    {f.cobroEventoAbonado ? "✓" : ""}
+                                  </div>
+                                  <span
+                                    className={`cobro-chk-label ${f.cobroEventoAbonado ? "on" : ""}`}
+                                  >
+                                    {f.cobroEventoAbonado
+                                      ? "✅ Abonado"
+                                      : "⏳ Pendiente de pago"}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : isEditar &&
                         (f.estado === "cancelo" ||
                           f.estado === "reprogramo" ||
                           f.estado === "inasistencia") ? (
@@ -10088,72 +10352,13 @@ document.addEventListener('visibilitychange', async () => {
             transferencia = 0,
             ordenes = 0,
             pendiente = 0;
-          const addCobro = (monto, metodo, pagado) => {
-            const n = Number(monto) || 0;
-            if (n <= 0) return;
-            if (!pagado) {
-              pendiente += n;
-              return;
-            }
-            if (metodo === "transferencia") transferencia += n;
-            else efectivo += n;
-          };
           daySes.forEach((s) => {
-            const pac = pacientes.find((p) => p.id === s.pacienteId);
-
-            /* La modalidad de pago del TURNO manda sobre la del paciente.
-               Si el turno tiene modalidadPago definido, se usa eso.
-               Si no (sesiones viejas sin nuevo esquema), se infiere del paciente. */
-            const modalidadTurno = s.modalidadPago ||
-              (pac?.obraSocial && pac.obraSocial !== "" && pac.obraSocial.toLowerCase() !== "ninguna"
-                ? "obra_social"
-                : "particular");
-
-            const esOS = modalidadTurno === "obra_social";
-
-            if (s.estado === "asistio") {
-              if (esOS) {
-                /* Orden de la obra social */
-                const ord = Number(valorOrdenDe(s)) || 0;
-                if (ord > 0) ordenes += ord;
-                /* Coseguro: usa el valor guardado en el turno, no el del paciente */
-                const coseg = Number(s.coseguroMonto) || 0;
-                if (coseg > 0)
-                  addCobro(coseg, s.metodoPagoOS || s.metodoPago || "efectivo", s.coseguroAbonado ?? s.cobrado);
-              } else {
-                /* Particular: usa el valor del turno (respeta 0 explícito) */
-                const monto = valorParticularDe(s);
-                addCobro(monto, s.metodoPagoParticular || s.metodoPago || "efectivo", s.particularAbonado ?? s.cobrado);
-              }
-            } else if (s.cobroCancel) {
-              if (esOS) {
-                // V2: coseguro de cancelación
-                if (s.cancelCoseguro && (s.cancelCoseguroMonto || 0) > 0) {
-                  addCobro(
-                    s.cancelCoseguroMonto,
-                    s.cancelCoseguroMetodo,
-                    s.cancelCoseguroPagado,
-                  );
-                }
-                // V2: orden OS en cancelación
-                if (s.cancelOrdenOS && s.cancelOrdenEmitida) {
-                  const ord = Number(valorOrdenDe(s)) || 0;
-                  if (ord > 0) ordenes += ord;
-                }
-              } else {
-                // V2: particular cancelación
-                if ((s.cancelParticularMonto || 0) > 0) {
-                  addCobro(
-                    s.cancelParticularMonto,
-                    s.cancelParticularMetodo,
-                    s.cancelParticularAbonado,
-                  );
-                } else if ((s.montoCancel || 0) > 0) {
-                  // V1 legado
-                  addCobro(s.montoCancel, "efectivo", s.cancelAbonado);
-                }
-              }
-            }
+            const pac = todosLosPacientes.find((p) => p.id === s.pacienteId);
+            const b = bucketsDeTurno(s, pac, config);
+            efectivo += b.efectivo;
+            transferencia += b.transferencia;
+            ordenes += b.ordenes;
+            pendiente += b.pendiente;
           });
           return { efectivo, transferencia, ordenes, pendiente };
         });
@@ -10674,6 +10879,12 @@ document.addEventListener('visibilitychange', async () => {
                 const diaIdx = DIAS_SEMANA.indexOf(slot.dia);
                 if (diaIdx < 0 || diaIdx >= weekDates.length) return;
                 const fecha = dateStr(weekDates[diaIdx]);
+                /* Recurrencia "1ª semana del mes": solo si la fecha cae entre el 1 y el 7 */
+                if (
+                  slot.recurrencia === "primer_semana" &&
+                  Number(fecha.slice(8, 10)) > 7
+                )
+                  return;
                 const yaExiste = allSesiones.find(
                   (s) =>
                     s.pacienteId === pac.id &&
@@ -11983,6 +12194,7 @@ document.addEventListener('visibilitychange', async () => {
         /* AT específico */
         modalidadCobro: "horas",
         montoFijoAT: 0,
+        diaCobroAbono: 10,
         modalidadAT: "Mixta",
       };
       function pacAlerts(p) {
@@ -12880,6 +13092,35 @@ document.addEventListener('visibilitychange', async () => {
                                 Monto mensual autorizado por la obra social. El
                                 registro de horas se mantiene para la planilla.
                               </div>
+                              <div style={{ marginTop: "12px" }}>
+                                <div className="modal-label">
+                                  Día estimado de acreditación
+                                </div>
+                                <input
+                                  className="modal-input"
+                                  type="number"
+                                  min={1}
+                                  max={28}
+                                  style={{
+                                    fontFamily: "var(--mono)",
+                                    maxWidth: "120px",
+                                  }}
+                                  value={f.diaCobroAbono || 10}
+                                  onChange={(e) =>
+                                    upd("diaCobroAbono", Number(e.target.value))
+                                  }
+                                />
+                                <div
+                                  style={{
+                                    fontSize: "11px",
+                                    color: "rgba(255,255,255,.4)",
+                                    marginTop: "4px",
+                                  }}
+                                >
+                                  Día del mes en que suele acreditarse el abono
+                                  (para la pestaña Mensuales de Facturación).
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -13003,6 +13244,18 @@ document.addEventListener('visibilitychange', async () => {
                               updSlot(i, "horaFin", e.target.value)
                             }
                           />
+                          <select
+                            value={s.recurrencia || "semanal"}
+                            onChange={(e) =>
+                              updSlot(i, "recurrencia", e.target.value)
+                            }
+                            title="Con qué frecuencia se carga este turno al activar la semana"
+                          >
+                            <option value="semanal">Todas las semanas</option>
+                            <option value="primer_semana">
+                              Solo 1ª semana del mes
+                            </option>
+                          </select>
                           {f.diasHorarios.length > 1 && (
                             <button
                               className="btn btn-danger"
@@ -15446,6 +15699,8 @@ document.addEventListener('visibilitychange', async () => {
           particular: "Particular",
           coseguro: "Coseguro OS",
           liquidacion: "Liquidación OS",
+          abono_mensual: "Abono mensual",
+          evento: "Evento",
         };
         const METO = {
           efectivo: "Efectivo",
@@ -15878,6 +16133,533 @@ document.addEventListener('visibilitychange', async () => {
       }
 
       /* ═══════════════════════════════════════ */
+      /* TAB D: ABONOS MENSUALES                */
+      /* ═══════════════════════════════════════ */
+      /* Modal para acreditar un abono: fecha real, monto real y método */
+      function ModalAcreditarAbono({ abono, pac, onConfirm, onClose }) {
+        const [fecha, setFecha] = useState(dateStr(new Date()));
+        const [monto, setMonto] = useState(abono.montoEsperado || 0);
+        const [metodo, setMetodo] = useState("transferencia");
+        return ReactDOM.createPortal(
+          <div
+            className="modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) onClose();
+            }}
+          >
+            <div className="modal-card" style={{ maxWidth: "420px" }}>
+              <div className="modal-bar" />
+              <div className="modal-header">
+                <span className="modal-title">
+                  Acreditar abono — {pac ? `${pac.nombre} ${pac.apellido}` : "—"}
+                </span>
+                <button className="modal-close" onClick={onClose}>
+                  ✕
+                </button>
+              </div>
+              <div className="modal-body">
+                <div
+                  className="alert-info"
+                  style={{ marginBottom: "16px", gap: "8px" }}
+                >
+                  💰 Período {abono.periodo} — esperado: $
+                  {(abono.montoEsperado || 0).toLocaleString("es-AR")}
+                </div>
+                <div className="modal-label">Fecha de cobro</div>
+                <input
+                  className="modal-input"
+                  type="date"
+                  style={{ fontFamily: "var(--mono)", marginBottom: "12px" }}
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                />
+                <div className="modal-label">Importe cobrado $</div>
+                <input
+                  className="modal-input"
+                  type="number"
+                  style={{ fontFamily: "var(--mono)", marginBottom: "12px" }}
+                  value={monto}
+                  onChange={(e) => setMonto(Number(e.target.value))}
+                />
+                <div className="modal-label">Método</div>
+                <select
+                  className="modal-select"
+                  style={{ marginBottom: "18px" }}
+                  value={metodo}
+                  onChange={(e) => setMetodo(e.target.value)}
+                >
+                  <option value="transferencia">Transferencia</option>
+                  <option value="efectivo">Efectivo</option>
+                </select>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button className="btn btn-sec" onClick={onClose}>
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn btn-g"
+                    onClick={() => {
+                      if (!fecha) {
+                        showToast("⚠️ Ingresá la fecha de cobro");
+                        return;
+                      }
+                      if (!monto || monto <= 0) {
+                        showToast("⚠️ Ingresá el importe cobrado");
+                        return;
+                      }
+                      onConfirm({ fecha, monto, metodo });
+                    }}
+                  >
+                    Confirmar cobro
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        );
+      }
+
+      /* Modal para editar monto esperado y día estimado de un abono pendiente */
+      function ModalEditarAbono({ abono, pac, onConfirm, onClose }) {
+        const [monto, setMonto] = useState(abono.montoEsperado || 0);
+        const [dia, setDia] = useState(abono.diaEsperado || 10);
+        return ReactDOM.createPortal(
+          <div
+            className="modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) onClose();
+            }}
+          >
+            <div className="modal-card" style={{ maxWidth: "420px" }}>
+              <div className="modal-bar" />
+              <div className="modal-header">
+                <span className="modal-title">
+                  Editar abono — {pac ? `${pac.nombre} ${pac.apellido}` : "—"}
+                </span>
+                <button className="modal-close" onClick={onClose}>
+                  ✕
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="modal-label">Monto esperado $ (según factura)</div>
+                <input
+                  className="modal-input"
+                  type="number"
+                  style={{ fontFamily: "var(--mono)", marginBottom: "12px" }}
+                  value={monto}
+                  onChange={(e) => setMonto(Number(e.target.value))}
+                />
+                <div className="modal-label">Día estimado de acreditación</div>
+                <input
+                  className="modal-input"
+                  type="number"
+                  min={1}
+                  max={28}
+                  style={{
+                    fontFamily: "var(--mono)",
+                    maxWidth: "120px",
+                    marginBottom: "18px",
+                  }}
+                  value={dia}
+                  onChange={(e) => setDia(Number(e.target.value))}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button className="btn btn-sec" onClick={onClose}>
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn btn-g"
+                    onClick={() => onConfirm({ monto, dia })}
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        );
+      }
+
+      function TabMensuales({ mes, anio }) {
+        const [abonos, setAbonos] = useState([]);
+        const [pacientes, setPacs] = useState([]);
+        const [modalAcreditar, setModalAcreditar] = useState(null);
+        const [modalEditar, setModalEditar] = useState(null);
+        const [confirmDeshacer, setConfirmDeshacer] = useState(null);
+
+        const periodo = `${anio}-${String(mes).padStart(2, "0")}`;
+        const hoy = new Date();
+        const periodoActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+
+        function load() {
+          setAbonos(getData("hgsp_abonos"));
+          setPacs(getData("hgsp_pacientes"));
+        }
+
+        /* Genera los abonos pendientes del período visible (nunca a futuro).
+           Monto de referencia: último abono del paciente; si no hay, montoFijoAT. */
+        useEffect(() => {
+          if (periodo <= periodoActual) {
+            const pacs = getData("hgsp_pacientes");
+            const all = getData("hgsp_abonos");
+            let changed = false;
+            pacs
+              .filter((p) => p.activo && p.modalidadCobro === "fijo")
+              .forEach((p) => {
+                if (all.some((a) => a.pacienteId === p.id && a.periodo === periodo))
+                  return;
+                const previos = all
+                  .filter((a) => a.pacienteId === p.id && a.periodo < periodo)
+                  .sort((a, b) => b.periodo.localeCompare(a.periodo));
+                const ref = previos[0];
+                const montoRef = ref
+                  ? Number(ref.montoCobrado || ref.montoEsperado) || 0
+                  : Number(p.montoFijoAT) || 0;
+                all.push({
+                  id: genId(),
+                  pacienteId: p.id,
+                  periodo,
+                  montoEsperado: montoRef,
+                  diaEsperado: Number(p.diaCobroAbono) || 10,
+                  estado: "pendiente",
+                  fechaCobro: null,
+                  montoCobrado: null,
+                  metodoPago: null,
+                  cobroId: null,
+                });
+                changed = true;
+              });
+            if (changed) setData("hgsp_abonos", all);
+          }
+          load();
+        }, [mes, anio]);
+
+        function getPac(id) {
+          return pacientes.find((p) => p.id === id);
+        }
+
+        const abonosMes = abonos
+          .filter((a) => a.periodo === periodo)
+          .sort((x, y) => {
+            const px = getPac(x.pacienteId);
+            const py = getPac(y.pacienteId);
+            return (px?.apellido || "").localeCompare(py?.apellido || "");
+          });
+
+        const pendientes = abonosMes.filter((a) => a.estado !== "cobrado");
+        const totEsperado = abonosMes.reduce(
+          (s, a) => s + (Number(a.montoEsperado) || 0),
+          0,
+        );
+        const totAcreditado = abonosMes
+          .filter((a) => a.estado === "cobrado")
+          .reduce((s, a) => s + (Number(a.montoCobrado) || 0), 0);
+        const totPorCobrar = pendientes.reduce(
+          (s, a) => s + (Number(a.montoEsperado) || 0),
+          0,
+        );
+
+        function fechaEstimada(a) {
+          const dia = Math.min(Math.max(Number(a.diaEsperado) || 10, 1), 28);
+          return `${a.periodo}-${String(dia).padStart(2, "0")}`;
+        }
+
+        function acreditar(abono, { fecha, monto, metodo }) {
+          const all = getData("hgsp_abonos");
+          const i = all.findIndex((a) => a.id === abono.id);
+          if (i < 0) return;
+          const cobroId = genId();
+          all[i] = {
+            ...all[i],
+            estado: "cobrado",
+            fechaCobro: fecha,
+            montoCobrado: monto,
+            metodoPago: metodo,
+            cobroId,
+          };
+          setData("hgsp_abonos", all);
+          const cobros = getData("hgsp_cobros");
+          cobros.push({
+            id: cobroId,
+            pacienteId: abono.pacienteId,
+            abonoId: abono.id,
+            sesionId: null,
+            fecha,
+            concepto: "abono_mensual",
+            monto,
+            cobrado: true,
+            metodoPago: metodo,
+          });
+          setData("hgsp_cobros", cobros);
+          setModalAcreditar(null);
+          load();
+          showToast("💰 Abono acreditado");
+        }
+
+        function deshacer(abono) {
+          const all = getData("hgsp_abonos");
+          const i = all.findIndex((a) => a.id === abono.id);
+          if (i < 0) return;
+          const cobros = getData("hgsp_cobros").filter(
+            (c) => c.id !== abono.cobroId && c.abonoId !== abono.id,
+          );
+          setData("hgsp_cobros", cobros);
+          all[i] = {
+            ...all[i],
+            estado: "pendiente",
+            fechaCobro: null,
+            montoCobrado: null,
+            metodoPago: null,
+            cobroId: null,
+          };
+          setData("hgsp_abonos", all);
+          setConfirmDeshacer(null);
+          load();
+          showToast("↩️ Abono vuelto a pendiente");
+        }
+
+        function guardarEdicion(abono, { monto, dia }) {
+          const all = getData("hgsp_abonos");
+          const i = all.findIndex((a) => a.id === abono.id);
+          if (i < 0) return;
+          all[i] = {
+            ...all[i],
+            montoEsperado: Number(monto) || 0,
+            diaEsperado: Math.min(Math.max(Number(dia) || 10, 1), 28),
+          };
+          setData("hgsp_abonos", all);
+          setModalEditar(null);
+          load();
+          showToast("✏️ Abono actualizado");
+        }
+
+        const METO = { efectivo: "Efectivo", transferencia: "Transferencia" };
+
+        return (
+          <div>
+            <div
+              className="stats-grid"
+              style={{
+                gridTemplateColumns: "repeat(3, 1fr)",
+                marginBottom: "16px",
+              }}
+            >
+              <StatCard
+                label="Esperado del mes"
+                value={`$${totEsperado.toLocaleString("es-AR")}`}
+              />
+              <StatCard
+                label="Acreditado"
+                value={`$${totAcreditado.toLocaleString("es-AR")}`}
+              />
+              <StatCard
+                label="Por cobrar"
+                value={`$${totPorCobrar.toLocaleString("es-AR")}`}
+              />
+            </div>
+
+            <div className="alert-info" style={{ marginBottom: "16px", gap: "8px" }}>
+              🗓️ Abonos mensuales de pacientes con cobro fijo. Se generan solos
+              cada mes como pendientes, con el monto del mes anterior como
+              referencia. Al acreditarse impactan en Cobros y en la recaudación
+              de la semana real del cobro. Lo pendiente nunca se cuenta como
+              ingreso.
+            </div>
+
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Paciente</th>
+                    <th>Fecha estimada</th>
+                    <th style={{ textAlign: "right" }}>Monto esperado</th>
+                    <th>Estado</th>
+                    <th>Cobro real</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {abonosMes.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        style={{
+                          textAlign: "center",
+                          color: "var(--tx3)",
+                          padding: "28px",
+                        }}
+                      >
+                        {periodo > periodoActual
+                          ? "Los abonos de este período se van a generar cuando empiece el mes"
+                          : "Sin pacientes con abono mensual activo"}
+                      </td>
+                    </tr>
+                  )}
+                  {abonosMes.map((a) => {
+                    const pac = getPac(a.pacienteId);
+                    const cobrado = a.estado === "cobrado";
+                    return (
+                      <tr key={a.id}>
+                        <td style={{ fontWeight: 600 }}>
+                          {pac ? `${pac.apellido}, ${pac.nombre}` : "—"}
+                        </td>
+                        <td
+                          style={{
+                            fontFamily: "var(--mono)",
+                            fontSize: "12px",
+                          }}
+                        >
+                          {fechaEstimada(a)}
+                        </td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontFamily: "var(--mono)",
+                            fontWeight: 700,
+                            color: "var(--vd)",
+                          }}
+                        >
+                          ${(Number(a.montoEsperado) || 0).toLocaleString("es-AR")}
+                        </td>
+                        <td>
+                          <Badge type={cobrado ? "ok" : "warn"}>
+                            {cobrado ? "Acreditado" : "Pendiente"}
+                          </Badge>
+                        </td>
+                        <td
+                          style={{
+                            fontFamily: "var(--mono)",
+                            fontSize: "11px",
+                            color: "var(--tx3)",
+                          }}
+                        >
+                          {cobrado
+                            ? `${a.fechaCobro} · $${(Number(a.montoCobrado) || 0).toLocaleString("es-AR")} · ${METO[a.metodoPago] || a.metodoPago || ""}`
+                            : "—"}
+                        </td>
+                        <td>
+                          {!cobrado ? (
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              <button
+                                className="btn btn-g"
+                                style={{ padding: "4px 14px", fontSize: "11px" }}
+                                onClick={() => setModalAcreditar(a)}
+                              >
+                                Acreditar
+                              </button>
+                              <button
+                                className="btn btn-sec"
+                                style={{ padding: "4px 10px", fontSize: "11px" }}
+                                onClick={() => setModalEditar(a)}
+                                title="Editar monto esperado / día"
+                              >
+                                ✏️
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="btn btn-sec"
+                              style={{ padding: "4px 10px", fontSize: "11px" }}
+                              onClick={() => setConfirmDeshacer(a)}
+                              title="Volver a pendiente y borrar el cobro"
+                            >
+                              ↩️ Deshacer
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {modalAcreditar && (
+              <ModalAcreditarAbono
+                abono={modalAcreditar}
+                pac={getPac(modalAcreditar.pacienteId)}
+                onConfirm={(datos) => acreditar(modalAcreditar, datos)}
+                onClose={() => setModalAcreditar(null)}
+              />
+            )}
+            {modalEditar && (
+              <ModalEditarAbono
+                abono={modalEditar}
+                pac={getPac(modalEditar.pacienteId)}
+                onConfirm={(datos) => guardarEdicion(modalEditar, datos)}
+                onClose={() => setModalEditar(null)}
+              />
+            )}
+            {confirmDeshacer &&
+              ReactDOM.createPortal(
+                <div
+                  className="modal-overlay"
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) setConfirmDeshacer(null);
+                  }}
+                >
+                  <div className="modal-card" style={{ maxWidth: "400px" }}>
+                    <div className="modal-bar" />
+                    <div className="modal-header">
+                      <span className="modal-title">Deshacer acreditación</span>
+                      <button
+                        className="modal-close"
+                        onClick={() => setConfirmDeshacer(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="modal-body">
+                      <div
+                        className="alert-warn"
+                        style={{ marginBottom: "16px" }}
+                      >
+                        ⚠️ El abono vuelve a pendiente y se elimina el cobro
+                        registrado de ${(Number(confirmDeshacer.montoCobrado) || 0).toLocaleString("es-AR")}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "10px",
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <button
+                          className="btn btn-sec"
+                          onClick={() => setConfirmDeshacer(null)}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          className="btn btn-g"
+                          onClick={() => deshacer(confirmDeshacer)}
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>,
+                document.body,
+              )}
+          </div>
+        );
+      }
+
+      /* ═══════════════════════════════════════ */
       /* FASE 5 — SECCIÓN FACTURACIÓN           */
       /* ═══════════════════════════════════════ */
       function SeccionFacturacion({ tab, setTab, mes, setMes, anio, setAnio }) {
@@ -15887,6 +16669,7 @@ document.addEventListener('visibilitychange', async () => {
               <TabLiquidaciones mes={mes} anio={anio} />
             )}
             {tab === "cobros" && <TabCobros mes={mes} anio={anio} />}
+            {tab === "mensuales" && <TabMensuales mes={mes} anio={anio} />}
             {tab === "dashboard" && <TabDashboard mes={mes} anio={anio} />}
           </div>
         );
