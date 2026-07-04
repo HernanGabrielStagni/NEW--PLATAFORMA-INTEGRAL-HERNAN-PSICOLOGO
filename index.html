@@ -12266,6 +12266,17 @@ document.addEventListener('visibilitychange', async () => {
         return alerts;
       }
 
+      /* Cuenta novedades transferidas al historial del paciente:
+         vigentes = pendientes de resolver, total = todas (incluye saldadas).
+         No depende de p.activo: debe verse igual en pacientes activos e inactivos. */
+      function historialInfo(p) {
+        const hist = p.historialNovedades || [];
+        return {
+          vigentes: hist.filter((h) => h.estado === "vigente").length,
+          total: hist.length,
+        };
+      }
+
       /* ═══════════════════════════════════════ */
       /* TOGGLE                                 */
       /* ═══════════════════════════════════════ */
@@ -13563,8 +13574,9 @@ document.addEventListener('visibilitychange', async () => {
         onBaja,
         onReactivar,
         onEliminar,
+        initialTab,
       }) {
-        const [tab, setTab] = useState("resumen");
+        const [tab, setTab] = useState(initialTab || "resumen");
         const [histTick, setHistTick] = useState(0);
         const [comentTexts, setComentTexts] = useState({});
         const reloadHist = () => setHistTick(t => t + 1);
@@ -14423,6 +14435,11 @@ document.addEventListener('visibilitychange', async () => {
         const [bajaModal, setBajaModal] = useState(null);
         const [elimModal, setElimModal] = useState(null);
         const [perfilPac, setPerfilPac] = useState(null);
+        const [perfilPacTab, setPerfilPacTab] = useState(null);
+        function abrirPerfil(p, tabInicial) {
+          setPerfilPacTab(tabInicial || "resumen");
+          setPerfilPac(p);
+        }
         const [sortCol, setSortCol] = useState(null);
         const [sortDir, setSortDir] = useState("asc");
         const [popoverCol, setPopoverCol] = useState(null);
@@ -14585,8 +14602,10 @@ document.addEventListener('visibilitychange', async () => {
           return (
             <PerfilPaciente
               paciente={fresh || perfilPac}
+              initialTab={perfilPacTab}
               onBack={() => {
                 setPerfilPac(null);
+                setPerfilPacTab(null);
                 loadPacientes();
               }}
               onEdit={(p) => {
@@ -14785,6 +14804,7 @@ document.addEventListener('visibilitychange', async () => {
                     )}
                     {filtered.map((p) => {
                       const alerts = pacAlerts(p);
+                      const hist = historialInfo(p);
                       return (
                         <tr key={p.id}>
                           <td>
@@ -14807,8 +14827,54 @@ document.addEventListener('visibilitychange', async () => {
                                 {p.apellido.charAt(0)}
                               </div>
                               <div>
-                                <div style={{ fontWeight: 600 }}>
-                                  {p.nombre} {p.apellido}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                  }}
+                                >
+                                  <span style={{ fontWeight: 600 }}>
+                                    {p.nombre} {p.apellido}
+                                  </span>
+                                  {hist.total > 0 && (
+                                    <span
+                                      onClick={() =>
+                                        abrirPerfil(p, "historial")
+                                      }
+                                      title={
+                                        hist.vigentes > 0
+                                          ? `${hist.vigentes} novedad(es) pendiente(s) en el historial`
+                                          : "Ver historial de novedades"
+                                      }
+                                      style={{
+                                        cursor: "pointer",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "2px",
+                                        fontSize: "10px",
+                                        fontWeight: 700,
+                                        fontFamily: "var(--mono)",
+                                        borderRadius: "50px",
+                                        padding: "1px 7px",
+                                        color:
+                                          hist.vigentes > 0
+                                            ? "var(--do)"
+                                            : "rgba(255,255,255,.4)",
+                                        background:
+                                          hist.vigentes > 0
+                                            ? "rgba(200,146,42,.15)"
+                                            : "rgba(255,255,255,.06)",
+                                        border:
+                                          hist.vigentes > 0
+                                            ? "1px solid rgba(200,146,42,.4)"
+                                            : "1px solid rgba(255,255,255,.12)",
+                                      }}
+                                    >
+                                      📁
+                                      {hist.vigentes > 0 ? hist.vigentes : ""}
+                                    </span>
+                                  )}
                                 </div>
                                 {alerts.length > 0 && (
                                   <span
@@ -14865,7 +14931,7 @@ document.addEventListener('visibilitychange', async () => {
                               <span
                                 className="act-link"
                                 title="Ver perfil"
-                                onClick={() => setPerfilPac(p)}
+                                onClick={() => abrirPerfil(p)}
                               >
                                 👁️
                               </span>
@@ -14934,11 +15000,12 @@ document.addEventListener('visibilitychange', async () => {
                 )}
                 {filtered.map((p) => {
                   const alerts = pacAlerts(p);
+                  const hist = historialInfo(p);
                   return (
                     <div
                       className="pac-card"
                       key={p.id}
-                      onClick={() => setPerfilPac(p)}
+                      onClick={() => abrirPerfil(p)}
                     >
                       <div
                         style={{
@@ -14952,12 +15019,51 @@ document.addEventListener('visibilitychange', async () => {
                           {p.nombre.charAt(0)}
                           {p.apellido.charAt(0)}
                         </div>
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <div className="pac-name">
                             {p.nombre} {p.apellido}
                           </div>
                           <div className="pac-detail">DNI {p.dni}</div>
                         </div>
+                        {hist.total > 0 && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirPerfil(p, "historial");
+                            }}
+                            title={
+                              hist.vigentes > 0
+                                ? `${hist.vigentes} novedad(es) pendiente(s) en el historial`
+                                : "Ver historial de novedades"
+                            }
+                            style={{
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "2px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              fontFamily: "var(--mono)",
+                              borderRadius: "50px",
+                              padding: "2px 8px",
+                              flexShrink: 0,
+                              color:
+                                hist.vigentes > 0
+                                  ? "var(--do)"
+                                  : "rgba(255,255,255,.4)",
+                              background:
+                                hist.vigentes > 0
+                                  ? "rgba(200,146,42,.15)"
+                                  : "rgba(255,255,255,.06)",
+                              border:
+                                hist.vigentes > 0
+                                  ? "1px solid rgba(200,146,42,.4)"
+                                  : "1px solid rgba(255,255,255,.12)",
+                            }}
+                          >
+                            📁{hist.vigentes > 0 ? ` ${hist.vigentes}` : ""}
+                          </span>
+                        )}
                       </div>
                       <div
                         style={{
