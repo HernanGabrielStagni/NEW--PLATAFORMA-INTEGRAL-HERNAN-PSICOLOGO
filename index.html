@@ -4559,8 +4559,11 @@ document.addEventListener('visibilitychange', async () => {
        campo = clave de la sesión que hay que setear a true para resolverlo */
       function descPendiente(s, pacNombre, hoy) {
         const items = [];
+        const esFijo = esPacienteFijo(s.pacienteId);
         // Cancelación / reprogramación / inasistencia con cobro pendiente
+        // (abono mensual: el turno no genera cobro propio, se salta este bloque)
         if (
+          !esFijo &&
           (s.estado === "cancelo" ||
             s.estado === "reprogramo" ||
             s.estado === "inasistencia") &&
@@ -4639,6 +4642,17 @@ document.addEventListener('visibilitychange', async () => {
         }
         // Helper para items de cobro/orden
         function addItemsCobro() {
+          if (esFijo) {
+            // Abono mensual: el turno no genera cobro propio, solo el cobro por evento (si lo hubiera)
+            if (s.cobroEvento && (Number(s.cobroEventoMonto) || 0) > 0 && !s.cobroEventoAbonado) {
+              const m = Number(s.cobroEventoMonto) || 0;
+              items.push({
+                texto: `Cobro por evento pendiente${m ? ` ($${m.toLocaleString("es-AR")})` : ""}`,
+                campo: "cobroEventoAbonado",
+              });
+            }
+            return;
+          }
           if (s.modalidadPago === "obra_social") {
             if (!s.coseguroAbonado) {
               const m = Number(s.coseguroMonto) || 0;
@@ -18843,9 +18857,9 @@ document.addEventListener('visibilitychange', async () => {
           const fin = new Date(anioHasta, mesHasta, 0);
           while (d <= fin) {
             const lk = dateStr(d);
-            const vier = new Date(d); vier.setDate(d.getDate() + 6);
-            const viernesStr = dateStr(vier);
-            const weekSesArr = sesiones.filter(s => s.fecha >= lk && s.fecha <= viernesStr);
+            const domingo = new Date(d); domingo.setDate(d.getDate() + 6);
+            const domingoStr = dateStr(domingo);
+            const weekSesArr = sesiones.filter(s => s.fecha >= lk && s.fecha <= domingoStr);
             const novedades = calcNovedadesArr(weekSesArr);
             const recs = (getData("hgsp_recordatorios_semana") || []).filter(r => r.semana === lk);
             const coordPend = (getData("hgsp_coord_pendientes") || []).filter(c => c.semanaKey === lk);
@@ -19000,13 +19014,13 @@ document.addEventListener('visibilitychange', async () => {
             {semanas.map(({ lk, novedades, recs, coordPend, coordMan }) => {
               const [ay,am,ad] = lk.split("-").map(Number);
               const lunes = new Date(ay, am-1, ad);
-              const vier  = new Date(lunes.getTime() + 4*86400000);
+              const domingo = new Date(lunes.getTime() + 6*86400000);
               const fmt = d => `${d.getDate()} ${MESES_FULL2[d.getMonth()].slice(0,3)}`;
               const totalItems = novedades.length + recs.length + coordPend.length + coordMan.length;
               return (
                 <div key={lk} style={{ marginBottom:"14px" }}>
                   <div style={{ background:"var(--vd)", border:"2px solid var(--do)", borderRadius:"var(--rsm) var(--rsm) 0 0", padding:"10px 16px", display:"flex", alignItems:"center", gap:"12px" }}>
-                    <span style={{ fontFamily:"var(--serif2)", fontSize:"15px", fontWeight:700, color:"#fff" }}>📋 {fmt(lunes)} – {fmt(vier)} {vier.getFullYear()}</span>
+                    <span style={{ fontFamily:"var(--serif2)", fontSize:"15px", fontWeight:700, color:"#fff" }}>📋 {fmt(lunes)} – {fmt(domingo)} {domingo.getFullYear()}</span>
                     <span style={{ background:"var(--do)", color:"var(--vd)", borderRadius:"10px", padding:"1px 8px", fontSize:"10px", fontWeight:800, fontFamily:"var(--mono)" }}>{totalItems}</span>
                     <div style={{ marginLeft:"auto", display:"flex", gap:"6px" }}>
                       {novedades.length>0 && <span style={{ background:"rgba(200,146,42,.2)", color:"var(--do)", borderRadius:"8px", padding:"1px 8px", fontSize:"9px", fontWeight:700 }}>⚠️ {novedades.length}</span>}
