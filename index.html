@@ -3708,13 +3708,14 @@ document.addEventListener('visibilitychange', async () => {
                       return (
                         <div className="topbar-title" title="Doble clic para editar el título"
                           style={{ cursor:"text" }}
-                          onDoubleClick={() => {
+                          onDoubleClick={async () => {
                             const nuevo = prompt("Título de la aplicación:", titulo);
                             if (nuevo !== null) {
                               const c = getData("hgsp_config") || {};
                               c.tituloApp = nuevo.trim() || "Plataforma Integral";
-                              setData("hgsp_config", c);
-                              showToast("✅ Título actualizado — recargá");
+                              localStorage.setItem("hgsp_config", JSON.stringify(c));
+                              showToast("💾 Guardando título...");
+                              try { await syncToSupabase("hgsp_config", c); } catch(e) {}
                               window.location.reload();
                             }
                           }}
@@ -3732,13 +3733,14 @@ document.addEventListener('visibilitychange', async () => {
                         return (
                           <span title="✏️ Doble clic para editar"
                             style={{ cursor:"text", display:"flex", alignItems:"center", gap:"5px" }}
-                            onDoubleClick={() => {
+                            onDoubleClick={async () => {
                               const nuevo = prompt("Nombre en el encabezado:", texto || "");
                               if (nuevo !== null) {
                                 const c = getData("hgsp_config") || {};
                                 c.nombreEncabezado = nuevo.trim();
-                                setData("hgsp_config", c);
-                                showToast("✅ Nombre actualizado — recargá");
+                                localStorage.setItem("hgsp_config", JSON.stringify(c));
+                                showToast("💾 Guardando nombre...");
+                                try { await syncToSupabase("hgsp_config", c); } catch(e) {}
                                 window.location.reload();
                               }
                             }}
