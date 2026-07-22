@@ -2433,6 +2433,7 @@
       }
       /* Badge rojo urgente — requiere atención inmediata */
       .ag-urgente-badge {
+        position: relative;
         font-size: 18px;
         line-height: 1;
         animation: urgente-pulse 1.6s ease-in-out infinite;
@@ -2445,6 +2446,36 @@
         }
         50% {
           transform: scale(1.28);
+        }
+      }
+      /* Aureola tipo sonar — onda expansiva roja detrás del badge urgente */
+      .ag-urgente-badge::before,
+      .ag-urgente-badge::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(239, 68, 68, 0.85);
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.9;
+        pointer-events: none;
+        z-index: -1;
+        animation: urgente-sonar 1.8s ease-out infinite;
+      }
+      .ag-urgente-badge::after {
+        animation-delay: 0.9s;
+      }
+      @keyframes urgente-sonar {
+        0% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0.75;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(3.2);
+          opacity: 0;
         }
       }
       /* Panel de novedades de la semana */
