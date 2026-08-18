@@ -4750,6 +4750,18 @@ document.addEventListener('visibilitychange', async () => {
           items,
         };
       }
+
+      /* Motivos concretos que se muestran al pasar el mouse por la alerta de la agenda */
+      function getMotivosAtencion(s, hoy) {
+        const motivos = descPendiente(s, "", hoy).items.map((item) => item.texto);
+        const na = s.notasAlertas || {};
+        if (esTurnoPasadoSinCalificar(s))
+          motivos.push("Turno ya pasó — calificar estado");
+        if (na.clinica) motivos.push("Notas pendientes en Clínica");
+        if (na.admin) motivos.push("Notas pendientes en Administración");
+        if (na.asistencia) motivos.push("Notas pendientes en Asistencia");
+        return [...new Set(motivos)];
+      }
       const DIAS_HD = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
       const MESES_CORTO = [
         "ene",
@@ -6689,7 +6701,14 @@ document.addEventListener('visibilitychange', async () => {
                                       <span className="ag-urgente-badge" style={{ fontSize:"10px" }} title="Alerta urgente">🚨</span>
                                     )}
                                     {(tienePendientePago(s, hoyStr) || tieneNotasAlerta(s) || esTurnoPasadoSinCalificar(s)) && (
-                                      <div className="ag-pago-alerta" title="Requiere atención">!</div>
+                                      <div
+                                        className="ag-pago-alerta"
+                                        title={getMotivosAtencion(s, hoyStr)
+                                          .map((motivo) => `• ${motivo}`)
+                                          .join("\n")}
+                                      >
+                                        !
+                                      </div>
                                     )}
                                   </div>
                                 </div>
