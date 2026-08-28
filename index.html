@@ -2837,12 +2837,114 @@ const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 <script>
 let _authMode = 'login';
 
-async function syncToSupabase(key, data) {
+/* ═══════════════════════════════════════ */
+/* FUSIÓN POR REGISTRO — evita que un      */
+/* dispositivo pise cambios de otro        */
+/* ═══════════════════════════════════════ */
+window._syncBaseline = window._syncBaseline || {};
+window._syncQueue = window._syncQueue || {};
+
+// ¿Es un array de registros con "id" (fusionable registro por registro)?
+// Un array vacío también es fusionable (no tiene nada que perder).
+function esFusionable(arr) {
+  return Array.isArray(arr) && (arr.length === 0 || arr.every(r => r && typeof r === "object" && !Array.isArray(r) && "id" in r));
+}
+function timestampDe(r) {
+  const t = r && r.updatedAt ? Date.parse(r.updatedAt) : NaN;
+  return isNaN(t) ? 0 : t;
+}
+// Compara dos registros ignorando su propio updatedAt, para saber si cambiaron de verdad
+function contenidoIgual(a, b) {
+  if (a === b) return true;
+  try {
+    const { updatedAt: _a, ...restA } = a || {};
+    const { updatedAt: _b, ...restB } = b || {};
+    return JSON.stringify(restA) === JSON.stringify(restB);
+  } catch(e) { return false; }
+}
+// Marca updatedAt=ahora en los registros que cambiaron respecto al último snapshot
+// conocido, y arma "tumbas" (marcas de borrado con fecha) para los que desaparecieron.
+function stampearCambios(key, nuevoArray) {
+  const ahora = new Date().toISOString();
+  const base = window._syncBaseline[key];
+  if (!Array.isArray(base)) {
+    // Sin snapshot de referencia todavía: solo completamos updatedAt si falta.
+    return { stamped: nuevoArray.map(r => r.updatedAt ? r : { ...r, updatedAt: ahora }), tumbas: [] };
+  }
+  const baseMap = new Map(base.map(r => [r.id, r]));
+  const nuevoIds = new Set(nuevoArray.map(r => r.id));
+  const stamped = nuevoArray.map(r => {
+    const anterior = baseMap.get(r.id);
+    if (!anterior || !contenidoIgual(anterior, r)) return { ...r, updatedAt: ahora };
+    return r;
+  });
+  const tumbas = base
+    .filter(r => !nuevoIds.has(r.id))
+    .map(r => ({ id: r.id, _deleted: true, updatedAt: ahora }));
+  return { stamped, tumbas };
+}
+
+async function syncToSupabase(key, data, tumbas) {
+  // Se encola por clave: si llegan varios guardados seguidos de la misma clave,
+  // se procesan uno por uno (nunca en paralelo) para no pisarse entre sí.
+  const anterior = window._syncQueue[key] || Promise.resolve();
+  const siguiente = anterior
+    .then(() => _syncToSupabaseInner(key, data, tumbas))
+    .catch(e => console.warn('Supabase sync error:', e));
+  window._syncQueue[key] = siguiente;
+  return siguiente;
+}
+
+async function _syncToSupabaseInner(key, data, tumbas) {
   try {
     const { data: { user } } = await _sb.auth.getUser();
     if (!user) return;
+
+    let finalData = data;
+
+    if (esFusionable(data)) {
+      // Traemos la versión actual en la nube para fusionar registro por registro
+      const { data: remoteRow } = await _sb.from('user_data')
+        .select('data').eq('user_id', user.id).eq('store_key', key).maybeSingle();
+      const remoteArray = Array.isArray(remoteRow && remoteRow.data) ? remoteRow.data : [];
+
+      const localMap = new Map(data.map(r => [r.id, r]));
+      (tumbas || []).forEach(t => { if (!localMap.has(t.id)) localMap.set(t.id, t); });
+      const remoteMap = new Map(remoteArray.map(r => [r.id, r]));
+      const todosIds = new Set([...localMap.keys(), ...remoteMap.keys()]);
+
+      const fusion = [];
+      let huboAportesRemotos = false;
+      todosIds.forEach(id => {
+        const l = localMap.get(id);
+        const r = remoteMap.get(id);
+        let elegido;
+        if (l && r) {
+          elegido = timestampDe(l) >= timestampDe(r) ? l : r;
+          if (elegido === r && !contenidoIgual(l, r)) huboAportesRemotos = true;
+        } else {
+          elegido = l || r;
+          if (!l) huboAportesRemotos = true; // solo existía en la nube (otro dispositivo)
+        }
+        if (elegido && !elegido._deleted) fusion.push(elegido);
+      });
+
+      finalData = fusion;
+      window._syncBaseline[key] = finalData;
+
+      // Si la fusión trajo algo que este dispositivo no tenía (otro dispositivo escribió
+      // mientras tanto), actualizamos localStorage y refrescamos la pantalla con la verdad fusionada.
+      if (huboAportesRemotos) {
+        localStorage.setItem(key, JSON.stringify(finalData));
+        if (key === "hgsp_pacientes") _pacFijoCache = null;
+        if (typeof window._loadData === 'function') window._loadData();
+      }
+    } else {
+      window._syncBaseline[key] = finalData;
+    }
+
     await _sb.from('user_data').upsert(
-      { user_id: user.id, store_key: key, data: data, updated_at: new Date().toISOString() },
+      { user_id: user.id, store_key: key, data: finalData, updated_at: new Date().toISOString() },
       { onConflict: 'user_id,store_key' }
     );
   } catch(e) { console.warn('Supabase sync error:', e); }
@@ -2875,6 +2977,7 @@ async function loadFromSupabase() {
     if (error || !data || data.length === 0) return;
     data.forEach(row => {
       localStorage.setItem(row.store_key, JSON.stringify(row.data));
+      window._syncBaseline[row.store_key] = row.data;
     });
     await checkIsAdmin();
     console.log(`✅ Datos cargados desde Supabase (${data.length} claves)`);
@@ -2888,6 +2991,7 @@ async function checkUserAccess(email) {
       .eq('email', email)
       .maybeSingle();
     if (error || !data) return 'ok';
+    if (data.status === 'bloqueado') return 'blocked';
     if (data.status === 'vip') return 'ok';
     if (data.status === 'activo' || data.status === 'pro') {
       if (!data.trial_end) return 'ok';
@@ -2920,7 +3024,19 @@ async function registrarOActualizarUsuario(email) {
   } catch(e) { console.warn('Error registrando usuario:', e); }
 }
 
-function mostrarAccesoVencido(email) {
+function mostrarAccesoVencido(email, motivo) {
+  const icono = document.getElementById('trial-expired-icon');
+  const titulo = document.getElementById('trial-expired-title');
+  const desc = document.getElementById('trial-expired-desc');
+  if (motivo === 'blocked') {
+    if (icono) icono.textContent = '🚫';
+    if (titulo) titulo.textContent = 'Cuenta deshabilitada';
+    if (desc) desc.innerHTML = 'Un administrador deshabilitó tu acceso a la plataforma.<br>Para más información, contactá al administrador:<br><strong style="color:var(--vm);">hernangabrielst@gmail.com</strong>';
+  } else {
+    if (icono) icono.textContent = '⏰';
+    if (titulo) titulo.textContent = 'Período de prueba vencido';
+    if (desc) desc.innerHTML = 'Tu acceso de 7 días ha finalizado.<br>Para continuar usando la plataforma, contactá al administrador:<br><strong style="color:var(--vm);">hernangabrielst@gmail.com</strong>';
+  }
   document.getElementById('login-screen').classList.remove('visible');
   document.getElementById('root').style.display = 'none';
   document.getElementById('trial-expired-screen').style.display = 'flex';
@@ -2949,7 +3065,7 @@ async function authInit() {
       await checkIsAdmin();
       await registrarOActualizarUsuario(session.user.email);
       const access = await checkUserAccess(session.user.email);
-      if (access === 'expired') { mostrarAccesoVencido(session.user.email); return; }
+      if (access === 'expired' || access === 'blocked') { mostrarAccesoVencido(session.user.email, access); return; }
       document.getElementById('login-screen').classList.remove('visible');
       document.getElementById('root').style.display = '';
     } else {
@@ -3048,7 +3164,7 @@ async function authSubmit() {
   if (u2) {
     await registrarOActualizarUsuario(u2.email);
     const access = await checkUserAccess(u2.email);
-    if (access === 'expired') { mostrarAccesoVencido(u2.email); return; }
+    if (access === 'expired' || access === 'blocked') { mostrarAccesoVencido(u2.email, access); return; }
   }
   document.getElementById('login-screen').classList.remove('visible');
   document.getElementById('root').style.display = '';
@@ -3219,9 +3335,9 @@ document.addEventListener('visibilitychange', async () => {
 <!-- PANTALLA ACCESO VENCIDO -->
 <div id="trial-expired-screen" style="display:none;position:fixed;inset:0;background:var(--vd);z-index:9999;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;">
   <div style="background:var(--vu);border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.3);text-align:center;display:flex;flex-direction:column;gap:20px;">
-    <div style="font-size:48px;">⏰</div>
-    <h1 style="font-family:'Josefin Slab',serif;color:var(--vd);font-size:1.5rem;font-weight:700;margin:0;">Período de prueba vencido</h1>
-    <p style="color:var(--vc);font-size:0.9rem;margin:0;line-height:1.6;">
+    <div id="trial-expired-icon" style="font-size:48px;">⏰</div>
+    <h1 id="trial-expired-title" style="font-family:'Josefin Slab',serif;color:var(--vd);font-size:1.5rem;font-weight:700;margin:0;">Período de prueba vencido</h1>
+    <p id="trial-expired-desc" style="color:var(--vc);font-size:0.9rem;margin:0;line-height:1.6;">
       Tu acceso de 7 días ha finalizado.<br>
       Para continuar usando la plataforma, contactá al administrador:<br>
       <strong style="color:var(--vm);">hernangabrielst@gmail.com</strong>
@@ -3248,9 +3364,16 @@ document.addEventListener('visibilitychange', async () => {
       }
       function setData(key, data) {
         try {
-          localStorage.setItem(key, JSON.stringify(data));
+          let toSave = data;
+          let tumbas = [];
+          if (esFusionable(data)) {
+            const r = stampearCambios(key, data);
+            toSave = r.stamped;
+            tumbas = r.tumbas;
+          }
+          localStorage.setItem(key, JSON.stringify(toSave));
           if (key === "hgsp_pacientes") _pacFijoCache = null;
-          syncToSupabase(key, data);
+          syncToSupabase(key, toSave, tumbas);
         } catch (e) {
           console.error(e);
           showToast(
@@ -19414,6 +19537,24 @@ document.addEventListener('visibilitychange', async () => {
           showToast("✅ Plan actualizado: " + (labels[plan] || plan));
         }
 
+        async function bloquearUsuario(email, bloquear) {
+          const nuevoStatus = bloquear ? 'bloqueado' : 'trial';
+          const campos = { status: nuevoStatus };
+          if (!bloquear) campos.trial_end = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+          // Actualización optimista inmediata
+          setRegisteredUsers(prev => prev.map(u =>
+            u.email === email ? { ...u, status: nuevoStatus, trial_end: campos.trial_end !== undefined ? campos.trial_end : u.trial_end } : u
+          ));
+          const { data: updated, error } = await _sb.from('registered_users').update(campos).eq('email', email).select();
+          if (error) { showToast("❌ Error: " + error.message); fetchRegisteredUsers(); return; }
+          if (!updated || updated.length === 0) {
+            showToast("❌ Sin permisos para guardar. Falta política RLS en Supabase (ver consola).");
+            fetchRegisteredUsers();
+            return;
+          }
+          showToast(bloquear ? "🚫 Usuario bloqueado — no podrá ingresar" : "✅ Usuario desbloqueado (Trial 7d)");
+        }
+
         async function actualizarTrialEnd(email, nuevaFecha) {
           if (!nuevaFecha) return;
           const { data: updated, error } = await _sb.from('registered_users').update({ trial_end: nuevaFecha, status: 'trial' }).eq('email', email).select();
@@ -20615,9 +20756,10 @@ document.addEventListener('visibilitychange', async () => {
                                 return a.email.localeCompare(b.email);
                               }).map((u, i) => {
                                 const esAdmin = adminEmails.some(a => a.email === u.email);
+                                const esBloqueado = u.status === 'bloqueado';
                                 const esPro = u.status === 'pro' || u.status === 'activo';
                                 const esVip = u.status === 'vip';
-                                const esTrial = !esPro && !esVip;
+                                const esTrial = !esPro && !esVip && !esBloqueado;
                                 const now = new Date();
                                 const endDate = u.trial_end ? new Date(u.trial_end) : null;
                                 const diasRestantes = endDate ? Math.ceil((endDate - now) / 86400000) : null;
@@ -20625,7 +20767,9 @@ document.addEventListener('visibilitychange', async () => {
 
                                 // Badge único según plan + estado
                                 let badge = {};
-                                if (esVip) {
+                                if (esBloqueado) {
+                                  badge = {label:"🚫 Bloqueado", bg:"#7f1d1d", glow:false};
+                                } else if (esVip) {
                                   badge = {label:"✅ VIP", bg:"#7B2FBE", glow:false};
                                 } else if (esPro) {
                                   if (diasRestantes !== null && diasRestantes <= 0)
@@ -20693,6 +20837,19 @@ document.addEventListener('visibilitychange', async () => {
                                         {esVip && (
                                           <span style={{fontFamily:"var(--mono)", fontSize:"10px", color:"#7B2FBE", fontWeight:700}}>∞ Ilimitado</span>
                                         )}
+                                        {/* Bloquear / Desbloquear acceso */}
+                                        <button
+                                          onClick={() => bloquearUsuario(u.email, !esBloqueado)}
+                                          title={esBloqueado ? "Restaurar acceso (Trial 7d)" : "Bloquear: no podrá ingresar a la plataforma"}
+                                          style={{fontFamily:"var(--mono)", fontSize:"10px", fontWeight:700,
+                                            padding:"3px 9px", borderRadius:"20px", cursor:"pointer",
+                                            border: esBloqueado ? "none" : "1.5px solid rgba(192,57,43,.5)",
+                                            background: esBloqueado ? "#2E7D32" : "rgba(255,255,255,.6)",
+                                            color: esBloqueado ? "#fff" : "#C0392B",
+                                            display:"flex", alignItems:"center", gap:"3px",
+                                          }}>
+                                          {esBloqueado ? "✅ Desbloquear" : "🚫 Bloquear"}
+                                        </button>
                                       </>)}
                                       {/* Admin toggle — siempre al final */}
                                       <span style={{marginLeft:"auto"}}>
