@@ -3422,6 +3422,15 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       /* FASE 2 — DATOS DE EJEMPLO (SEED)       */
       /* ═══════════════════════════════════════ */
+      // Vías por las que se efectiviza el pago de cada obra social
+      const VIA_LIQUIDACION = [
+        { v: "colegio_cordoba", l: "Colegio de Psicólogos de Córdoba" },
+        { v: "colegio_rio_cuarto", l: "Colegio de Psicólogos de Río Cuarto" },
+        { v: "directo", l: "Directo (la propia obra social)" },
+      ];
+      function labelViaLiquidacion(v) {
+        return (VIA_LIQUIDACION.find((x) => x.v === v) || {}).l || "Sin especificar";
+      }
       // Lista canónica de obras sociales del sistema
       const OS_ESTANDAR = [
         {
@@ -3429,22 +3438,24 @@ document.addEventListener('visibilitychange', async () => {
           nombre: "Mutual Médica",
           valorOrden: 28000,
           valorCoseguro: 14000,
+          viaLiquidacion: "",
         },
-        { id: "os2", nombre: "OSSEG", valorOrden: 24000, valorCoseguro: 12000 },
-        { id: "os3", nombre: "ASPURC", valorOrden: 0, valorCoseguro: 0 },
-        { id: "os4", nombre: "OSSACRA", valorOrden: 0, valorCoseguro: 0 },
+        { id: "os2", nombre: "OSSEG", valorOrden: 24000, valorCoseguro: 12000, viaLiquidacion: "" },
+        { id: "os3", nombre: "ASPURC", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "directo" },
+        { id: "os4", nombre: "OSSACRA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "directo" },
         {
           id: "os5",
           nombre: "Prevención Salud",
           valorOrden: 0,
           valorCoseguro: 0,
+          viaLiquidacion: "",
         },
-        { id: "os6", nombre: "Sancor Salud", valorOrden: 0, valorCoseguro: 0 },
-        { id: "os7", nombre: "OSPACA", valorOrden: 0, valorCoseguro: 0 },
-        { id: "os8", nombre: "OSDE", valorOrden: 0, valorCoseguro: 0 },
-        { id: "os9", nombre: "Swiss Medical", valorOrden: 0, valorCoseguro: 0 },
-        { id: "os10", nombre: "IOMA", valorOrden: 0, valorCoseguro: 0 },
-        { id: "os11", nombre: "PAMI", valorOrden: 0, valorCoseguro: 0 },
+        { id: "os6", nombre: "Sancor Salud", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
+        { id: "os7", nombre: "OSPACA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
+        { id: "os8", nombre: "OSDE", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
+        { id: "os9", nombre: "Swiss Medical", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
+        { id: "os10", nombre: "IOMA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
+        { id: "os11", nombre: "PAMI", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
       ];
 
       function seedData() {
@@ -3477,6 +3488,26 @@ document.addEventListener('visibilitychange', async () => {
             ];
             setData("hgsp_config", cfgActual);
           }
+        }
+
+        // Migración: ASPURC y OSSACRA se liquidan directo (no vía Colegio)
+        if (!localStorage.getItem("hgsp_migr_viaLiquidacionDirecta")) {
+          const cfgVia = getData("hgsp_config");
+          if (cfgVia && Array.isArray(cfgVia.obrasSociales)) {
+            let cambio = false;
+            cfgVia.obrasSociales = cfgVia.obrasSociales.map((o) => {
+              if (
+                (o.nombre === "ASPURC" || o.nombre === "OSSACRA") &&
+                !o.viaLiquidacion
+              ) {
+                cambio = true;
+                return { ...o, viaLiquidacion: "directo" };
+              }
+              return o;
+            });
+            if (cambio) setData("hgsp_config", cfgVia);
+          }
+          localStorage.setItem("hgsp_migr_viaLiquidacionDirecta", "1");
         }
 
         // Migración: eliminar auto-notas "Posee novedades de semanas anteriores" generadas automáticamente
@@ -15638,23 +15669,86 @@ document.addEventListener('visibilitychange', async () => {
       /* ═══════════════════════════════════════ */
       function TabLiquidaciones({ mes, anio }) {
         const [presentadas, setPresentadas] = useState({});
+        const [cobros, setCobros] = useState(() => getData("hgsp_cobros"));
+        const [pagoAbierto, setPagoAbierto] = useState({});
+        const [pagoForm, setPagoForm] = useState({});
 
         useEffect(() => {
-          setPresentadas(
-            JSON.parse(
-              localStorage.getItem("hgsp_liquidaciones_presentadas") || "{}",
-            ),
-          );
+          setPresentadas(getData("hgsp_liquidaciones_presentadas") || {});
+          setCobros(getData("hgsp_cobros"));
         }, [mes, anio]);
 
-        function marcar(key) {
+        const config = getData("hgsp_config") || {};
+
+        function liqId(pacId) {
+          return `liq_${anio}_${mes}_${pacId}`;
+        }
+
+        /* Presenta la planilla: guarda el flag y crea/actualiza un cobro
+           "pendiente de cobro" por paciente, para que aparezca en Cobros
+           y en el dashboard hasta que se registre el pago real. */
+        function marcar(key, os, porPac) {
           const u = { ...presentadas, [key]: true };
           setPresentadas(u);
-          localStorage.setItem(
-            "hgsp_liquidaciones_presentadas",
-            JSON.stringify(u),
-          );
+          setData("hgsp_liquidaciones_presentadas", u);
+
+          const all = getData("hgsp_cobros");
+          porPac.forEach(({ pac, ses }) => {
+            const monto = (pac.valorOrden || 0) * ses.length;
+            if (monto <= 0) return;
+            const id = liqId(pac.id);
+            const idx = all.findIndex((c) => c.id === id);
+            if (idx >= 0) {
+              all[idx] = { ...all[idx], monto, obraSocial: os };
+            } else {
+              all.push({
+                id,
+                pacienteId: pac.id,
+                fecha: `${anio}-${String(mes).padStart(2, "0")}-01`,
+                concepto: "liquidacion",
+                monto,
+                cobrado: false,
+                metodoPago: "obra_social",
+                obraSocial: os,
+              });
+            }
+          });
+          setData("hgsp_cobros", all);
+          setCobros(all);
           showToast("✅ Liquidación marcada como presentada");
+        }
+
+        function abrirPago(key, total) {
+          setPagoForm((p) => ({
+            ...p,
+            [key]: { monto: total, fecha: dateStr(new Date()) },
+          }));
+          setPagoAbierto((p) => ({ ...p, [key]: true }));
+        }
+
+        function confirmarPago(key, porPac, totalEsperado) {
+          const form = pagoForm[key] || {};
+          if (!form.fecha || !(Number(form.monto) >= 0)) {
+            showToast("⚠️ Ingresá el monto y la fecha del pago");
+            return;
+          }
+          const all = getData("hgsp_cobros");
+          porPac.forEach(({ pac }) => {
+            const idx = all.findIndex((c) => c.id === liqId(pac.id));
+            if (idx >= 0) all[idx] = { ...all[idx], cobrado: true, fecha: form.fecha };
+          });
+          setData("hgsp_cobros", all);
+          setCobros(all);
+          setPagoAbierto((p) => ({ ...p, [key]: false }));
+
+          const diferencia = Number(form.monto) - totalEsperado;
+          if (Math.abs(diferencia) >= 1) {
+            showToast(
+              `✅ Pago registrado — diferencia de $${Math.abs(diferencia).toLocaleString("es-AR")} respecto a lo presentado (${diferencia > 0 ? "a favor" : "de menos"})`,
+            );
+          } else {
+            showToast("✅ Pago registrado, coincide con lo presentado");
+          }
         }
 
         const sesiones = getData("hgsp_sesiones");
@@ -15681,7 +15775,12 @@ document.addEventListener('visibilitychange', async () => {
           osMap[os].push({ s, pac });
         });
 
-        const entries = Object.entries(osMap);
+        const ordenVia = ["colegio_cordoba", "colegio_rio_cuarto", "directo", ""];
+        const entries = Object.entries(osMap).sort((a, b) => {
+          const viaA = (config.obrasSociales || []).find((o) => o.nombre === a[0])?.viaLiquidacion || "";
+          const viaB = (config.obrasSociales || []).find((o) => o.nombre === b[0])?.viaLiquidacion || "";
+          return ordenVia.indexOf(viaA) - ordenVia.indexOf(viaB);
+        });
 
         if (!entries.length) {
           return (
@@ -15691,11 +15790,14 @@ document.addEventListener('visibilitychange', async () => {
           );
         }
 
+        let viaAnterior = null;
+
         return (
           <div>
             {entries.map(([os, items]) => {
               const key = `${anio}-${mes}-${os}`;
               const pres = !!presentadas[key];
+              const via = (config.obrasSociales || []).find((o) => o.nombre === os)?.viaLiquidacion || "";
 
               /* agrupar por paciente dentro de la OS */
               const porPac = Object.values(
@@ -15711,199 +15813,309 @@ document.addEventListener('visibilitychange', async () => {
                 0,
               );
 
+              /* estado real de cobro, según los registros en hgsp_cobros */
+              const cobrosOS = cobros.filter(
+                (c) =>
+                  c.concepto === "liquidacion" &&
+                  c.id === `liq_${anio}_${mes}_${c.pacienteId}` &&
+                  porPac.some(({ pac }) => pac.id === c.pacienteId),
+              );
+              const pagado = cobrosOS.length > 0 && cobrosOS.every((c) => c.cobrado);
+              const montoPagado = cobrosOS.filter((c) => c.cobrado).reduce((s, c) => s + c.monto, 0);
+              const fechaPago = pagado
+                ? cobrosOS.reduce((f, c) => (c.fecha > f ? c.fecha : f), "")
+                : null;
+
+              const mostrarSepVia = via !== viaAnterior;
+              viaAnterior = via;
+
               return (
-                <div
-                  key={os}
-                  className="card"
-                  style={{
-                    marginBottom: "20px",
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  {pres && (
+                <React.Fragment key={os}>
+                  {mostrarSepVia && (
                     <div
                       style={{
-                        position: "absolute",
-                        top: 0,
-                        right: 0,
-                        background: "#1E3D2B",
-                        color: "#A8DDB8",
-                        padding: "4px 14px",
-                        borderRadius: "0 var(--r) 0 12px",
                         fontFamily: "var(--mono)",
-                        fontSize: "10px",
+                        fontSize: "11px",
                         fontWeight: 700,
+                        color: "var(--tx3)",
+                        textTransform: "uppercase",
+                        letterSpacing: ".06em",
+                        margin: "18px 0 8px",
+                        paddingBottom: "4px",
+                        borderBottom: "1px solid #DDD5C4",
                       }}
                     >
-                      PRESENTADA
+                      🏛️ {labelViaLiquidacion(via)}
                     </div>
                   )}
-
-                  {/* cabecera OS */}
                   <div
+                    className="card"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      marginBottom: "14px",
+                      marginBottom: "20px",
+                      position: "relative",
+                      overflow: "hidden",
                     }}
                   >
-                    <div
-                      className="card-header-icon"
-                      style={{
-                        width: "38px",
-                        height: "38px",
-                        fontSize: "20px",
-                      }}
-                    >
-                      🏥
-                    </div>
-                    <div>
+                    {pagado ? (
                       <div
                         style={{
-                          fontFamily: "var(--serif2)",
-                          fontSize: "17px",
-                          fontWeight: 700,
-                          color: "var(--vd)",
-                        }}
-                      >
-                        {os}
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--mono)",
-                          fontSize: "11px",
-                          color: "var(--tx3)",
-                        }}
-                      >
-                        {items.length} sesión{items.length !== 1 ? "es" : ""} ·{" "}
-                        {MESES_FULL[mes - 1]} {anio}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* tabla */}
-                  <div className="tbl-wrap">
-                    <table className="tbl">
-                      <thead>
-                        <tr>
-                          <th>Nº</th>
-                          <th>Apellido y Nombre</th>
-                          <th>Fechas</th>
-                          <th style={{ textAlign: "center" }}>Cant.</th>
-                          <th style={{ textAlign: "right" }}>$ Unitario</th>
-                          <th style={{ textAlign: "right" }}>Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {porPac.map(({ pac, ses }, idx) => {
-                          const sub = (pac.valorOrden || 0) * ses.length;
-                          return (
-                            <tr key={pac.id}>
-                              <td
-                                style={{
-                                  fontFamily: "var(--mono)",
-                                  fontSize: "11px",
-                                  color: "var(--tx3)",
-                                }}
-                              >
-                                {idx + 1}
-                              </td>
-                              <td style={{ fontWeight: 600 }}>
-                                {pac.apellido}, {pac.nombre}
-                              </td>
-                              <td
-                                style={{
-                                  fontFamily: "var(--mono)",
-                                  fontSize: "11px",
-                                  color: "var(--tx3)",
-                                }}
-                              >
-                                {ses.map((s) => s.fecha.slice(8)).join(" · ")}
-                              </td>
-                              <td
-                                style={{
-                                  textAlign: "center",
-                                  fontFamily: "var(--mono)",
-                                }}
-                              >
-                                {ses.length}
-                              </td>
-                              <td
-                                style={{
-                                  textAlign: "right",
-                                  fontFamily: "var(--mono)",
-                                }}
-                              >
-                                ${(pac.valorOrden || 0).toLocaleString("es-AR")}
-                              </td>
-                              <td
-                                style={{
-                                  textAlign: "right",
-                                  fontFamily: "var(--mono)",
-                                  fontWeight: 700,
-                                  color: "var(--vd)",
-                                }}
-                              >
-                                ${sub.toLocaleString("es-AR")}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* pie */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginTop: "14px",
-                      paddingTop: "12px",
-                      borderTop: "2px solid #DDD5C4",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          background: "#1E3D2B",
+                          color: "#A8DDB8",
+                          padding: "4px 14px",
+                          borderRadius: "0 var(--r) 0 12px",
                           fontFamily: "var(--mono)",
                           fontSize: "10px",
-                          color: "var(--tx3)",
-                          textTransform: "uppercase",
-                          letterSpacing: ".05em",
+                          fontWeight: 700,
                         }}
                       >
-                        Total liquidación
+                        ✅ COBRADA {fechaPago ? `· ${fechaPago.slice(8)}/${fechaPago.slice(5, 7)}` : ""}
                       </div>
+                    ) : pres ? (
                       <div
                         style={{
-                          fontFamily: "var(--data)",
-                          fontSize: "24px",
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          background: "#7A5200",
+                          color: "#FDEAAA",
+                          padding: "4px 14px",
+                          borderRadius: "0 var(--r) 0 12px",
+                          fontFamily: "var(--mono)",
+                          fontSize: "10px",
                           fontWeight: 700,
-                          color: "var(--vd)",
                         }}
                       >
-                        ${total.toLocaleString("es-AR")}
+                        PRESENTADA · PENDIENTE DE COBRO
+                      </div>
+                    ) : null}
+
+                    {/* cabecera OS */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        marginBottom: "14px",
+                      }}
+                    >
+                      <div
+                        className="card-header-icon"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                          fontSize: "20px",
+                        }}
+                      >
+                        🏥
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontFamily: "var(--serif2)",
+                            fontSize: "17px",
+                            fontWeight: 700,
+                            color: "var(--vd)",
+                          }}
+                        >
+                          {os}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "var(--mono)",
+                            fontSize: "11px",
+                            color: "var(--tx3)",
+                          }}
+                        >
+                          {items.length} sesión{items.length !== 1 ? "es" : ""} ·{" "}
+                          {MESES_FULL[mes - 1]} {anio}
+                        </div>
                       </div>
                     </div>
-                    {!pres ? (
-                      <button className="btn btn-p" onClick={() => marcar(key)}>
-                        📤 Marcar como presentada
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-sec"
-                        disabled
-                        style={{ opacity: 0.55 }}
+
+                    {/* tabla */}
+                    <div className="tbl-wrap">
+                      <table className="tbl">
+                        <thead>
+                          <tr>
+                            <th>Nº</th>
+                            <th>Apellido y Nombre</th>
+                            <th>Fechas</th>
+                            <th style={{ textAlign: "center" }}>Cant.</th>
+                            <th style={{ textAlign: "right" }}>$ Unitario</th>
+                            <th style={{ textAlign: "right" }}>Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {porPac.map(({ pac, ses }, idx) => {
+                            const sub = (pac.valorOrden || 0) * ses.length;
+                            return (
+                              <tr key={pac.id}>
+                                <td
+                                  style={{
+                                    fontFamily: "var(--mono)",
+                                    fontSize: "11px",
+                                    color: "var(--tx3)",
+                                  }}
+                                >
+                                  {idx + 1}
+                                </td>
+                                <td style={{ fontWeight: 600 }}>
+                                  {pac.apellido}, {pac.nombre}
+                                </td>
+                                <td
+                                  style={{
+                                    fontFamily: "var(--mono)",
+                                    fontSize: "11px",
+                                    color: "var(--tx3)",
+                                  }}
+                                >
+                                  {ses.map((s) => s.fecha.slice(8)).join(" · ")}
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "center",
+                                    fontFamily: "var(--mono)",
+                                  }}
+                                >
+                                  {ses.length}
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "right",
+                                    fontFamily: "var(--mono)",
+                                  }}
+                                >
+                                  ${(pac.valorOrden || 0).toLocaleString("es-AR")}
+                                </td>
+                                <td
+                                  style={{
+                                    textAlign: "right",
+                                    fontFamily: "var(--mono)",
+                                    fontWeight: 700,
+                                    color: "var(--vd)",
+                                  }}
+                                >
+                                  ${sub.toLocaleString("es-AR")}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* pie */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: "14px",
+                        paddingTop: "12px",
+                        borderTop: "2px solid #DDD5C4",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontFamily: "var(--mono)",
+                            fontSize: "10px",
+                            color: "var(--tx3)",
+                            textTransform: "uppercase",
+                            letterSpacing: ".05em",
+                          }}
+                        >
+                          {pagado ? "Total cobrado" : "Total liquidación"}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "var(--data)",
+                            fontSize: "24px",
+                            fontWeight: 700,
+                            color: "var(--vd)",
+                          }}
+                        >
+                          ${(pagado ? montoPagado : total).toLocaleString("es-AR")}
+                        </div>
+                      </div>
+                      {!pres ? (
+                        <button className="btn btn-p" onClick={() => marcar(key, os, porPac)}>
+                          📤 Marcar como presentada
+                        </button>
+                      ) : pagado ? (
+                        <button
+                          className="btn btn-sec"
+                          disabled
+                          style={{ opacity: 0.55 }}
+                        >
+                          ✅ Cobrada
+                        </button>
+                      ) : (
+                        <button className="btn btn-p" onClick={() => abrirPago(key, total)}>
+                          💰 Registrar pago
+                        </button>
+                      )}
+                    </div>
+
+                    {pagoAbierto[key] && !pagado && (
+                      <div
+                        style={{
+                          marginTop: "14px",
+                          padding: "12px",
+                          background: "rgba(0,0,0,.04)",
+                          borderRadius: "12px",
+                          display: "flex",
+                          gap: "10px",
+                          flexWrap: "wrap",
+                          alignItems: "flex-end",
+                        }}
                       >
-                        ✅ Presentada
-                      </button>
+                        <div style={{ flex: 1, minWidth: "120px" }}>
+                          <div style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--tx3)", marginBottom: "4px" }}>
+                            Monto real depositado
+                          </div>
+                          <input
+                            type="number"
+                            className="input-base"
+                            style={{ fontFamily: "var(--mono)" }}
+                            value={pagoForm[key]?.monto ?? total}
+                            onChange={(e) =>
+                              setPagoForm((p) => ({ ...p, [key]: { ...p[key], monto: e.target.value } }))
+                            }
+                          />
+                        </div>
+                        <div style={{ flex: 1, minWidth: "120px" }}>
+                          <div style={{ fontFamily: "var(--mono)", fontSize: "10px", color: "var(--tx3)", marginBottom: "4px" }}>
+                            Fecha del pago
+                          </div>
+                          <input
+                            type="date"
+                            className="input-base"
+                            style={{ fontFamily: "var(--mono)" }}
+                            value={pagoForm[key]?.fecha ?? dateStr(new Date())}
+                            onChange={(e) =>
+                              setPagoForm((p) => ({ ...p, [key]: { ...p[key], fecha: e.target.value } }))
+                            }
+                          />
+                        </div>
+                        <button className="btn btn-p" onClick={() => confirmarPago(key, porPac, total)}>
+                          ✔️ Confirmar
+                        </button>
+                        <button
+                          className="btn btn-sec"
+                          onClick={() => setPagoAbierto((p) => ({ ...p, [key]: false }))}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
                     )}
                   </div>
-                </div>
+                </React.Fragment>
               );
             })}
           </div>
@@ -19316,6 +19528,7 @@ document.addEventListener('visibilitychange', async () => {
           nombre: "",
           valorOrden: "",
           valorCoseguro: "",
+          viaLiquidacion: "",
         });
         // Secciones colapsables: todas cerradas por defecto
         const [open, setOpen] = useState({
@@ -19433,10 +19646,11 @@ document.addEventListener('visibilitychange', async () => {
                 nombre: nuevoOS.nombre.trim(),
                 valorOrden: Number(nuevoOS.valorOrden) || 0,
                 valorCoseguro: Number(nuevoOS.valorCoseguro) || 0,
+                viaLiquidacion: nuevoOS.viaLiquidacion || "",
               },
             ],
           }));
-          setNuevoOS({ nombre: "", valorOrden: "", valorCoseguro: "" });
+          setNuevoOS({ nombre: "", valorOrden: "", valorCoseguro: "", viaLiquidacion: "" });
         }
 
         function handleClear() {
@@ -20195,6 +20409,7 @@ document.addEventListener('visibilitychange', async () => {
                               "Obra Social",
                               "Valor orden",
                               "Coseguro",
+                              "Vía de liquidación",
                               editMode ? "Acciones" : "",
                             ].map((h, i) => (
                               <th
@@ -20211,7 +20426,7 @@ document.addEventListener('visibilitychange', async () => {
                                   borderRadius:
                                     i === 0
                                       ? "10px 0 0 10px"
-                                      : i === (editMode ? 3 : 2)
+                                      : i === (editMode ? 4 : 3)
                                         ? "0 10px 10px 0"
                                         : "0",
                                 }}
@@ -20302,6 +20517,30 @@ document.addEventListener('visibilitychange', async () => {
                                   `$${(os.valorCoseguro || 0).toLocaleString("es-AR")}`
                                 )}
                               </td>
+                              <td
+                                style={{
+                                  padding: "8px 12px",
+                                  fontFamily: "var(--mono)",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {editMode ? (
+                                  <select
+                                    style={{ ...editInput, fontFamily: "var(--mono)", fontSize: "12px" }}
+                                    value={os.viaLiquidacion || ""}
+                                    onChange={(e) =>
+                                      updOS(os.id, "viaLiquidacion", e.target.value)
+                                    }
+                                  >
+                                    <option value="">Sin especificar</option>
+                                    {VIA_LIQUIDACION.map((v) => (
+                                      <option key={v.v} value={v.v}>{v.l}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  labelViaLiquidacion(os.viaLiquidacion)
+                                )}
+                              </td>
                               {editMode && (
                                 <td style={{ padding: "8px 12px" }}>
                                   <button
@@ -20390,6 +20629,24 @@ document.addEventListener('visibilitychange', async () => {
                                 }))
                               }
                             />
+                          </div>
+                          <div style={{ flex: 2, minWidth: "160px" }}>
+                            <div style={monoLabel}>Vía de liquidación</div>
+                            <select
+                              style={{ ...editInput, fontFamily: "var(--mono)", fontSize: "12px" }}
+                              value={nuevoOS.viaLiquidacion}
+                              onChange={(e) =>
+                                setNuevoOS((n) => ({
+                                  ...n,
+                                  viaLiquidacion: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="">Sin especificar</option>
+                              {VIA_LIQUIDACION.map((v) => (
+                                <option key={v.v} value={v.v}>{v.l}</option>
+                              ))}
+                            </select>
                           </div>
                           <button
                             className="btn btn-g"
