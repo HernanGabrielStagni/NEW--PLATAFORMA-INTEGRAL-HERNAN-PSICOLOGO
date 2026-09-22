@@ -9968,6 +9968,7 @@ document.addEventListener('visibilitychange', async () => {
         onClose,
         onSave,
         onDelete,
+        onStopRepeat,
       }) {
         const [f, setF] = useState(() => {
           if (reserva) return { ...reserva };
@@ -10003,7 +10004,8 @@ document.addEventListener('visibilitychange', async () => {
           const catInfo =
             RESERVA_CATS.find((c) => c.v === f.categoria) || RESERVA_CATS[0];
           const tit = f.titulo.trim() || catInfo.l;
-          onSave({ ...f, titulo: tit });
+          const { repetirSemanal, ...resto } = f;
+          onSave({ ...resto, titulo: tit }, repetirSemanal);
         }
 
         const isEditar = !!reserva;
@@ -10298,6 +10300,43 @@ document.addEventListener('visibilitychange', async () => {
                     />
                   </div>
                 </div>
+
+                {/* REPETICIÓN SEMANAL */}
+                {!isEditar && (
+                  <label
+                    style={{
+                      display: "flex", alignItems: "center", gap: "8px",
+                      marginBottom: "14px", fontSize: "12px", fontFamily: "var(--sans)",
+                      color: "rgba(255,255,255,.75)", cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!f.repetirSemanal}
+                      onChange={(e) => upd("repetirSemanal", e.target.checked)}
+                    />
+                    🔁 Repetir todas las semanas (se genera sola al "Activar semana")
+                  </label>
+                )}
+                {isEditar && f.reservaRecurrenteId && (
+                  <div
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      gap: "10px", marginBottom: "14px", padding: "9px 12px",
+                      background: "rgba(200,146,42,.1)", border: "1px solid rgba(200,146,42,.3)",
+                      borderRadius: "10px", fontSize: "12px", color: "rgba(255,255,255,.75)",
+                    }}
+                  >
+                    <span>🔁 Esta reserva se repite todas las semanas</span>
+                    <button
+                      className="act-link"
+                      style={{ color: "#C0392B", fontFamily: "var(--mono)", fontSize: "11px", cursor: "pointer" }}
+                      onClick={() => onStopRepeat && onStopRepeat(f.reservaRecurrenteId)}
+                    >
+                      🔕 Dejar de repetir
+                    </button>
+                  </div>
+                )}
 
                 {/* ESTADO */}
                 <div className="modal-label">Estado</div>
@@ -10711,6 +10750,45 @@ document.addEventListener('visibilitychange', async () => {
             setData("hgsp_eventos", eventos);
           }
 
+          loadData();
+        }
+        /* Guarda la definición recurrente de una reserva (Pádel, capacitación, etc.)
+           para que "Activar semana" la vuelva a generar sola cada semana. */
+        function guardarReservaRecurrente(s) {
+          const [y, m, d] = s.fecha.split("-").map(Number);
+          const diaIdx = new Date(y, m - 1, d).getDay(); // 0=domingo
+          const dia = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][diaIdx];
+          const all = getData("hgsp_reservas_recurrentes") || [];
+          const yaExiste = all.find(
+            (r) => r.dia === dia && r.horaInicio === s.horaInicio && r.titulo === s.titulo,
+          );
+          if (yaExiste) return;
+          const id = genId();
+          all.push({
+            id,
+            dia,
+            horaInicio: s.horaInicio,
+            horaFin: s.horaFin,
+            categoria: s.categoria || "personal",
+            iconoCustom: s.iconoCustom || "",
+            titulo: s.titulo,
+            colorLabel: s.colorLabel || "",
+          });
+          setData("hgsp_reservas_recurrentes", all);
+          /* vincula la instancia recién creada con su definición recurrente */
+          const todas = getData("hgsp_sesiones");
+          const idx = todas.findIndex((x) => x.id === s.id);
+          if (idx >= 0) {
+            todas[idx] = { ...todas[idx], reservaRecurrenteId: id };
+            setData("hgsp_sesiones", todas);
+          }
+        }
+        function eliminarReservaRecurrente(id) {
+          setData(
+            "hgsp_reservas_recurrentes",
+            (getData("hgsp_reservas_recurrentes") || []).filter((r) => r.id !== id),
+          );
+          showToast("🔕 Dejó de repetirse — las reservas ya generadas quedan igual");
           loadData();
         }
         /* Resuelve un ítem de novedad seteando su campo a true en la sesión */
@@ -11159,6 +11237,35 @@ document.addEventListener('visibilitychange', async () => {
                 });
                 aCoordinar++;
               }
+            }
+          });
+
+          /* Reservas de horario recurrentes (Pádel, capacitaciones, etc.) */
+          const reservasRec = getData("hgsp_reservas_recurrentes") || [];
+          reservasRec.forEach((r) => {
+            const diaIdx = DIAS_SEMANA.indexOf(r.dia);
+            if (diaIdx < 0 || diaIdx >= weekDates.length) return;
+            const fecha = dateStr(weekDates[diaIdx]);
+            const yaExiste = allSesiones.find(
+              (s) => s.reservaRecurrenteId === r.id && s.fecha === fecha,
+            );
+            if (!yaExiste) {
+              allSesiones.push({
+                id: genId(),
+                tipo: "reserva_personal",
+                categoria: r.categoria || "personal",
+                iconoCustom: r.iconoCustom || "",
+                titulo: r.titulo,
+                fecha,
+                horaInicio: r.horaInicio,
+                horaFin: r.horaFin,
+                estado: "pendiente",
+                cobrado: false,
+                notas: "",
+                colorLabel: r.colorLabel || "",
+                reservaRecurrenteId: r.id,
+              });
+              creados++;
             }
           });
 
@@ -12330,13 +12437,18 @@ document.addEventListener('visibilitychange', async () => {
                 defaultFecha={modalReserva.fecha}
                 defaultHora={modalReserva.hora}
                 onClose={() => setModalReserva(null)}
-                onSave={(s) => {
+                onSave={(s, repetir) => {
                   saveSesion(s);
+                  if (repetir) guardarReservaRecurrente(s);
                   setModalReserva(null);
-                  showToast("🔒 Reserva guardada");
+                  showToast(repetir ? "🔒🔁 Reserva guardada — se va a repetir cada semana" : "🔒 Reserva guardada");
                 }}
                 onDelete={(s) => {
                   deleteReserva(s.id);
+                }}
+                onStopRepeat={(id) => {
+                  eliminarReservaRecurrente(id);
+                  setModalReserva(null);
                 }}
               />
             )}
