@@ -3431,31 +3431,41 @@ document.addEventListener('visibilitychange', async () => {
       function labelViaLiquidacion(v) {
         return (VIA_LIQUIDACION.find((x) => x.v === v) || {}).l || "Sin especificar";
       }
+      // Cómo se liquida cada obra social: por sesión (valorOrden × cantidad) o un
+      // bono mensual fijo por paciente, sin importar cuántas sesiones tuvo ese mes.
+      const MODALIDAD_LIQUIDACION = [
+        { v: "por_sesion", l: "Por sesión" },
+        { v: "mensual_fijo", l: "Bono mensual fijo" },
+      ];
       // Lista canónica de obras sociales del sistema
       const OS_ESTANDAR = [
         {
           id: "os1",
           nombre: "Mutual Médica",
-          valorOrden: 28000,
+          valorOrden: 24000,
           valorCoseguro: 14000,
           viaLiquidacion: "",
+          modalidadLiquidacion: "por_sesion",
+          montoMensual: 0,
         },
-        { id: "os2", nombre: "OSSEG", valorOrden: 24000, valorCoseguro: 12000, viaLiquidacion: "" },
-        { id: "os3", nombre: "ASPURC", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "directo" },
-        { id: "os4", nombre: "OSSACRA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "directo" },
+        { id: "os2", nombre: "OSSEG", valorOrden: 24000, valorCoseguro: 12000, viaLiquidacion: "", modalidadLiquidacion: "por_sesion", montoMensual: 0 },
+        { id: "os3", nombre: "ASPURC", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "directo", modalidadLiquidacion: "mensual_fijo", montoMensual: 0 },
+        { id: "os4", nombre: "OSSACRA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "directo", modalidadLiquidacion: "mensual_fijo", montoMensual: 0 },
         {
           id: "os5",
           nombre: "Prevención Salud",
           valorOrden: 0,
           valorCoseguro: 0,
           viaLiquidacion: "",
+          modalidadLiquidacion: "por_sesion",
+          montoMensual: 0,
         },
-        { id: "os6", nombre: "Sancor Salud", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
-        { id: "os7", nombre: "OSPACA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
-        { id: "os8", nombre: "OSDE", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
-        { id: "os9", nombre: "Swiss Medical", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
-        { id: "os10", nombre: "IOMA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
-        { id: "os11", nombre: "PAMI", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "" },
+        { id: "os6", nombre: "Sancor Salud", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "", modalidadLiquidacion: "por_sesion", montoMensual: 0 },
+        { id: "os7", nombre: "OSPACA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "", modalidadLiquidacion: "por_sesion", montoMensual: 0 },
+        { id: "os8", nombre: "OSDE", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "", modalidadLiquidacion: "por_sesion", montoMensual: 0 },
+        { id: "os9", nombre: "Swiss Medical", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "", modalidadLiquidacion: "por_sesion", montoMensual: 0 },
+        { id: "os10", nombre: "IOMA", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "", modalidadLiquidacion: "por_sesion", montoMensual: 0 },
+        { id: "os11", nombre: "PAMI", valorOrden: 0, valorCoseguro: 0, viaLiquidacion: "", modalidadLiquidacion: "por_sesion", montoMensual: 0 },
       ];
 
       function seedData() {
@@ -3508,6 +3518,30 @@ document.addEventListener('visibilitychange', async () => {
             if (cambio) setData("hgsp_config", cfgVia);
           }
           localStorage.setItem("hgsp_migr_viaLiquidacionDirecta", "1");
+        }
+
+        // Migración: ASPURC y OSSACRA se liquidan con bono mensual fijo, no por sesión
+        if (!localStorage.getItem("hgsp_migr_modalidadMensualFijo")) {
+          const cfgMod = getData("hgsp_config");
+          if (cfgMod && Array.isArray(cfgMod.obrasSociales)) {
+            let cambio = false;
+            cfgMod.obrasSociales = cfgMod.obrasSociales.map((o) => {
+              if (
+                (o.nombre === "ASPURC" || o.nombre === "OSSACRA") &&
+                !o.modalidadLiquidacion
+              ) {
+                cambio = true;
+                return { ...o, modalidadLiquidacion: "mensual_fijo", montoMensual: o.montoMensual || 0 };
+              }
+              if (!o.modalidadLiquidacion) {
+                cambio = true;
+                return { ...o, modalidadLiquidacion: "por_sesion", montoMensual: o.montoMensual || 0 };
+              }
+              return o;
+            });
+            if (cambio) setData("hgsp_config", cfgMod);
+          }
+          localStorage.setItem("hgsp_migr_modalidadMensualFijo", "1");
         }
 
         // Migración: eliminar auto-notas "Posee novedades de semanas anteriores" generadas automáticamente
@@ -5452,6 +5486,8 @@ document.addEventListener('visibilitychange', async () => {
           const osConf = pac?.obraSocial
             ? (config.obrasSociales || []).find((o) => o.nombre === pac.obraSocial)
             : null;
+          // Bono mensual fijo: no es por sesión, no corresponde mostrarlo acá
+          if (osConf?.modalidadLiquidacion === "mensual_fijo") return 0;
           return Number(pac?.valorOrden) || Number(osConf?.valorOrden) || 0;
         }
         function valorParticularDe() {
@@ -10565,6 +10601,7 @@ document.addEventListener('visibilitychange', async () => {
                 (o) => o.nombre === pac.obraSocial,
               )
             : null;
+          if (osConf?.modalidadLiquidacion === "mensual_fijo") return 0;
           return Number(pac?.valorOrden) || Number(osConf?.valorOrden) || 0;
         }
 
@@ -15804,14 +15841,15 @@ document.addEventListener('visibilitychange', async () => {
         /* Presenta la planilla: guarda el flag y crea/actualiza un cobro
            "pendiente de cobro" por paciente, para que aparezca en Cobros
            y en el dashboard hasta que se registre el pago real. */
-        function marcar(key, os, porPac) {
+        function marcar(key, os, porPac, osConf) {
           const u = { ...presentadas, [key]: true };
           setPresentadas(u);
           setData("hgsp_liquidaciones_presentadas", u);
+          const esMensual = osConf?.modalidadLiquidacion === "mensual_fijo";
 
           const all = getData("hgsp_cobros");
           porPac.forEach(({ pac, ses }) => {
-            const monto = (pac.valorOrden || 0) * ses.length;
+            const monto = esMensual ? Number(osConf?.montoMensual) || 0 : (pac.valorOrden || 0) * ses.length;
             if (monto <= 0) return;
             const id = liqId(pac.id);
             const idx = all.findIndex((c) => c.id === id);
@@ -15914,7 +15952,9 @@ document.addEventListener('visibilitychange', async () => {
             {entries.map(([os, items]) => {
               const key = `${anio}-${mes}-${os}`;
               const pres = !!presentadas[key];
-              const via = (config.obrasSociales || []).find((o) => o.nombre === os)?.viaLiquidacion || "";
+              const osConf = (config.obrasSociales || []).find((o) => o.nombre === os);
+              const via = osConf?.viaLiquidacion || "";
+              const esMensual = osConf?.modalidadLiquidacion === "mensual_fijo";
 
               /* agrupar por paciente dentro de la OS */
               const porPac = Object.values(
@@ -15926,7 +15966,8 @@ document.addEventListener('visibilitychange', async () => {
               );
 
               const total = porPac.reduce(
-                (sum, { pac, ses }) => sum + (pac.valorOrden || 0) * ses.length,
+                (sum, { pac, ses }) =>
+                  sum + (esMensual ? Number(osConf?.montoMensual) || 0 : (pac.valorOrden || 0) * ses.length),
                 0,
               );
 
@@ -16067,7 +16108,8 @@ document.addEventListener('visibilitychange', async () => {
                         </thead>
                         <tbody>
                           {porPac.map(({ pac, ses }, idx) => {
-                            const sub = (pac.valorOrden || 0) * ses.length;
+                            const unitario = esMensual ? Number(osConf?.montoMensual) || 0 : pac.valorOrden || 0;
+                            const sub = esMensual ? unitario : unitario * ses.length;
                             return (
                               <tr key={pac.id}>
                                 <td
@@ -16105,7 +16147,7 @@ document.addEventListener('visibilitychange', async () => {
                                     fontFamily: "var(--mono)",
                                   }}
                                 >
-                                  ${(pac.valorOrden || 0).toLocaleString("es-AR")}
+                                  {esMensual ? `$${unitario.toLocaleString("es-AR")} /mes` : `$${unitario.toLocaleString("es-AR")}`}
                                 </td>
                                 <td
                                   style={{
@@ -16161,7 +16203,7 @@ document.addEventListener('visibilitychange', async () => {
                         </div>
                       </div>
                       {!pres ? (
-                        <button className="btn btn-p" onClick={() => marcar(key, os, porPac)}>
+                        <button className="btn btn-p" onClick={() => marcar(key, os, porPac, osConf)}>
                           📤 Marcar como presentada
                         </button>
                       ) : pagado ? (
@@ -19764,6 +19806,8 @@ document.addEventListener('visibilitychange', async () => {
                 valorOrden: Number(nuevoOS.valorOrden) || 0,
                 valorCoseguro: Number(nuevoOS.valorCoseguro) || 0,
                 viaLiquidacion: nuevoOS.viaLiquidacion || "",
+                modalidadLiquidacion: "por_sesion",
+                montoMensual: 0,
               },
             ],
           }));
@@ -19866,6 +19910,8 @@ document.addEventListener('visibilitychange', async () => {
               const key = `${anio}-${mes}-${os}`;
               if (presentadas[key]) return; // ya presentada: no se toca
 
+              const osConf = (cfg.obrasSociales || []).find((o) => o.nombre === os);
+              const esMensual = osConf?.modalidadLiquidacion === "mensual_fijo";
               const porPac = Object.values(
                 items.reduce((acc, { s, pac }) => {
                   if (!acc[pac.id]) acc[pac.id] = { pac, ses: [] };
@@ -19875,7 +19921,7 @@ document.addEventListener('visibilitychange', async () => {
               );
               let algunMonto = false;
               porPac.forEach(({ pac, ses }) => {
-                const monto = (pac.valorOrden || 0) * ses.length;
+                const monto = esMensual ? Number(osConf?.montoMensual) || 0 : (pac.valorOrden || 0) * ses.length;
                 if (monto <= 0) return;
                 algunMonto = true;
                 const id = `liq_${anio}_${mes}_${pac.id}`;
@@ -19906,6 +19952,31 @@ document.addEventListener('visibilitychange', async () => {
           } else {
             showToast(`✅ ${planillas} planilla${planillas !== 1 ? "s" : ""} presentada${planillas !== 1 ? "s" : ""} · ${nuevosCobros} pendiente${nuevosCobros !== 1 ? "s" : ""} de cobro generado${nuevosCobros !== 1 ? "s" : ""}`);
           }
+        }
+
+        /* Cada paciente guarda su propio "valorOrden"/"coseguro", copiados de la
+           obra social el día que se le asignó. Este botón los vuelve a copiar
+           desde la config actual, para que un ajuste de arancel llegue a todos
+           los pacientes ya cargados de esa obra social. */
+        function handleSincronizarValoresOS() {
+          const pacientes = getData("hgsp_pacientes");
+          let actualizados = 0;
+          const nuevos = pacientes.map((p) => {
+            if (!p.obraSocial || p.cobertura === "particular") return p;
+            const osConf = (cfg.obrasSociales || []).find((o) => o.nombre === p.obraSocial);
+            if (!osConf) return p;
+            const nuevoValorOrden = Number(osConf.valorOrden) || 0;
+            const nuevoCoseguro = Number(osConf.valorCoseguro) || 0;
+            if (p.valorOrden === nuevoValorOrden && p.coseguro === nuevoCoseguro) return p;
+            actualizados++;
+            return { ...p, valorOrden: nuevoValorOrden, coseguro: nuevoCoseguro };
+          });
+          if (actualizados === 0) {
+            showToast("ℹ️ Los pacientes ya coinciden con los valores actuales de su obra social");
+            return;
+          }
+          setData("hgsp_pacientes", nuevos);
+          showToast(`✅ ${actualizados} paciente${actualizados !== 1 ? "s" : ""} actualizado${actualizados !== 1 ? "s" : ""} con los valores actuales de su obra social`);
         }
 
         /* ── Admin emails ── */
@@ -20601,7 +20672,8 @@ document.addEventListener('visibilitychange', async () => {
                           <tr>
                             {[
                               "Obra Social",
-                              "Valor orden",
+                              "Modalidad",
+                              "Valor orden / mensual",
                               "Coseguro",
                               "Vía de liquidación",
                               editMode ? "Acciones" : "",
@@ -20620,7 +20692,7 @@ document.addEventListener('visibilitychange', async () => {
                                   borderRadius:
                                     i === 0
                                       ? "10px 0 0 10px"
-                                      : i === (editMode ? 4 : 3)
+                                      : i === (editMode ? 5 : 4)
                                         ? "0 10px 10px 0"
                                         : "0",
                                 }}
@@ -20661,9 +20733,53 @@ document.addEventListener('visibilitychange', async () => {
                                 style={{
                                   padding: "8px 12px",
                                   fontFamily: "var(--mono)",
+                                  fontSize: "12px",
                                 }}
                               >
                                 {editMode ? (
+                                  <select
+                                    style={{ ...editInput, fontFamily: "var(--mono)", fontSize: "12px" }}
+                                    value={os.modalidadLiquidacion || "por_sesion"}
+                                    onChange={(e) =>
+                                      updOS(os.id, "modalidadLiquidacion", e.target.value)
+                                    }
+                                  >
+                                    {MODALIDAD_LIQUIDACION.map((m) => (
+                                      <option key={m.v} value={m.v}>{m.l}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  (MODALIDAD_LIQUIDACION.find((m) => m.v === (os.modalidadLiquidacion || "por_sesion")) || {}).l
+                                )}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "8px 12px",
+                                  fontFamily: "var(--mono)",
+                                }}
+                              >
+                                {os.modalidadLiquidacion === "mensual_fijo" ? (
+                                  editMode ? (
+                                    <input
+                                      style={{
+                                        ...editInput,
+                                        fontFamily: "var(--mono)",
+                                        maxWidth: "130px",
+                                      }}
+                                      type="number"
+                                      value={os.montoMensual || 0}
+                                      onChange={(e) =>
+                                        updOS(
+                                          os.id,
+                                          "montoMensual",
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                    />
+                                  ) : (
+                                    `$${(os.montoMensual || 0).toLocaleString("es-AR")} /mes`
+                                  )
+                                ) : editMode ? (
                                   <input
                                     style={{
                                       ...editInput,
@@ -20681,7 +20797,7 @@ document.addEventListener('visibilitychange', async () => {
                                     }
                                   />
                                 ) : (
-                                  `$${(os.valorOrden || 0).toLocaleString("es-AR")}`
+                                  `$${(os.valorOrden || 0).toLocaleString("es-AR")} /sesión`
                                 )}
                               </td>
                               <td
@@ -21173,6 +21289,17 @@ document.addEventListener('visibilitychange', async () => {
                         Marca como "presentadas" las planillas de los últimos 3 meses que todavía no lo estaban,
                         y crea su pendiente de cobro — para ponerte al día si la liquidación real llega con meses de atraso.
                         No toca meses ya presentados.
+                      </p>
+                    </div>
+                    <div style={{marginBottom:"20px"}}>
+                      <button className="btn btn-p" onClick={handleSincronizarValoresOS}>
+                        🔄 Sincronizar valores de pacientes con Obras Sociales
+                      </button>
+                      <p style={{color:"var(--tx3)", fontSize:"11px", marginTop:"6px"}}>
+                        Cada paciente guarda su propia copia del "Valor orden" y "Coseguro" de su obra social,
+                        tomada el día que se la asignaste — cambiar el número acá en Configuración NO actualiza
+                        solo a los pacientes ya cargados. Usá este botón cada vez que corrijas un arancel para
+                        que se aplique retroactivamente a todos los pacientes de esa obra social.
                       </p>
                     </div>
                     {/* Usuarios — lista unificada con rol */}
