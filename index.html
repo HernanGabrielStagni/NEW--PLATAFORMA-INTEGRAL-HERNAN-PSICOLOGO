@@ -19831,6 +19831,83 @@ document.addEventListener('visibilitychange', async () => {
           showToast(`✅ ${keys.length} secciones subidas a la nube`);
         }
 
+        /* Genera retroactivamente las planillas "presentadas" y sus cobros
+           pendientes de meses anteriores (la liquidación real del Colegio
+           llega con 2-3 meses de atraso, así que hay que tener el pendiente
+           cargado desde antes). No toca meses ya marcados como presentados. */
+        function handleGenerarLiquidacionesPasadas() {
+          const nMeses = 3; // mes anterior, y los dos previos a ese
+          const sesiones = getData("hgsp_sesiones");
+          const pacientes = getData("hgsp_pacientes");
+          const presentadas = getData("hgsp_liquidaciones_presentadas") || {};
+          const cobros = getData("hgsp_cobros");
+          const hoy = new Date();
+          let planillas = 0, nuevosCobros = 0;
+
+          for (let i = 1; i <= nMeses; i++) {
+            const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+            const anio = d.getFullYear();
+            const mes = d.getMonth() + 1;
+
+            const sesMes = sesiones.filter((s) => {
+              const [y, m] = s.fecha.split("-").map(Number);
+              return y === anio && m === mes && s.estado !== "cancelo" && s.estado !== "inasistencia";
+            });
+            const osMap = {};
+            sesMes.forEach((s) => {
+              const pac = pacientes.find((p) => p.id === s.pacienteId);
+              if (!pac || pac.cobertura === "particular") return;
+              const os = pac.obraSocial || "Sin especificar";
+              if (!osMap[os]) osMap[os] = [];
+              osMap[os].push({ s, pac });
+            });
+
+            Object.entries(osMap).forEach(([os, items]) => {
+              const key = `${anio}-${mes}-${os}`;
+              if (presentadas[key]) return; // ya presentada: no se toca
+
+              const porPac = Object.values(
+                items.reduce((acc, { s, pac }) => {
+                  if (!acc[pac.id]) acc[pac.id] = { pac, ses: [] };
+                  acc[pac.id].ses.push(s);
+                  return acc;
+                }, {}),
+              );
+              let algunMonto = false;
+              porPac.forEach(({ pac, ses }) => {
+                const monto = (pac.valorOrden || 0) * ses.length;
+                if (monto <= 0) return;
+                algunMonto = true;
+                const id = `liq_${anio}_${mes}_${pac.id}`;
+                const idx = cobros.findIndex((c) => c.id === id);
+                if (idx >= 0) {
+                  cobros[idx] = { ...cobros[idx], monto, obraSocial: os };
+                } else {
+                  cobros.push({
+                    id, pacienteId: pac.id,
+                    fecha: `${anio}-${String(mes).padStart(2, "0")}-01`,
+                    concepto: "liquidacion", monto, cobrado: false,
+                    metodoPago: "obra_social", obraSocial: os,
+                  });
+                  nuevosCobros++;
+                }
+              });
+              if (algunMonto) {
+                presentadas[key] = true;
+                planillas++;
+              }
+            });
+          }
+
+          setData("hgsp_liquidaciones_presentadas", presentadas);
+          setData("hgsp_cobros", cobros);
+          if (planillas === 0) {
+            showToast("ℹ️ No había planillas pendientes de meses anteriores");
+          } else {
+            showToast(`✅ ${planillas} planilla${planillas !== 1 ? "s" : ""} presentada${planillas !== 1 ? "s" : ""} · ${nuevosCobros} pendiente${nuevosCobros !== 1 ? "s" : ""} de cobro generado${nuevosCobros !== 1 ? "s" : ""}`);
+          }
+        }
+
         /* ── Admin emails ── */
         const [adminEmails, setAdminEmails] = useState([]);
         const [adminEmailsLoading, setAdminEmailsLoading] = useState(false);
@@ -21087,6 +21164,16 @@ document.addEventListener('visibilitychange', async () => {
                       <button className="btn btn-sec" onClick={handleImport}>📂 Importar backup</button>
                       <button className="btn btn-sec" onClick={handleSyncAll}>☁️ Subir todo a la nube</button>
                       <button className="btn btn-danger" onClick={() => setModalClear(true)}>🗑️ Limpiar todo</button>
+                    </div>
+                    <div style={{marginBottom:"20px"}}>
+                      <button className="btn btn-p" onClick={handleGenerarLiquidacionesPasadas}>
+                        🗓️ Generar liquidaciones de meses anteriores
+                      </button>
+                      <p style={{color:"var(--tx3)", fontSize:"11px", marginTop:"6px"}}>
+                        Marca como "presentadas" las planillas de los últimos 3 meses que todavía no lo estaban,
+                        y crea su pendiente de cobro — para ponerte al día si la liquidación real llega con meses de atraso.
+                        No toca meses ya presentados.
+                      </p>
                     </div>
                     {/* Usuarios — lista unificada con rol */}
                     <div style={{borderTop:"1px solid rgba(0,0,0,.1)", paddingTop:"14px"}}>
