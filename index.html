@@ -11220,19 +11220,27 @@ document.addEventListener('visibilitychange', async () => {
                   Number(fecha.slice(8, 10)) > 7
                 )
                   return;
-                /* Recurrencia quincenal: si ya tuvo turno en este horario la semana
-                   pasada, esta semana no le toca (alterna en base a lo ya cargado,
-                   no a un número de semana fijo — así no se desalinea si hubo
-                   cancelaciones o reprogramaciones). */
+                /* Recurrencia quincenal: mira TODA la semana anterior (no solo el
+                   mismo día/horario), porque la sesión pudo haberse reprogramado
+                   a otro día. Solo cuenta como "tuvo su semana" si efectivamente
+                   ocurrió o sigue en pie (asistió o quedó pendiente); si se canceló,
+                   reprogramó o hubo inasistencia, NO cuenta — así el ciclo corre
+                   una semana y le vuelve a tocar ahora, en vez de saltearse. */
                 if (slot.recurrencia === "quincenal") {
-                  const fechaSemanaAnterior = dateStr(
-                    new Date(weekDates[diaIdx].getTime() - 7 * 24 * 60 * 60 * 1000),
+                  const inicioSemAnterior = dateStr(
+                    new Date(weekDates[0].getTime() - 7 * 24 * 60 * 60 * 1000),
+                  );
+                  const finSemAnterior = dateStr(
+                    new Date(weekDates[weekDates.length - 1].getTime() - 7 * 24 * 60 * 60 * 1000),
                   );
                   const tuvoSemanaAnterior = allSesiones.some(
                     (s) =>
                       s.pacienteId === pac.id &&
-                      s.fecha === fechaSemanaAnterior &&
-                      s.horaInicio === slot.horaInicio,
+                      s.fecha >= inicioSemAnterior &&
+                      s.fecha <= finSemAnterior &&
+                      s.estado !== "cancelo" &&
+                      s.estado !== "inasistencia" &&
+                      s.estado !== "reprogramo",
                   );
                   if (tuvoSemanaAnterior) return;
                 }
