@@ -11220,6 +11220,22 @@ document.addEventListener('visibilitychange', async () => {
                   Number(fecha.slice(8, 10)) > 7
                 )
                   return;
+                /* Recurrencia quincenal: si ya tuvo turno en este horario la semana
+                   pasada, esta semana no le toca (alterna en base a lo ya cargado,
+                   no a un número de semana fijo — así no se desalinea si hubo
+                   cancelaciones o reprogramaciones). */
+                if (slot.recurrencia === "quincenal") {
+                  const fechaSemanaAnterior = dateStr(
+                    new Date(weekDates[diaIdx].getTime() - 7 * 24 * 60 * 60 * 1000),
+                  );
+                  const tuvoSemanaAnterior = allSesiones.some(
+                    (s) =>
+                      s.pacienteId === pac.id &&
+                      s.fecha === fechaSemanaAnterior &&
+                      s.horaInicio === slot.horaInicio,
+                  );
+                  if (tuvoSemanaAnterior) return;
+                }
                 const yaExiste = allSesiones.find(
                   (s) =>
                     s.pacienteId === pac.id &&
@@ -13637,6 +13653,9 @@ document.addEventListener('visibilitychange', async () => {
                             title="Con qué frecuencia se carga este turno al activar la semana"
                           >
                             <option value="semanal">Todas las semanas</option>
+                            <option value="quincenal">
+                              Quincenal (cada 15 días)
+                            </option>
                             <option value="primer_semana">
                               Solo 1ª semana del mes
                             </option>
