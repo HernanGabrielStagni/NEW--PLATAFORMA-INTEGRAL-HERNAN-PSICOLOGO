@@ -2402,6 +2402,19 @@
         line-height: 1.2;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
       }
+      /* Tarjeta de turno en PC: nombre, ícono de estado y hora de inicio
+         un 30% más grandes. Celular queda intacto (no entra en este media query). */
+      @media (min-width: 768px) {
+        .ag-ses-nombre {
+          font-size: 14.3px !important;
+        }
+        .ag-ses-estado-icon {
+          font-size: 14.3px !important;
+        }
+        .ag-ses-hora-inicio {
+          font-size: 13px !important;
+        }
+      }
       /* Contenedor de badges en esquina top-right del bloque de sesión */
       .ag-badges-top {
         position: absolute;
@@ -6882,7 +6895,7 @@ document.addEventListener('visibilitychange', async () => {
                               <div style={{ display:"flex", flexDirection:"column", gap:"1px", width:"100%", overflow:"hidden" }}>
                                 {/* Fila 1: estado (izq) + alertas (der) */}
                                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", lineHeight:1, width:"100%" }}>
-                                  <span style={{ fontSize:"11px", flexShrink:0 }}>
+                                  <span className="ag-ses-estado-icon" style={{ fontSize:"11px", flexShrink:0 }}>
                                     {ESTADO_ICONS[s.estado] || "⏳"}
                                   </span>
                                   <div style={{ display:"flex", alignItems:"center", gap:"2px" }}>
@@ -6907,7 +6920,7 @@ document.addEventListener('visibilitychange', async () => {
                                   {pac ? `${pac.nombre} ${pac.apellido ? pac.apellido.charAt(0)+"." : ""}`.trim() : "—"}
                                 </div>
                                 {/* Fila 3: hora inicio */}
-                                <div className="ag-ses-hora" style={{ color: cols.text, fontSize:"10px", lineHeight:1 }}>
+                                <div className="ag-ses-hora ag-ses-hora-inicio" style={{ color: cols.text, fontSize:"10px", lineHeight:1 }}>
                                   {s.horaInicio}
                                 </div>
                                 {/* Fila 4: hora fin */}
