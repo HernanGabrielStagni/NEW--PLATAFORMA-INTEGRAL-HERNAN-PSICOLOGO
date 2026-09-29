@@ -6300,7 +6300,7 @@ document.addEventListener('visibilitychange', async () => {
           gap:"2px", padding:"0", borderRadius:"8px",
           cursor:"pointer", transition:"all .2s",
           flex:"0 0 auto",
-          width:"72px", height:"36px",   /* ancho ≈ 2× alto */
+          width:"72px", height:"42px",   /* alto +6px para el texto/ícono un 40% más grandes */
         };
         const accesos = [
           { id:"objetivos", icon:"🎯", label:"Objetivos", color:"#E8B84B", glow:"rgba(232,184,75,.45)" },
@@ -6333,9 +6333,9 @@ document.addEventListener('visibilitychange', async () => {
                         background: isOpen ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.03)",
                         boxShadow: isOpen ? "0 0 12px "+glow : "none",
                       }}>
-                      <span style={{ fontSize:"10px", lineHeight:1, filter:isOpen?"drop-shadow(0 0 4px "+glow+")":"none" }}>{icon}</span>
+                      <span style={{ fontSize:"14px", lineHeight:1, filter:isOpen?"drop-shadow(0 0 4px "+glow+")":"none" }}>{icon}</span>
                       <div style={{ display:"flex", alignItems:"center", gap:"3px" }}>
-                        <span style={{ fontFamily:"var(--mono)", fontSize:"8px", fontWeight:700, color: isOpen ? color : "rgba(255,255,255,.7)", letterSpacing:".04em", textTransform:"uppercase" }}>{label}</span>
+                        <span style={{ fontFamily:"var(--mono)", fontSize:"11px", fontWeight:700, color: isOpen ? color : "rgba(255,255,255,.7)", letterSpacing:".04em", textTransform:"uppercase" }}>{label}</span>
                         {acc.badge > 0 && <span style={{ background:"var(--do)", color:"var(--vd)", borderRadius:"8px", padding:"0 4px", fontSize:"7px", fontWeight:800, fontFamily:"var(--mono)", lineHeight:1.5 }}>{acc.badge}</span>}
                       </div>
                       <span style={{ fontFamily:"var(--mono)", fontSize:"7px", color: isOpen ? "rgba(200,146,42,.7)" : "rgba(255,255,255,.3)" }}>{isOpen?"▲":"▼"}</span>
