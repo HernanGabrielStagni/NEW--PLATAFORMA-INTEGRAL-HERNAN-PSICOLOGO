@@ -11238,8 +11238,15 @@ document.addEventListener('visibilitychange', async () => {
                    a otro día. Solo cuenta como "tuvo su semana" si efectivamente
                    ocurrió o sigue en pie (asistió o quedó pendiente); si se canceló,
                    reprogramó o hubo inasistencia, NO cuenta — así el ciclo corre
-                   una semana y le vuelve a tocar ahora, en vez de saltearse. */
-                if (slot.recurrencia === "quincenal") {
+                   una semana y le vuelve a tocar ahora, en vez de saltearse.
+                   Vale tanto si el horario está marcado quincenal como si lo está
+                   la Frecuencia del paciente (con el horario en "Todas las semanas"):
+                   antes la Frecuencia no se miraba y el turno se cargaba cada semana. */
+                const esQuincenal =
+                  slot.recurrencia === "quincenal" ||
+                  (pac.frecuencia === "quincenal" &&
+                    (slot.recurrencia || "semanal") === "semanal");
+                if (esQuincenal) {
                   const inicioSemAnterior = dateStr(
                     new Date(weekDates[0].getTime() - 7 * 24 * 60 * 60 * 1000),
                   );
