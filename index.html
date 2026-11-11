@@ -11227,12 +11227,9 @@ document.addEventListener('visibilitychange', async () => {
                 const diaIdx = DIAS_SEMANA.indexOf(slot.dia);
                 if (diaIdx < 0 || diaIdx >= weekDates.length) return;
                 const fecha = dateStr(weekDates[diaIdx]);
-                /* Recurrencia "1ª semana del mes": solo si la fecha cae entre el 1 y el 7 */
-                if (
-                  slot.recurrencia === "primer_semana" &&
-                  Number(fecha.slice(8, 10)) > 7
-                )
-                  return;
+                /* Recurrencia mensual ("1º/2º/3º/4º/último lunes del mes"):
+                   solo carga el turno si la fecha es esa ocurrencia del día en el mes */
+                if (!cumpleRecurrenciaMensual(fecha, slot.recurrencia)) return;
                 /* Recurrencia quincenal: mira TODA la semana anterior (no solo el
                    mismo día/horario), porque la sesión pudo haberse reprogramado
                    a otro día. Solo cuenta como "tuvo su semana" si efectivamente
@@ -12563,6 +12560,31 @@ document.addEventListener('visibilitychange', async () => {
         "sabado",
         "domingo",
       ];
+      /* Recurrencias mensuales de un horario fijo: "el N-ésimo {día} del mes".
+         primer_semana es el valor histórico de "Solo 1ª semana del mes" — se
+         conserva para que los horarios ya guardados sigan valiendo como "1º". */
+      const RECURRENCIAS_MENSUALES = [
+        { value: "primer_semana", label: "1º", desde: 1, hasta: 7 },
+        { value: "mes_2", label: "2º", desde: 8, hasta: 14 },
+        { value: "mes_3", label: "3º", desde: 15, hasta: 21 },
+        { value: "mes_4", label: "4º", desde: 22, hasta: 28 },
+        { value: "mes_ultimo", label: "Último" },
+      ];
+      function cumpleRecurrenciaMensual(fecha, recurrencia) {
+        const r = RECURRENCIAS_MENSUALES.find((x) => x.value === recurrencia);
+        if (!r) return true;
+        const anio = Number(fecha.slice(0, 4));
+        const mes = Number(fecha.slice(5, 7));
+        const dia = Number(fecha.slice(8, 10));
+        if (r.value === "mes_ultimo")
+          return dia + 7 > new Date(anio, mes, 0).getDate();
+        return dia >= r.desde && dia <= r.hasta;
+      }
+      function etiquetaRecurrencia(recurrencia, dia) {
+        if (recurrencia === "quincenal") return "quincenal";
+        const r = RECURRENCIAS_MENSUALES.find((x) => x.value === recurrencia);
+        return r ? `${r.label} ${dia} del mes` : "";
+      }
       const EMPTY_PAC = {
         nombre: "",
         apellido: "",
@@ -12743,12 +12765,20 @@ document.addEventListener('visibilitychange', async () => {
           }
         }, [isOpen]);
 
+        // Mayúscula inicial mientras se escribe. NO recorta espacios: si lo hiciera, el espacio
+        // recién tipeado desaparece y no se pueden escribir apellidos compuestos ("de la Cuesta").
+        // Las partículas (de, del, la…) quedan en minúscula salvo al principio; tras guion también
+        // va mayúscula ("Pérez-Gómez"). El recorte se hace al guardar.
+        const PARTICULAS = ["de", "del", "la", "las", "los", "y", "e", "da", "di", "van", "von"];
         function capitalize(str) {
           if (!str) return "";
           return str
-            .trim()
-            .split(/\s+/)
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .split(" ")
+            .map((w, i) => {
+              const low = w.toLowerCase();
+              if (i > 0 && PARTICULAS.includes(low)) return low;
+              return low.replace(/(^|-)(\S)/g, (m, sep, c) => sep + c.toUpperCase());
+            })
             .join(" ");
         }
         function upd(k, v) {
@@ -12842,6 +12872,8 @@ document.addEventListener('visibilitychange', async () => {
             showToast(`⚠️ Revisá: ${faltantes}`);
             return;
           }
+          f.nombre = f.nombre.trim().replace(/\s+/g, " ");
+          f.apellido = f.apellido.trim().replace(/\s+/g, " ");
           f.fechaUltimaModificacion = Date.now();
           onSave(f);
           onClose();
@@ -13684,9 +13716,11 @@ document.addEventListener('visibilitychange', async () => {
                             <option value="quincenal">
                               Quincenal (cada 15 días)
                             </option>
-                            <option value="primer_semana">
-                              Solo 1ª semana del mes
-                            </option>
+                            {RECURRENCIAS_MENSUALES.map((r) => (
+                              <option key={r.value} value={r.value}>
+                                {r.label} {s.dia} del mes
+                              </option>
+                            ))}
                           </select>
                           {f.diasHorarios.length > 1 && (
                             <button
@@ -14395,7 +14429,10 @@ document.addEventListener('visibilitychange', async () => {
                         <div className="data-val">
                           {p.diasHorarios
                             ?.map(
-                              (h) => `${h.dia} ${h.horaInicio}-${h.horaFin}`,
+                              (h) => {
+                                const rec = etiquetaRecurrencia(h.recurrencia, h.dia);
+                                return `${h.dia} ${h.horaInicio}-${h.horaFin}${rec ? ` (${rec})` : ""}`;
+                              },
                             )
                             .join(" · ")}
                         </div>
